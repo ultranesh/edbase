@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma db push --accept-data-loss)",
+      "Bash(pkill:*)",
+      "Bash(npx prisma:*)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"да\" npx prisma db push:*)",
+      "Bash(curl:*)",
+      "Bash(npx create-next-app@latest mektepte --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(ls:*)",
+      "Bash(psql:*)",
+      "Bash(npx tsx:*)",
+      "Bash(lsof:*)",
+      "Bash(python3:*)"
+    ]
+  }
+}

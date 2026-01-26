@@ -1,0 +1,1375 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum UserRole {
+  SUPERADMIN
+  ADMIN
+  DEPARTMENT_HEAD
+  CURATOR
+  COORDINATOR
+  TEACHER
+  PARENT
+  ONLINE_MENTOR
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum StudentStatus {
+  PENDING_APPROVAL  // Ожидает подтверждения куратором
+  ACTIVE            // Активный
+  FROZEN            // На заморозке
+  REFUND            // Возврат
+  GRADUATED         // Закончил обучение
+  INACTIVE          // Неактивен
+  EXPELLED          // Отчислен
+}
+
+enum TeacherStatus {
+  ACTIVE      // Активный
+  SUSPENDED   // Отстранен
+  RESERVE     // Резерв
+}
+
+enum SalaryFormat {
+  HOURLY    // Почасовая оплата
+  MONTHLY   // Месячная зарплата
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  ELEMENTARY
+  PRE_INTERMEDIATE
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+}
+
+enum LessonType {
+  THEORETICAL
+  PRACTICAL
+  LAB
+  TEST
+  EXAM
+}
+
+enum HomeworkStatus {
+  PENDING
+  SUBMITTED
+  CHECKED
+  LATE
+}
+
+enum TestType {
+  QUIZ
+  MIDTERM
+  FINAL
+  MOCK_EXAM
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  ESSAY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  PAYME
+  CLICK
+  UZUM
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  TERMINATED
+}
+
+enum TeacherCategory {
+  INTERN           // Стажер
+  NO_CATEGORY      // Без категории
+  FIRST_CATEGORY   // Первая категория
+  HIGHEST_CATEGORY // Высшая категория
+  EXPERT           // Эксперт
+}
+
+enum TaskFormat {
+  NISH      // НИШ
+  BIL       // БИЛ
+  RFMSH     // РФМШ
+  ENT       // ЕНТ
+  OLYMPIAD  // Олимпиадная
+  SAT       // SAT
+}
+
+enum Guarantee {
+  NONE
+  FIFTY_PERCENT
+  EIGHTY_PERCENT
+  HUNDRED_PERCENT
+}
+
+enum StudyFormat {
+  ONLINE_GROUP           // Онлайн группа
+  OFFLINE_GROUP          // Очная группа
+  ONLINE_INDIVIDUAL      // Онлайн индивидуально
+  OFFLINE_INDIVIDUAL     // Очно индивидуально
+}
+
+enum PaymentPlan {
+  ONE_TRANCHE
+  TWO_TRANCHES
+  THREE_TRANCHES
+}
+
+enum ParentDocumentType {
+  ID_CARD        // Удостоверение личности
+  RK_PASSPORT    // Паспорт гражданина РК
+  FOREIGN        // Иностранный документ
+}
+
+enum StudySchedule {
+  PSP      // Пн-Ср-Пт
+  VCS      // Вт-Чт-Сб
+  CUSTOM   // Особый (выбранные дни)
+}
+
+enum ResourceType {
+  BOOK
+  VIDEO
+  AUDIO
+  DOCUMENT
+  PRESENTATION
+  OTHER
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  EARNED
+  SPENT
+  BONUS
+  REFUND
+}
+
+enum TimeOfDay {
+  MORNING   // Утро - M
+  AFTERNOON // Обед - A
+  EVENING   // Вечер - E
+}
+
+// ==========================================
+// REFERENCE TABLES (Справочные таблицы)
+// ==========================================
+
+// Языки обучения
+model RefLanguage {
+  id        String   @id @default(uuid())
+  name      String   @unique  // казахский, русский, английский
+  code      String   @unique  // Q, R, E
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students  Student[]
+  groups    Group[]
+
+  @@map("ref_languages")
+}
+
+// Классы обучения (0-11, выпускник)
+model RefGradeLevel {
+  id        String   @id @default(uuid())
+  name      String   @unique  // "0 класс", "1 класс", ... "11 класс", "Выпускник"
+  code      String   @unique  // 0, 1, 2, ... 11, A (для выпускника)
+  orderIndex Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students  Student[]
+  groups    Group[]
+
+  @@map("ref_grade_levels")
+}
+
+// Направления/Цели обучения
+model RefStudyDirection {
+  id        String   @id @default(uuid())
+  name      String   @unique  // СС, ЕНТ, IELTS, Продленка, etc.
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students  Student[]
+  groups    Group[]
+
+  @@map("ref_study_directions")
+}
+
+// Предметы
+model RefSubject {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  nameKz    String?
+  nameRu    String?
+  nameEn    String?
+  icon      String?
+  orderIndex Int     @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topics           RefTopic[]
+  studentSubjects  StudentSubject[]
+  groupSubjects    GroupSubject[]
+  teacherSubjects  TeacherSubject[]
+
+  @@map("ref_subjects")
+}
+
+// Темы (связаны с предметами)
+model RefTopic {
+  id        String   @id @default(uuid())
+  subjectId String
+  name      String
+  nameKz    String?
+  nameRu    String?
+  nameEn    String?
+  orderIndex Int     @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subject   RefSubject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subtopics RefSubtopic[]
+
+  @@index([subjectId])
+  @@map("ref_topics")
+}
+
+// Подтемы (связаны с темами)
+model RefSubtopic {
+  id        String   @id @default(uuid())
+  topicId   String
+  name      String
+  nameKz    String?
+  nameRu    String?
+  nameEn    String?
+  orderIndex Int     @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topic     RefTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId])
+  @@map("ref_subtopics")
+}
+
+// Города
+model RefCity {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  region    String?  // Область
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schools   RefSchool[]
+  students  Student[]
+
+  @@map("ref_cities")
+}
+
+// Школы (связаны с городами)
+model RefSchool {
+  id        String   @id @default(uuid())
+  cityId    String
+  name      String
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  city      RefCity   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  students  Student[]
+
+  @@index([cityId])
+  @@map("ref_schools")
+}
+
+// Особенности (ЗПР и т.д.)
+model RefSpecialNeed {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  description String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  studentSpecialNeeds StudentSpecialNeed[]
+
+  @@map("ref_special_needs")
+}
+
+// Индексы групп (греческие буквы)
+model RefGroupIndex {
+  id        String   @id @default(uuid())
+  name      String   @unique  // Alpha, Beta, Gamma, etc.
+  symbol    String   @unique  // α, β, γ или Alfa, Beta и т.д.
+  orderIndex Int     @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  groups    Group[]
+
+  @@map("ref_group_indexes")
+}
+
+// Категории преподавателей
+model RefTeacherCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique  // Стажер, Без категорий, etc.
+  orderIndex Int     @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teachers  Teacher[]
+
+  @@map("ref_teacher_categories")
+}
+
+// ==========================================
+// CORE TABLES
+// ==========================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  firstName     String
+  lastName      String
+  middleName    String?
+  phone         String?
+  role          UserRole
+  avatar        String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLogin     DateTime?
+
+  student       Student?
+  teacher       Teacher?
+  parent        Parent?
+  curator       Curator?
+
+  sentMessages     Message[]         @relation("SentMessages")
+  chatParticipants ChatParticipant[]
+  notifications    Notification[]
+  createdTests     Test[]
+
+  // Generated Tests
+  createdGeneratedTests GeneratedTest[]      @relation("CreatedGeneratedTests")
+  sharedGeneratedTests  GeneratedTestShare[] @relation("SharedGeneratedTests")
+
+  @@index([role, isActive])
+  @@map("users")
+}
+
+// Куратор
+model Curator {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branches  BranchCurator[]
+
+  @@map("curators")
+}
+
+model Student {
+  id               String        @id @default(uuid())
+  userId           String        @unique
+  dateOfBirth      DateTime?
+  gender           Gender?
+  address          String?
+  parentId         String?
+  status           StudentStatus @default(PENDING_APPROVAL)
+  enrollmentDate   DateTime      @default(now())
+  balance          Int           @default(0)
+  totalEarned      Int           @default(0)
+
+  // Contract status
+  contractConfirmed Boolean @default(false)
+  contractConfirmedAt DateTime?
+  contractConfirmedBy String?
+
+  // Personal info
+  studentIIN       String?
+  parentIIN        String?
+  parentName       String?
+  parentPhone      String?
+  studentPhone     String?
+  parentDocumentType   ParentDocumentType?
+  parentDocumentNumber String?
+
+  // Reference relations
+  gradeLevelId     String?
+  languageId       String?
+  studyDirectionId String?
+  cityId           String?
+  schoolId         String?
+  branchId         String?
+
+  // Study details
+  studyFormat      StudyFormat?
+  guarantee        Guarantee?
+  studySchedule    StudySchedule?
+  customDays       String[]        @default([])
+  allergy          String?
+
+  // Subscription details
+  standardMonths   Int           @default(0)
+  bonusMonths      Int           @default(0)
+  intensiveMonths  Int           @default(0)
+  freezeDays       Int           @default(0)
+  freezeEndDate    DateTime?
+  ertisDrops       Int           @default(0)
+
+  // Payment details
+  paymentPlan      PaymentPlan?
+  tranche1Amount   Float?
+  tranche1Date     DateTime?
+  tranche2Amount   Float?
+  tranche2Date     DateTime?
+  tranche3Amount   Float?
+  tranche3Date     DateTime?
+  totalAmount      Float?
+  monthlyPayment   Float?
+
+  // Study period
+  studyStartDate   DateTime?
+  studyEndDate     DateTime?
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  coordinatorId    String?
+
+  // Relations
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent           Parent?               @relation(fields: [parentId], references: [id])
+  gradeLevel       RefGradeLevel?        @relation(fields: [gradeLevelId], references: [id])
+  language         RefLanguage?          @relation(fields: [languageId], references: [id])
+  studyDirection   RefStudyDirection?    @relation(fields: [studyDirectionId], references: [id])
+  city             RefCity?              @relation(fields: [cityId], references: [id])
+  school           RefSchool?            @relation(fields: [schoolId], references: [id])
+  branch           Branch?               @relation(fields: [branchId], references: [id])
+
+  subjects         StudentSubject[]
+  specialNeeds     StudentSpecialNeed[]
+  groupStudents    GroupStudent[]
+  homeworkSubmissions HomeworkSubmission[]
+  testAttempts     TestAttempt[]
+  payments         Payment[]
+  contracts        Contract[]
+  storeOrders      StoreOrder[]
+  currencyTransactions CurrencyTransaction[]
+
+  @@index([status])
+  @@index([branchId, status])
+  @@index([gradeLevelId])
+  @@index([studyDirectionId])
+  @@map("students")
+}
+
+// Связь ученик-предмет
+model StudentSubject {
+  id        String   @id @default(uuid())
+  studentId String
+  subjectId String
+  createdAt DateTime @default(now())
+
+  student   Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject   RefSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId])
+  @@map("student_subjects")
+}
+
+// Связь ученик-особенности
+model StudentSpecialNeed {
+  id            String   @id @default(uuid())
+  studentId     String
+  specialNeedId String
+  createdAt     DateTime @default(now())
+
+  student       Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  specialNeed   RefSpecialNeed @relation(fields: [specialNeedId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, specialNeedId])
+  @@map("student_special_needs")
+}
+
+model Teacher {
+  id              String           @id @default(uuid())
+  userId          String           @unique
+  dateOfBirth     DateTime?
+  iin             String?
+  phone           String?
+  categoryId      String?
+  status          TeacherStatus    @default(ACTIVE)
+  bio             String?
+  education       String?
+  experience      Int?
+  salaryFormat    SalaryFormat?
+  salaryAmount    Float?
+  hireDate        DateTime         @default(now())
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        RefTeacherCategory?  @relation(fields: [categoryId], references: [id])
+  subjects        TeacherSubject[]
+  branches        TeacherBranch[]
+  groups          Group[]
+  lessons         Lesson[]
+  scheduleSlots   ScheduleSlot[]
+
+  @@index([status, isActive])
+  @@map("teachers")
+}
+
+// Связь преподаватель-предмет
+model TeacherSubject {
+  id        String   @id @default(uuid())
+  teacherId String
+  subjectId String
+  createdAt DateTime @default(now())
+
+  teacher   Teacher    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject   RefSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, subjectId])
+  @@map("teacher_subjects")
+}
+
+// Связь преподаватель-филиал
+model TeacherBranch {
+  id        String   @id @default(uuid())
+  teacherId String
+  branchId  String
+  createdAt DateTime @default(now())
+
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, branchId])
+  @@map("teacher_branches")
+}
+
+model Parent {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  occupation  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students    Student[]
+
+  @@map("parents")
+}
+
+// ==========================================
+// BRANCH AND CLASSROOM
+// ==========================================
+
+model Branch {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  address     String?
+  phone       String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  classrooms    Classroom[]
+  curators      BranchCurator[]
+  teachers      TeacherBranch[]
+  students      Student[]
+  groups        Group[]
+  scheduleSlots ScheduleSlot[]
+
+  @@map("branches")
+}
+
+// Связь филиал-куратор
+model BranchCurator {
+  id        String   @id @default(uuid())
+  branchId  String
+  curatorId String
+  createdAt DateTime @default(now())
+
+  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  curator   Curator @relation(fields: [curatorId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, curatorId])
+  @@map("branch_curators")
+}
+
+model Classroom {
+  id          String    @id @default(uuid())
+  branchId    String
+  name        String
+  capacity    Int       @default(15)
+  equipment   String[]  @default([])
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  branch      Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  scheduleSlots ScheduleSlot[]
+
+  @@unique([branchId, name])
+  @@map("classrooms")
+}
+
+// ==========================================
+// GROUPS
+// ==========================================
+
+model Group {
+  id              String      @id @default(uuid())
+  name            String      // Auto-generated: 5RMD-Omega-O
+  gradeLevelId    String?
+  languageId      String?
+  studyDirectionId String?
+  groupIndexId    String?
+  branchId        String?
+  teacherId       String?
+  courseId        String?
+  studyFormat     StudyFormat?
+  timeOfDay       TimeOfDay?
+  maxStudents     Int         @default(15)
+  startDate       DateTime?
+  endDate         DateTime?
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  gradeLevel      RefGradeLevel?     @relation(fields: [gradeLevelId], references: [id])
+  language        RefLanguage?       @relation(fields: [languageId], references: [id])
+  studyDirection  RefStudyDirection? @relation(fields: [studyDirectionId], references: [id])
+  groupIndex      RefGroupIndex?     @relation(fields: [groupIndexId], references: [id])
+  branch          Branch?            @relation(fields: [branchId], references: [id])
+  teacher         Teacher?           @relation(fields: [teacherId], references: [id])
+  course          Course?            @relation(fields: [courseId], references: [id])
+
+  subjects        GroupSubject[]
+  students        GroupStudent[]
+  schedule        Schedule[]
+  homework        Homework[]
+  tests           Test[]
+  chat            Chat?
+  scheduleSlots   ScheduleSlot[]
+
+  @@index([branchId, isActive])
+  @@index([teacherId])
+  @@index([gradeLevelId])
+  @@index([studyDirectionId])
+  @@map("groups")
+}
+
+// Связь группа-предмет с часами
+model GroupSubject {
+  id              String   @id @default(uuid())
+  groupId         String
+  subjectId       String
+  hoursPerWeek    Int      @default(0)
+  totalHours      Int      @default(0)
+  isScheduled     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  group           Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  subject         RefSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, subjectId])
+  @@map("group_subjects")
+}
+
+model GroupStudent {
+  id          String    @id @default(uuid())
+  groupId     String
+  studentId   String
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, studentId])
+  @@index([studentId])
+  @@map("group_students")
+}
+
+// ==========================================
+// EDUCATIONAL STRUCTURE
+// ==========================================
+
+model Course {
+  id              String    @id @default(uuid())
+  title           String
+  description     String?
+  difficultyLevel DifficultyLevel
+  language        String
+  duration        Int
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  topics          Topic[]
+  groups          Group[]
+
+  @@map("courses")
+}
+
+model Topic {
+  id          String    @id @default(uuid())
+  courseId    String
+  title       String
+  description String?
+  orderIndex  Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+
+  @@map("topics")
+}
+
+// ==========================================
+// TASK LIBRARY (Keep existing structure)
+// ==========================================
+
+model TaskSubject {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  nameKz      String?
+  nameRu      String?
+  nameEn      String?
+  icon        String?
+  orderIndex  Int
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  taskTopics     TaskTopic[]
+  generatedTests GeneratedTest[]
+
+  @@map("task_subjects")
+}
+
+model TaskTopic {
+  id          String        @id @default(uuid())
+  subjectId   String
+  name        String
+  nameKz      String?
+  nameRu      String?
+  nameEn      String?
+  icon        String?
+  orderIndex  Int
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  subject     TaskSubject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subtopics   TaskSubtopic[]
+
+  @@index([subjectId])
+  @@map("task_topics")
+}
+
+model TaskSubtopic {
+  id          String        @id @default(uuid())
+  topicId     String
+  name        String
+  nameKz      String?
+  nameRu      String?
+  nameEn      String?
+  orderIndex  Int
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  topic       TaskTopic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  tasks       Task[]        // Legacy relation
+  taskLinks   TaskSubtopicLink[]
+
+  @@index([topicId])
+  @@map("task_subtopics")
+}
+
+model Task {
+  id              String          @id @default(uuid())
+  subtopicId      String?         // Legacy field - now using TaskSubtopicLink for multiple topics
+  format          TaskFormat
+  difficultyLevel DifficultyLevel
+  questionText    String
+  questionImage   String?
+  answerText      String?
+  answerImage     String?
+  solutionText    String?
+  solutionImage   String?
+  correctAnswer   Int?            // Index of correct answer for multiple choice (0-based)
+  hints           String[]        @default([])
+  tags            String[]        @default([])
+  points          Int             @default(1)
+  timeEstimate    Int?
+  createdBy       String?
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  subtopic        TaskSubtopic?   @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
+  subtopics       TaskSubtopicLink[]
+
+  @@index([subtopicId])
+  @@index([format, difficultyLevel])
+  @@index([isActive])
+  @@map("tasks")
+}
+
+// Junction table for Task <-> TaskSubtopic many-to-many relationship
+model TaskSubtopicLink {
+  id          String       @id @default(uuid())
+  taskId      String
+  subtopicId  String
+  createdAt   DateTime     @default(now())
+
+  task        Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  subtopic    TaskSubtopic @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, subtopicId])
+  @@map("task_subtopic_links")
+}
+
+// ==========================================
+// SCHEDULE
+// ==========================================
+
+model ScheduleSlot {
+  id          String    @id @default(uuid())
+  branchId    String
+  classroomId String
+  groupId     String?
+  teacherId   String?
+  subject     String?
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  color       String?
+  notes       String?
+  isRecurring Boolean   @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  branch      Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  classroom   Classroom  @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  group       Group?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  teacher     Teacher?   @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+
+  @@index([branchId, dayOfWeek])
+  @@index([classroomId, dayOfWeek])
+  @@index([teacherId])
+  @@map("schedule_slots")
+}
+
+model Schedule {
+  id          String    @id @default(uuid())
+  groupId     String
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  room        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  group       Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  lessons     LessonSchedule[]
+
+  @@map("schedule")
+}
+
+// ==========================================
+// LESSONS
+// ==========================================
+
+model Lesson {
+  id          String     @id @default(uuid())
+  topicId     String
+  teacherId   String
+  title       String
+  description String?
+  type        LessonType @default(THEORETICAL)
+  duration    Int
+  materials   String[]
+  orderIndex  Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  topic       Topic             @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  teacher     Teacher           @relation(fields: [teacherId], references: [id])
+  schedules   LessonSchedule[]
+
+  @@map("lessons")
+}
+
+model LessonSchedule {
+  id          String    @id @default(uuid())
+  lessonId    String
+  scheduleId  String
+  date        DateTime
+  isCompleted Boolean   @default(false)
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  schedule    Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@map("lessons_schedule")
+}
+
+// ==========================================
+// HOMEWORK
+// ==========================================
+
+model Homework {
+  id          String    @id @default(uuid())
+  groupId     String
+  title       String
+  description String
+  dueDate     DateTime
+  maxScore    Int       @default(100)
+  attachments String[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  group       Group                 @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  submissions HomeworkSubmission[]
+
+  @@index([groupId])
+  @@index([dueDate])
+  @@map("homework")
+}
+
+model HomeworkSubmission {
+  id          String         @id @default(uuid())
+  homeworkId  String
+  studentId   String
+  content     String
+  attachments String[]
+  status      HomeworkStatus @default(PENDING)
+  score       Int?
+  feedback    String?
+  submittedAt DateTime       @default(now())
+  checkedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  homework    Homework  @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([homeworkId, studentId])
+  @@index([studentId, status])
+  @@map("homework_submissions")
+}
+
+// ==========================================
+// TESTS
+// ==========================================
+
+model TaskBank {
+  id             String       @id @default(uuid())
+  question       String
+  questionType   QuestionType
+  difficultyLevel DifficultyLevel
+  topic          String
+  correctAnswer  String
+  options        String[]
+  explanation    String?
+  points         Int          @default(1)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  testQuestions  TestQuestion[]
+
+  @@map("task_bank")
+}
+
+model Test {
+  id          String    @id @default(uuid())
+  groupId     String
+  createdById String
+  title       String
+  description String?
+  type        TestType
+  duration    Int
+  totalScore  Int
+  passingScore Int
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  group       Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  questions   TestQuestion[]
+  attempts    TestAttempt[]
+
+  @@index([groupId])
+  @@index([isActive, startDate])
+  @@map("tests")
+}
+
+model TestQuestion {
+  id          String    @id @default(uuid())
+  testId      String
+  taskId      String
+  orderIndex  Int
+  points      Int       @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  test        Test      @relation(fields: [testId], references: [id], onDelete: Cascade)
+  task        TaskBank  @relation(fields: [taskId], references: [id])
+
+  @@unique([testId, taskId])
+  @@map("test_questions")
+}
+
+model TestAttempt {
+  id          String    @id @default(uuid())
+  testId      String
+  studentId   String
+  answers     Json
+  score       Int?
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  test        Test      @relation(fields: [testId], references: [id], onDelete: Cascade)
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@index([studentId])
+  @@map("test_attempts")
+}
+
+// ==========================================
+// PAYMENTS AND CONTRACTS
+// ==========================================
+
+model Payment {
+  id          String        @id @default(uuid())
+  studentId   String
+  amount      Float
+  method      PaymentMethod
+  status      PaymentStatus @default(PENDING)
+  description String?
+  dueDate     DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, status])
+  @@index([status, dueDate])
+  @@map("payments")
+}
+
+model Contract {
+  id          String         @id @default(uuid())
+  studentId   String
+  contractNumber String      @unique
+  startDate   DateTime
+  endDate     DateTime
+  totalAmount Float
+  status      ContractStatus @default(DRAFT)
+  terms       String
+  signedAt    DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("contracts")
+}
+
+// ==========================================
+// LIBRARY
+// ==========================================
+
+model Library {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  type        ResourceType
+  fileUrl     String
+  thumbnail   String?
+  subject     String?
+  tags        String[]
+  downloads   Int          @default(0)
+  isPublic    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("library")
+}
+
+// ==========================================
+// STORE AND CURRENCY
+// ==========================================
+
+model StoreProduct {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  price       Int
+  imageUrl    String?
+  category    String?
+  stock       Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  orders      StoreOrder[]
+
+  @@map("store_products")
+}
+
+model StoreOrder {
+  id          String      @id @default(uuid())
+  studentId   String
+  productId   String
+  quantity    Int         @default(1)
+  totalPrice  Int
+  status      OrderStatus @default(PENDING)
+  completedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  product     StoreProduct @relation(fields: [productId], references: [id])
+
+  @@map("store_orders")
+}
+
+model CurrencyTransaction {
+  id          String          @id @default(uuid())
+  studentId   String
+  amount      Int
+  type        TransactionType
+  description String?
+  relatedId   String?
+  createdAt   DateTime        @default(now())
+
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([createdAt])
+  @@map("currency_transactions")
+}
+
+// ==========================================
+// COMMUNICATION
+// ==========================================
+
+model Chat {
+  id          String    @id @default(uuid())
+  groupId     String?   @unique
+  name        String?
+  isGroup     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  group       Group?            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  participants ChatParticipant[]
+  messages    Message[]
+
+  @@map("chats")
+}
+
+model ChatParticipant {
+  id          String    @id @default(uuid())
+  chatId      String
+  userId      String
+  joinedAt    DateTime  @default(now())
+
+  chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+  @@map("chat_participants")
+}
+
+model Message {
+  id          String        @id @default(uuid())
+  chatId      String
+  senderId    String
+  content     String
+  attachments String[]
+  status      MessageStatus @default(SENT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender      User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  relatedId   String?
+  createdAt   DateTime         @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ==========================================
+// GENERATED TESTS (Мои тесты / My Tests)
+// ==========================================
+
+enum GeneratedTestFormat {
+  TEST
+  EXAM
+}
+
+model GeneratedTest {
+  id              String                 @id @default(uuid())
+  title           String
+  titleKz         String?
+  titleEn         String?
+  format          GeneratedTestFormat    @default(TEST)
+  subjectId       String?
+  gradeLevel      Int?
+  createdById     String
+  duration        Int?
+  taskIds         Json                   // Array of task IDs
+  topicIds        Json?                  // Array of selected topic IDs
+  difficultyConfig Json?                 // { easy: number, medium: number, hard: number }
+  isShared        Boolean                @default(false)
+  isDiagnostic    Boolean                @default(false) // true = diagnostic test, false = regular test
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  subject         TaskSubject?           @relation(fields: [subjectId], references: [id])
+  createdBy       User                   @relation("CreatedGeneratedTests", fields: [createdById], references: [id], onDelete: Cascade)
+  sharedWith      GeneratedTestShare[]
+  blankResults    BlankResult[]
+
+  @@index([createdById])
+  @@index([subjectId])
+  @@index([createdAt])
+  @@index([isDiagnostic])
+  @@map("generated_tests")
+}
+
+model BlankResult {
+  id              String        @id @default(uuid())
+  generatedTestId String
+  studentName     String?
+  studentClass    String?
+  answers         Json          // Array of answers: [0, 1, 2, 3, 4, null...]
+  correctCount    Int
+  totalQuestions  Int
+  percentage      Float
+  scannedImageUrl String?
+  scannedAt       DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  generatedTest   GeneratedTest @relation(fields: [generatedTestId], references: [id], onDelete: Cascade)
+
+  @@index([generatedTestId])
+  @@index([scannedAt])
+  @@map("blank_results")
+}
+
+model GeneratedTestShare {
+  id              String        @id @default(uuid())
+  generatedTestId String
+  sharedWithId    String
+  canEdit         Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+
+  generatedTest   GeneratedTest @relation(fields: [generatedTestId], references: [id], onDelete: Cascade)
+  sharedWith      User          @relation("SharedGeneratedTests", fields: [sharedWithId], references: [id], onDelete: Cascade)
+
+  @@unique([generatedTestId, sharedWithId])
+  @@map("generated_test_shares")
+}
