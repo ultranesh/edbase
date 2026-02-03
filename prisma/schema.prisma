@@ -13,14 +13,21 @@ enum UserRole {
   DEPARTMENT_HEAD
   CURATOR
   COORDINATOR
+  COORDINATOR_MANAGER
   TEACHER
   PARENT
   ONLINE_MENTOR
+  STUDENT
 }
 
 enum Gender {
   MALE
   FEMALE
+}
+
+enum Citizenship {
+  KZ
+  FOREIGN
 }
 
 enum StudentStatus {
@@ -93,10 +100,9 @@ enum PaymentStatus {
 enum PaymentMethod {
   CASH
   CARD
-  BANK_TRANSFER
-  PAYME
-  CLICK
-  UZUM
+  TRANSFER
+  KASPI
+  HALYK
 }
 
 enum ContractStatus {
@@ -204,7 +210,11 @@ enum TimeOfDay {
 model RefLanguage {
   id        String   @id @default(uuid())
   name      String   @unique  // казахский, русский, английский
+  nameKz    String?  // Қазақша
+  nameRu    String?  // По-русски
+  nameEn    String?  // In English
   code      String   @unique  // Q, R, E
+  orderIndex Int     @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -219,6 +229,9 @@ model RefLanguage {
 model RefGradeLevel {
   id        String   @id @default(uuid())
   name      String   @unique  // "0 класс", "1 класс", ... "11 класс", "Выпускник"
+  nameKz    String?
+  nameRu    String?
+  nameEn    String?
   code      String   @unique  // 0, 1, 2, ... 11, A (для выпускника)
   orderIndex Int
   isActive  Boolean  @default(true)
@@ -235,7 +248,11 @@ model RefGradeLevel {
 model RefStudyDirection {
   id        String   @id @default(uuid())
   name      String   @unique  // СС, ЕНТ, IELTS, Продленка, etc.
+  nameKz    String?
+  nameRu    String?
+  nameEn    String?
   code      String   @unique
+  orderIndex Int     @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -249,7 +266,7 @@ model RefStudyDirection {
 // Предметы
 model RefSubject {
   id        String   @id @default(uuid())
-  name      String   @unique
+  code      String?
   nameKz    String?
   nameRu    String?
   nameEn    String?
@@ -306,18 +323,43 @@ model RefSubtopic {
   @@map("ref_subtopics")
 }
 
+// Области/Регионы
+model RefRegion {
+  id         String   @id @default(uuid())
+  code       String?  @unique
+  name       String   @unique
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  cities    RefCity[]
+
+  @@map("ref_regions")
+}
+
 // Города
 model RefCity {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  region    String?  // Область
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  code       String?  @unique
+  name       String   @unique
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  regionId   String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
+  region    RefRegion? @relation(fields: [regionId], references: [id])
   schools   RefSchool[]
   students  Student[]
 
+  @@index([regionId])
   @@map("ref_cities")
 }
 
@@ -326,6 +368,9 @@ model RefSchool {
   id        String   @id @default(uuid())
   cityId    String
   name      String
+  nameKz    String?
+  nameRu    String?
+  nameEn    String?
   address   String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -340,10 +385,17 @@ model RefSchool {
 
 // Особенности (ЗПР и т.д.)
 model RefSpecialNeed {
-  id        String   @id @default(uuid())
-  name      String   @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
+  nameKz      String?
+  nameRu      String?
+  nameEn      String?
   description String?
-  isActive  Boolean  @default(true)
+  descriptionKz String?
+  descriptionRu String?
+  descriptionEn String?
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -371,6 +423,9 @@ model RefGroupIndex {
 model RefTeacherCategory {
   id        String   @id @default(uuid())
   name      String   @unique  // Стажер, Без категорий, etc.
+  nameKz    String?
+  nameRu    String?
+  nameEn    String?
   orderIndex Int     @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -381,6 +436,448 @@ model RefTeacherCategory {
   @@map("ref_teacher_categories")
 }
 
+// Роли пользователей (справочник для enum UserRole)
+model RefUserRole {
+  id         String   @id @default(uuid())
+  code       String   @unique  // SUPERADMIN, ADMIN, etc. - должен соответствовать enum UserRole
+  name       String             // Отображаемое имя
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_user_roles")
+}
+
+// Пол (справочник для enum Gender)
+model RefGender {
+  id         String   @id @default(uuid())
+  code       String   @unique  // MALE, FEMALE - должен соответствовать enum Gender
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_genders")
+}
+
+// Гражданство (справочник для enum Citizenship)
+model RefCitizenship {
+  id         String   @id @default(uuid())
+  code       String   @unique  // KZ, FOREIGN - должен соответствовать enum Citizenship
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_citizenships")
+}
+
+// Формат обучения (справочник для enum StudyFormat)
+model RefStudyFormat {
+  id         String   @id @default(uuid())
+  code       String   @unique  // ONLINE_GROUP, OFFLINE_GROUP, etc. - должен соответствовать enum StudyFormat
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_study_formats")
+}
+
+// Гарантия (справочник для enum Guarantee)
+model RefGuarantee {
+  id         String   @id @default(uuid())
+  code       String   @unique  // NONE, FIFTY_PERCENT, etc. - должен соответствовать enum Guarantee
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_guarantees")
+}
+
+// Расписание занятий (справочник для enum StudySchedule)
+model RefStudySchedule {
+  id         String   @id @default(uuid())
+  code       String   @unique  // PSP, VCS, CUSTOM - должен соответствовать enum StudySchedule
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_study_schedules")
+}
+
+// Тип документа родителя (справочник для enum ParentDocumentType)
+model RefParentDocumentType {
+  id         String   @id @default(uuid())
+  code       String   @unique  // ID_CARD, RK_PASSPORT, FOREIGN - должен соответствовать enum ParentDocumentType
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_parent_document_types")
+}
+
+// Статус студента (справочник для enum StudentStatus)
+model RefStudentStatus {
+  id         String   @id @default(uuid())
+  code       String   @unique  // PENDING_APPROVAL, ACTIVE, etc.
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  color      String?  // Цвет для отображения в UI
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_student_statuses")
+}
+
+// Статус учителя (справочник для enum TeacherStatus)
+model RefTeacherStatus {
+  id         String   @id @default(uuid())
+  code       String   @unique  // ACTIVE, SUSPENDED, RESERVE
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  color      String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_teacher_statuses")
+}
+
+// Статус платежа (справочник для enum PaymentStatus)
+model RefPaymentStatus {
+  id         String   @id @default(uuid())
+  code       String   @unique  // PENDING, PAID, OVERDUE, CANCELLED
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  color      String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_payment_statuses")
+}
+
+// Статус контракта (справочник для enum ContractStatus)
+model RefContractStatus {
+  id         String   @id @default(uuid())
+  code       String   @unique  // DRAFT, ACTIVE, COMPLETED, TERMINATED
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  color      String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_contract_statuses")
+}
+
+// Статус домашнего задания (справочник для enum HomeworkStatus)
+model RefHomeworkStatus {
+  id         String   @id @default(uuid())
+  code       String   @unique  // PENDING, SUBMITTED, CHECKED, LATE
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  color      String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_homework_statuses")
+}
+
+// Статус заказа (справочник для enum OrderStatus)
+model RefOrderStatus {
+  id         String   @id @default(uuid())
+  code       String   @unique  // PENDING, COMPLETED, CANCELLED
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  color      String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_order_statuses")
+}
+
+// Тип теста (справочник для enum TestType)
+model RefTestType {
+  id         String   @id @default(uuid())
+  code       String   @unique  // QUIZ, MIDTERM, FINAL, MOCK_EXAM
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_test_types")
+}
+
+// Тип вопроса (справочник для enum QuestionType)
+model RefQuestionType {
+  id         String   @id @default(uuid())
+  code       String   @unique  // SINGLE_CHOICE, MULTIPLE_CHOICE, etc.
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_question_types")
+}
+
+// Формат задания (справочник для enum TaskFormat)
+model RefTaskFormat {
+  id         String   @id @default(uuid())
+  code       String   @unique  // NISH, BIL, RFMSH, ENT, OLYMPIAD, SAT
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_task_formats")
+}
+
+// Тип урока (справочник для enum LessonType)
+model RefLessonType {
+  id         String   @id @default(uuid())
+  code       String   @unique  // THEORETICAL, PRACTICAL, LAB, TEST, EXAM
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_lesson_types")
+}
+
+// Уровень сложности (справочник для enum DifficultyLevel)
+model RefDifficultyLevel {
+  id         String   @id @default(uuid())
+  code       String   @unique  // BEGINNER, ELEMENTARY, etc.
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_difficulty_levels")
+}
+
+// Формат зарплаты (справочник для enum SalaryFormat)
+model RefSalaryFormat {
+  id         String   @id @default(uuid())
+  code       String   @unique  // HOURLY, MONTHLY
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_salary_formats")
+}
+
+// Способ оплаты (справочник для enum PaymentMethod)
+model RefPaymentMethod {
+  id         String   @id @default(uuid())
+  code       String   @unique  // CASH, CARD, TRANSFER, KASPI, HALYK
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  commission Float?   @default(0)
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_payment_methods")
+}
+
+// План оплаты (справочник для enum PaymentPlan)
+model RefPaymentPlan {
+  id         String   @id @default(uuid())
+  code       String   @unique  // ONE_TRANCHE, TWO_TRANCHES, THREE_TRANCHES
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_payment_plans")
+}
+
+// Время суток (справочник для enum TimeOfDay)
+model RefTimeOfDay {
+  id         String   @id @default(uuid())
+  code       String   @unique  // MORNING, AFTERNOON, EVENING
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_time_of_day")
+}
+
+// Тип ресурса (справочник для enum ResourceType)
+model RefResourceType {
+  id         String   @id @default(uuid())
+  code       String   @unique  // BOOK, VIDEO, AUDIO, DOCUMENT, PRESENTATION, OTHER
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  icon       String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_resource_types")
+}
+
+// Тип уведомления (справочник для enum NotificationType)
+model RefNotificationType {
+  id         String   @id @default(uuid())
+  code       String   @unique  // INFO, WARNING, SUCCESS, ERROR
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  color      String?
+  icon       String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_notification_types")
+}
+
+// Статус сообщения (справочник для enum MessageStatus)
+model RefMessageStatus {
+  id         String   @id @default(uuid())
+  code       String   @unique  // SENT, DELIVERED, READ
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_message_statuses")
+}
+
+// Тип транзакции (справочник для enum TransactionType)
+model RefTransactionType {
+  id         String   @id @default(uuid())
+  code       String   @unique  // EARNED, SPENT, BONUS, REFUND
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_transaction_types")
+}
+
+// Формат сгенерированного теста (справочник для enum GeneratedTestFormat)
+model RefGeneratedTestFormat {
+  id         String   @id @default(uuid())
+  code       String   @unique  // TEST, EXAM
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ref_generated_test_formats")
+}
+
 // ==========================================
 // CORE TABLES
 // ==========================================
@@ -388,17 +885,24 @@ model RefTeacherCategory {
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
+  iin           String?   @unique
   password      String
+  plainPassword String?
+  switchToken   String?
   firstName     String
   lastName      String
   middleName    String?
   phone         String?
+  sipNumber     String?
   role          UserRole
   avatar        String?
+  pin           String?
+  avatarLocked  Boolean   @default(false)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   lastLogin     DateTime?
+  lastSeen      DateTime?
 
   student       Student?
   teacher       Teacher?
@@ -409,13 +913,65 @@ model User {
   chatParticipants ChatParticipant[]
   notifications    Notification[]
   createdTests     Test[]
+  loginSessions    LoginSession[]
 
   // Generated Tests
   createdGeneratedTests GeneratedTest[]      @relation("CreatedGeneratedTests")
   sharedGeneratedTests  GeneratedTestShare[] @relation("SharedGeneratedTests")
 
+  // Payment relations
+  recordedPayments  Payment[] @relation("RecordedPayments")
+  partnerPayments   Payment[] @relation("PartnerPayments")
+  confirmedPayments Payment[] @relation("ConfirmedPayments")
+
+  // CRM
+  crmLeads          CrmLead[] @relation("CrmLeads")
+
+  // WhatsApp
+  whatsappMessages  WhatsAppMessage[] @relation("WhatsAppSentBy")
+
+  // Social (Messenger + Instagram)
+  socialMessages    SocialMessage[]   @relation("SocialSentBy")
+
   @@index([role, isActive])
   @@map("users")
+}
+
+// Сеансы входа пользователей
+model LoginSession {
+  id              String    @id @default(uuid())
+  userId          String
+  ipAddress       String?
+  userAgent       String?
+  deviceType      String?   // mobile, tablet, desktop
+  browser         String?
+  browserVersion  String?
+  os              String?
+  deviceModel     String?
+  network         String?   // Wi-Fi, Cellular, Ethernet, etc.
+  isp             String?   // Провайдер / название сети
+  org             String?   // Организация (может отличаться от ISP)
+  asName          String?   // Автономная система
+  city            String?   // Город по IP
+  regionName      String?   // Область/регион по IP
+  country         String?   // Страна по IP
+  lat             Float?    // Широта
+  lon             Float?    // Долгота
+  timezone        String?   // Часовой пояс по IP
+  isProxy         Boolean?  // VPN/Proxy
+  isHosting       Boolean?  // Хостинг/дата-центр
+  isMobileNetwork Boolean?  // Мобильная сеть по IP
+  screenResolution String?  // Разрешение экрана (напр. 1920x1080)
+  language        String?   // Язык браузера
+  clientTimezone  String?   // Часовой пояс клиента
+  connectionSpeed String?   // Скорость соединения (напр. "10 Mbps")
+  loginAt         DateTime  @default(now())
+  logoutAt        DateTime?
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loginAt])
+  @@map("login_sessions")
 }
 
 // Куратор
@@ -444,13 +1000,15 @@ model Student {
   balance          Int           @default(0)
   totalEarned      Int           @default(0)
 
-  // Contract status
+  // Contract
+  contractNumber   String?       @unique
   contractConfirmed Boolean @default(false)
   contractConfirmedAt DateTime?
   contractConfirmedBy String?
 
   // Personal info
   studentIIN       String?
+  citizenship      Citizenship @default(KZ)
   parentIIN        String?
   parentName       String?
   parentPhone      String?
@@ -633,8 +1191,14 @@ model Parent {
 model Branch {
   id          String      @id @default(uuid())
   name        String      @unique
+  nameKz      String?
+  nameRu      String?
+  nameEn      String?
+  code        String?
   address     String?
   phone       String?
+  latitude    Float?
+  longitude   Float?
   isActive    Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -667,6 +1231,9 @@ model Classroom {
   id          String    @id @default(uuid())
   branchId    String
   name        String
+  nameKz      String?
+  nameRu      String?
+  nameEn      String?
   capacity    Int       @default(15)
   equipment   String[]  @default([])
   isActive    Boolean   @default(true)
@@ -697,6 +1264,7 @@ model Group {
   studyFormat     StudyFormat?
   timeOfDay       TimeOfDay?
   maxStudents     Int         @default(15)
+  maxHoursPerWeek Int         @default(9)
   startDate       DateTime?
   endDate         DateTime?
   isActive        Boolean     @default(true)
@@ -861,14 +1429,40 @@ model Task {
   subtopicId      String?         // Legacy field - now using TaskSubtopicLink for multiple topics
   format          TaskFormat
   difficultyLevel DifficultyLevel
+
+  // Question text with multi-language support
   questionText    String
+  questionTextKz  String?
+  questionTextRu  String?
+  questionTextEn  String?
   questionImage   String?
+
+  // Answer options for multiple choice (JSON array with multi-language support)
+  // Format: [{ "kz": "...", "ru": "...", "en": "..." }, ...]
+  options         Json?
+
+  // Answer text with multi-language support
   answerText      String?
+  answerTextKz    String?
+  answerTextRu    String?
+  answerTextEn    String?
   answerImage     String?
+
+  // Solution text with multi-language support
   solutionText    String?
+  solutionTextKz  String?
+  solutionTextRu  String?
+  solutionTextEn  String?
   solutionImage   String?
+
   correctAnswer   Int?            // Index of correct answer for multiple choice (0-based)
+
+  // Hints with multi-language support
   hints           String[]        @default([])
+  hintsKz         String[]        @default([])
+  hintsRu         String[]        @default([])
+  hintsEn         String[]        @default([])
+
   tags            String[]        @default([])
   points          Int             @default(1)
   timeEstimate    Int?
@@ -1122,21 +1716,34 @@ model TestAttempt {
 // ==========================================
 
 model Payment {
-  id          String        @id @default(uuid())
-  studentId   String
-  amount      Float
-  method      PaymentMethod
-  status      PaymentStatus @default(PENDING)
-  description String?
-  dueDate     DateTime?
-  paidAt      DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id            String        @id @default(uuid())
+  studentId     String
+  amount        Float
+  actualAmount  Float?
+  method        String
+  status        PaymentStatus @default(PENDING)
+  description   String?
+  dueDate       DateTime?
+  paidAt        DateTime?
 
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  coordinatorId String?
+  partnerId     String?
+  confirmedById String?
+  confirmedAt   DateTime?
+  isConfirmed   Boolean       @default(false)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  coordinator   User?     @relation("RecordedPayments", fields: [coordinatorId], references: [id])
+  partner       User?     @relation("PartnerPayments", fields: [partnerId], references: [id])
+  confirmedBy   User?     @relation("ConfirmedPayments", fields: [confirmedById], references: [id])
 
   @@index([studentId, status])
   @@index([status, dueDate])
+  @@index([coordinatorId])
+  @@index([isConfirmed])
   @@map("payments")
 }
 
@@ -1242,6 +1849,7 @@ model Chat {
   groupId     String?   @unique
   name        String?
   isGroup     Boolean   @default(false)
+  isBroadcast Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -1266,21 +1874,40 @@ model ChatParticipant {
 }
 
 model Message {
-  id          String        @id @default(uuid())
-  chatId      String
-  senderId    String
-  content     String
-  attachments String[]
-  status      MessageStatus @default(SENT)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id               String        @id @default(uuid())
+  chatId           String
+  senderId         String
+  content          String
+  attachments      String[]
+  status           MessageStatus @default(SENT)
+  isEdited         Boolean       @default(false)
+  broadcastFilters Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  sender      User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  chat                Chat                       @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender              User                       @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  broadcastRecipients BroadcastMessageRecipient[]
 
   @@index([chatId, createdAt])
   @@index([senderId])
   @@map("messages")
+}
+
+model BroadcastMessageRecipient {
+  id        String    @id @default(uuid())
+  messageId String
+  userId    String
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  message   Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId, isRead])
+  @@index([messageId])
+  @@map("broadcast_message_recipients")
 }
 
 model Notification {
@@ -1372,4 +1999,184 @@ model GeneratedTestShare {
 
   @@unique([generatedTestId, sharedWithId])
   @@map("generated_test_shares")
+}
+
+// ── CRM ──
+
+enum CrmLeadStage {
+  NEW_APPLICATION
+  INITIAL_CONTACT
+  DIAGNOSTIC
+  NEGOTIATION
+  CONTRACT
+  PAYMENT
+  WON
+  LOST
+}
+
+model CrmLead {
+  id            String        @id @default(uuid())
+  firstName     String
+  lastName      String
+  phone         String?
+  email         String?
+  parentName    String?
+  parentPhone   String?
+  source        String?
+  stage         CrmLeadStage  @default(NEW_APPLICATION)
+  amount        Float?
+  description   String?
+  lostReason    String?
+  language      String?
+
+  coordinatorId String?
+  coordinator   User?         @relation("CrmLeads", fields: [coordinatorId], references: [id])
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  whatsappConversation WhatsAppConversation?
+  socialConversations  SocialConversation[]
+
+  @@index([stage])
+  @@index([coordinatorId])
+  @@map("crm_leads")
+}
+
+// ── WhatsApp ──
+
+model WhatsAppConversation {
+  id            String   @id @default(uuid())
+  waId          String   @unique  // WhatsApp ID (phone number without +, e.g. "77007501414")
+  contactName   String?           // Profile name from WhatsApp
+  contactPhone  String             // Phone in original format
+
+  leadId        String?  @unique
+  lead          CrmLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  lastMessageAt DateTime?
+  unreadCount   Int      @default(0)
+  isBlocked     Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  messages      WhatsAppMessage[]
+
+  @@index([lastMessageAt])
+  @@map("whatsapp_conversations")
+}
+
+model WhatsAppMessage {
+  id              String   @id @default(uuid())
+  conversationId  String
+  waMessageId     String?  @unique  // WhatsApp message ID from Meta API
+  direction       WhatsAppMessageDirection
+  type            WhatsAppMessageType @default(TEXT)
+
+  body            String?           // Text content
+  mediaUrl        String?           // URL for media (image, audio, video, document)
+  mediaCaption    String?
+  mediaMimeType   String?
+  mediaFileName   String?
+
+  status          WhatsAppMessageStatus @default(SENT)
+
+  sentById        String?           // User who sent outgoing message
+  sentBy          User?   @relation("WhatsAppSentBy", fields: [sentById], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  conversation    WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([waMessageId])
+  @@map("whatsapp_messages")
+}
+
+enum WhatsAppMessageDirection {
+  INCOMING
+  OUTGOING
+}
+
+enum WhatsAppMessageType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  DOCUMENT
+  STICKER
+  LOCATION
+  CONTACT
+  REACTION
+  UNKNOWN
+}
+
+enum WhatsAppMessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+// ── Social Messaging (Facebook Messenger + Instagram) ──
+
+enum SocialPlatform {
+  MESSENGER
+  INSTAGRAM
+}
+
+model SocialConversation {
+  id              String           @id @default(uuid())
+  platform        SocialPlatform
+  platformUserId  String           // PSID (Messenger) or IGSID (Instagram)
+  contactName     String?
+  contactUsername  String?          // Instagram @handle (empty for Messenger)
+  contactAvatar   String?          // Profile picture URL
+
+  leadId          String?
+  lead            CrmLead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  lastMessageAt   DateTime?
+  unreadCount     Int              @default(0)
+  isBlocked       Boolean          @default(false)
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  messages        SocialMessage[]
+
+  @@unique([platform, platformUserId])
+  @@index([leadId])
+  @@index([lastMessageAt])
+  @@map("social_conversations")
+}
+
+model SocialMessage {
+  id              String                  @id @default(uuid())
+  conversationId  String
+  platformMsgId   String?                 // mid from Meta API
+  direction       WhatsAppMessageDirection
+  type            WhatsAppMessageType     @default(TEXT)
+
+  body            String?
+  mediaUrl        String?
+  mediaCaption    String?
+  mediaMimeType   String?
+  mediaFileName   String?
+
+  status          WhatsAppMessageStatus   @default(SENT)
+
+  sentById        String?
+  sentBy          User?                   @relation("SocialSentBy", fields: [sentById], references: [id])
+
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  conversation    SocialConversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([platformMsgId])
+  @@map("social_messages")
 }
