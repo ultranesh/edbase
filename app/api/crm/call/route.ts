@@ -1,17 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import crypto from 'crypto';
 
-const SIPUNI_USER = '012238';
-const SIPUNI_SECRET = '0.hq1u388wcgj';
-
-function sipuniHash(params: Record<string, string>): string {
-  const keys = Object.keys(params).sort();
-  const values = keys.map(k => params[k]);
-  values.push(SIPUNI_SECRET);
-  return crypto.createHash('md5').update(values.join('+')).digest('hex');
-}
+// MarSIP Call API - использует НАШУ SIP систему через Janus WebRTC Gateway
+// НЕ использует внешний sipuni.com!
 
 export async function POST(request: Request) {
   try {
@@ -21,63 +13,194 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { phone } = body;
+    const { phone, leadId } = body;
 
     if (!phone) {
-      return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Номер телефона обязателен' }, { status: 400 });
     }
 
-    // Get current user's sipNumber
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { sipNumber: true },
+    // Получаем MarSIP конфигурацию
+    const marsipConfig = await prisma.marSipConfig.findFirst({
+      where: { isActive: true },
     });
 
-    if (!user?.sipNumber) {
+    if (!marsipConfig) {
       return NextResponse.json(
-        { error: 'У вас не настроен Sipuni номер. Обратитесь к администратору.' },
+        { error: 'MarSIP не настроен. Обратитесь к администратору.' },
         { status: 400 }
       );
     }
 
-    // Clean phone number — keep only digits
-    const cleanPhone = phone.replace(/\D/g, '');
+    // Получаем SIP extension пользователя из MarSIP
+    const extension = await prisma.marSipExtension.findFirst({
+      where: {
+        userId: session.user.id,
+        isActive: true,
+      },
+    });
 
-    const params: Record<string, string> = {
-      antiaon: '',
-      phone: cleanPhone,
-      reverse: '0',
-      sipnumber: user.sipNumber,
-      user: SIPUNI_USER,
+    if (!extension) {
+      return NextResponse.json(
+        { error: 'У вас не назначен MarSIP номер. Обратитесь к администратору.' },
+        { status: 400 }
+      );
+    }
+
+    // Очищаем номер телефона
+    let cleanPhone = phone.replace(/\D/g, '');
+
+    // Если номер начинается с 8, заменяем на 7 (Казахстан)
+    if (cleanPhone.startsWith('8') && cleanPhone.length === 11) {
+      cleanPhone = '7' + cleanPhone.slice(1);
+    }
+
+    // Добавляем 7 если номер без кода страны
+    if (cleanPhone.length === 10) {
+      cleanPhone = '7' + cleanPhone;
+    }
+
+    // Если leadId не передан, пытаемся найти заявку по номеру телефона
+    let foundLeadId = leadId;
+    if (!foundLeadId) {
+      // Ищем заявку по номеру телефона (проверяем и phone, и parentPhone)
+      const phoneVariants = [
+        cleanPhone,
+        '+' + cleanPhone,
+        '8' + cleanPhone.slice(1), // Вариант с 8
+        '+7' + cleanPhone.slice(1),
+      ];
+
+      const lead = await prisma.crmLead.findFirst({
+        where: {
+          OR: [
+            { phone: { in: phoneVariants } },
+            { parentPhone: { in: phoneVariants } },
+          ],
+        },
+        select: { id: true },
+      });
+
+      if (lead) {
+        foundLeadId = lead.id;
+      }
+    }
+
+    // Создаём запись о звонке в базе
+    const callLog = await prisma.marSipCall.create({
+      data: {
+        leadId: foundLeadId || null,
+        userId: session.user.id,
+        callerNumber: extension.extensionNumber,
+        receiverNumber: cleanPhone,
+        extensionNumber: extension.extensionNumber,
+        direction: 'OUTGOING',
+        status: 'INITIATED',
+        startedAt: new Date(),
+      },
+    });
+
+    // Возвращаем данные для инициации звонка через WebRTC на клиенте
+    // Звонок будет выполнен через Janus WebRTC Gateway
+    return NextResponse.json({
+      success: true,
+      callId: callLog.id,
+      leadId: foundLeadId || null, // Возвращаем leadId если нашли заявку по номеру
+      sipConfig: {
+        server: marsipConfig.sipServer,
+        port: marsipConfig.sipPort,
+        // Учётные данные extension пользователя
+        username: extension.extensionNumber,
+        password: extension.sipPassword,
+        // Номер для звонка
+        targetNumber: cleanPhone,
+        // Janus WebSocket endpoint
+        janusWs: `wss://${marsipConfig.sipServer.replace('almpbx.tele2.kz', '185.129.48.82')}/janus-ws`,
+      },
+      extension: {
+        number: extension.extensionNumber,
+        displayName: extension.displayName,
+      },
+    });
+  } catch (error) {
+    console.error('MarSIP call error:', error);
+    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
+  }
+}
+
+// GET - получить историю звонков пользователя
+export async function GET(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const leadId = searchParams.get('leadId');
+    const limit = parseInt(searchParams.get('limit') || '20');
+
+    const where: Record<string, unknown> = {
+      userId: session.user.id,
     };
 
-    const hash = sipuniHash(params);
-
-    const url = new URL('https://sipuni.com/api/callback/call_number');
-    url.searchParams.set('user', SIPUNI_USER);
-    url.searchParams.set('phone', cleanPhone);
-    url.searchParams.set('sipnumber', user.sipNumber);
-    url.searchParams.set('reverse', '0');
-    url.searchParams.set('antiaon', '');
-    url.searchParams.set('hash', hash);
-
-    const response = await fetch(url.toString(), { method: 'GET' });
-    const data = await response.text();
-
-    let result;
-    try {
-      result = JSON.parse(data);
-    } catch {
-      result = { raw: data };
+    if (leadId) {
+      where.leadId = leadId;
     }
 
-    if (result.result === 'error') {
-      return NextResponse.json({ error: result.data || 'Sipuni error' }, { status: 400 });
-    }
+    const calls = await prisma.marSipCall.findMany({
+      where,
+      orderBy: { startedAt: 'desc' },
+      take: limit,
+    });
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json(calls);
   } catch (error) {
-    console.error('Sipuni call error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Get calls error:', error);
+    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
+  }
+}
+
+// PUT - обновить статус звонка
+export async function PUT(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { callId, status, endedAt, answeredAt, duration, recordingUrl } = body;
+
+    if (!callId) {
+      return NextResponse.json({ error: 'callId обязателен' }, { status: 400 });
+    }
+
+    const call = await prisma.marSipCall.findUnique({
+      where: { id: callId },
+    });
+
+    if (!call) {
+      return NextResponse.json({ error: 'Звонок не найден' }, { status: 404 });
+    }
+
+    if (call.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Нет доступа' }, { status: 403 });
+    }
+
+    const updated = await prisma.marSipCall.update({
+      where: { id: callId },
+      data: {
+        status: status || call.status,
+        endedAt: endedAt ? new Date(endedAt) : call.endedAt,
+        answeredAt: answeredAt ? new Date(answeredAt) : call.answeredAt,
+        duration: duration ?? call.duration,
+        recordingUrl: recordingUrl ?? call.recordingUrl,
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Update call error:', error);
+    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
 }

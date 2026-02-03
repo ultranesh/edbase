@@ -18,6 +18,8 @@ export interface CrmLead {
   parentPhone: string | null;
   source: string | null;
   stage: string;
+  funnelId: string | null;
+  stageId: string | null;
   amount: number | null;
   description: string | null;
   lostReason: string | null;
@@ -31,13 +33,51 @@ export interface CrmLead {
 export interface PipelineStage {
   status: string;
   labelKey: string;
+  label?: string; // Direct label (for dynamic stages)
   dotClass: string;
   headerBg: string;
   textClass: string;
   borderClass: string;
   bgClass: string;
+  color?: string; // Hex color for inline styles
 }
 
+// Color mapping from hex to Tailwind classes
+const COLOR_MAP: Record<string, { dot: string; header: string; text: string; border: string; bg: string }> = {
+  '#FCD34D': { dot: 'bg-amber-400', header: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-700', bg: 'bg-amber-50 dark:bg-amber-900/10' },
+  '#F59E0B': { dot: 'bg-amber-500', header: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-700', bg: 'bg-amber-50 dark:bg-amber-900/10' },
+  '#60A5FA': { dot: 'bg-blue-400', header: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-700', bg: 'bg-blue-50 dark:bg-blue-900/10' },
+  '#3B82F6': { dot: 'bg-blue-500', header: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-700', bg: 'bg-blue-50 dark:bg-blue-900/10' },
+  '#818CF8': { dot: 'bg-indigo-400', header: 'bg-indigo-100 dark:bg-indigo-900/30', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-700', bg: 'bg-indigo-50 dark:bg-indigo-900/10' },
+  '#6366F1': { dot: 'bg-indigo-500', header: 'bg-indigo-100 dark:bg-indigo-900/30', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-700', bg: 'bg-indigo-50 dark:bg-indigo-900/10' },
+  '#A78BFA': { dot: 'bg-violet-400', header: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-300', border: 'border-violet-200 dark:border-violet-700', bg: 'bg-violet-50 dark:bg-violet-900/10' },
+  '#8B5CF6': { dot: 'bg-violet-500', header: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-300', border: 'border-violet-200 dark:border-violet-700', bg: 'bg-violet-50 dark:bg-violet-900/10' },
+  '#F472B6': { dot: 'bg-pink-400', header: 'bg-pink-100 dark:bg-pink-900/30', text: 'text-pink-700 dark:text-pink-300', border: 'border-pink-200 dark:border-pink-700', bg: 'bg-pink-50 dark:bg-pink-900/10' },
+  '#EC4899': { dot: 'bg-pink-500', header: 'bg-pink-100 dark:bg-pink-900/30', text: 'text-pink-700 dark:text-pink-300', border: 'border-pink-200 dark:border-pink-700', bg: 'bg-pink-50 dark:bg-pink-900/10' },
+  '#34D399': { dot: 'bg-emerald-400', header: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-700', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
+  '#10B981': { dot: 'bg-emerald-500', header: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-700', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
+  '#22C55E': { dot: 'bg-green-500', header: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', border: 'border-green-200 dark:border-green-700', bg: 'bg-green-50 dark:bg-green-900/10' },
+  '#F87171': { dot: 'bg-red-400', header: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', border: 'border-red-200 dark:border-red-700', bg: 'bg-red-50 dark:bg-red-900/10' },
+  '#EF4444': { dot: 'bg-red-500', header: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', border: 'border-red-200 dark:border-red-700', bg: 'bg-red-50 dark:bg-red-900/10' },
+  '#FB923C': { dot: 'bg-orange-400', header: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-700', bg: 'bg-orange-50 dark:bg-orange-900/10' },
+  '#F97316': { dot: 'bg-orange-500', header: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-700', bg: 'bg-orange-50 dark:bg-orange-900/10' },
+  '#A3E635': { dot: 'bg-lime-400', header: 'bg-lime-100 dark:bg-lime-900/30', text: 'text-lime-700 dark:text-lime-300', border: 'border-lime-200 dark:border-lime-700', bg: 'bg-lime-50 dark:bg-lime-900/10' },
+  '#22D3EE': { dot: 'bg-cyan-400', header: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-cyan-200 dark:border-cyan-700', bg: 'bg-cyan-50 dark:bg-cyan-900/10' },
+  '#FACC15': { dot: 'bg-yellow-400', header: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-200 dark:border-yellow-700', bg: 'bg-yellow-50 dark:bg-yellow-900/10' },
+  '#EAB308': { dot: 'bg-yellow-500', header: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-200 dark:border-yellow-700', bg: 'bg-yellow-50 dark:bg-yellow-900/10' },
+  '#6B7280': { dot: 'bg-gray-500', header: 'bg-gray-100 dark:bg-gray-800/50', text: 'text-gray-700 dark:text-gray-300', border: 'border-gray-200 dark:border-gray-700', bg: 'bg-gray-50 dark:bg-gray-800/30' },
+};
+
+// Default colors for fallback
+const DEFAULT_COLORS = { dot: 'bg-gray-500', header: 'bg-gray-100 dark:bg-gray-800/50', text: 'text-gray-700 dark:text-gray-300', border: 'border-gray-200 dark:border-gray-700', bg: 'bg-gray-50 dark:bg-gray-800/30' };
+
+// Get color classes from hex color
+function getColorClasses(hexColor: string) {
+  const upperHex = hexColor.toUpperCase();
+  return COLOR_MAP[upperHex] || DEFAULT_COLORS;
+}
+
+// Fallback static stages (used when no funnels exist)
 export const PIPELINE_STAGES: PipelineStage[] = [
   { status: 'NEW_APPLICATION', labelKey: 'crm.stageNewApplication', dotClass: 'bg-amber-500', headerBg: 'bg-amber-100 dark:bg-amber-900/30', textClass: 'text-amber-700 dark:text-amber-300', borderClass: 'border-amber-200 dark:border-amber-700', bgClass: 'bg-amber-50 dark:bg-amber-900/10' },
   { status: 'INITIAL_CONTACT', labelKey: 'crm.stageInitialContact', dotClass: 'bg-blue-500', headerBg: 'bg-blue-100 dark:bg-blue-900/30', textClass: 'text-blue-700 dark:text-blue-300', borderClass: 'border-blue-200 dark:border-blue-700', bgClass: 'bg-blue-50 dark:bg-blue-900/10' },
@@ -56,6 +96,21 @@ interface CrmClientProps {
   coordinators: { id: string; name: string }[];
 }
 
+interface Funnel {
+  id: string;
+  name: string;
+  color: string;
+  isDefault: boolean;
+  stages: {
+    id: string;
+    name: string;
+    color: string;
+    order: number;
+    isWon: boolean;
+    isLost: boolean;
+  }[];
+}
+
 export default function CrmClient({ initialLeads, userRole, userId, coordinators }: CrmClientProps) {
   const { t } = useLanguage();
   const [leads, setLeads] = useState<CrmLead[]>(initialLeads);
@@ -71,6 +126,70 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
   const [waUnreadMap, setWaUnreadMap] = useState<Record<string, number>>({});
   const [socialUnreadMap, setSocialUnreadMap] = useState<Record<string, number>>({});
 
+  // Funnels
+  const [funnels, setFunnels] = useState<Funnel[]>([]);
+  const [selectedFunnelId, setSelectedFunnelId] = useState<string | null>(null);
+  const [funnelDropdownOpen, setFunnelDropdownOpen] = useState(false);
+  const funnelDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Load funnels
+  useEffect(() => {
+    const loadFunnels = async () => {
+      try {
+        const res = await fetch('/api/crm/funnels');
+        if (res.ok) {
+          const data = await res.json();
+          setFunnels(data);
+          // Select default funnel or first one
+          const defaultFunnel = data.find((f: Funnel) => f.isDefault) || data[0];
+          if (defaultFunnel && !selectedFunnelId) {
+            setSelectedFunnelId(defaultFunnel.id);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load funnels:', error);
+      }
+    };
+    loadFunnels();
+  }, []);
+
+  // Close funnel dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (funnelDropdownRef.current && !funnelDropdownRef.current.contains(e.target as Node)) {
+        setFunnelDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Get current funnel and its stages
+  const currentFunnel = funnels.find(f => f.id === selectedFunnelId);
+
+  // Convert funnel stages to PipelineStage format
+  const dynamicStages: PipelineStage[] = useMemo(() => {
+    if (!currentFunnel || currentFunnel.stages.length === 0) {
+      return PIPELINE_STAGES; // Fallback to static stages
+    }
+    return currentFunnel.stages
+      .sort((a, b) => a.order - b.order)
+      .map(stage => {
+        const colors = getColorClasses(stage.color);
+        return {
+          status: stage.id,
+          labelKey: '', // Not used for dynamic stages
+          label: stage.name,
+          dotClass: colors.dot,
+          headerBg: colors.header,
+          textClass: colors.text,
+          borderClass: colors.border,
+          bgClass: colors.bg,
+          color: stage.color,
+        };
+      });
+  }, [currentFunnel]);
+
   const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
   useEffect(() => {
@@ -82,6 +201,21 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Listen for MarSIP open-lead event (when dialing a number that matches a lead)
+  useEffect(() => {
+    const handleOpenLead = (e: CustomEvent<{ leadId: string }>) => {
+      const { leadId } = e.detail;
+      const lead = leads.find(l => l.id === leadId);
+      if (lead) {
+        setSelectedLead(lead);
+        setSlideOverOpen(true);
+      }
+    };
+
+    window.addEventListener('marsip:open-lead', handleOpenLead as EventListener);
+    return () => window.removeEventListener('marsip:open-lead', handleOpenLead as EventListener);
+  }, [leads]);
 
   // Poll leads + WhatsApp + Social unread counts
   useEffect(() => {
@@ -146,11 +280,17 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
   // Group by stage, leads with unread messages first (WhatsApp + Social)
   const leadsByStage = useMemo(() => {
     const map: Record<string, CrmLead[]> = {};
-    for (const stage of PIPELINE_STAGES) {
+    for (const stage of dynamicStages) {
       map[stage.status] = [];
     }
     for (const l of filteredLeads) {
-      if (map[l.stage]) map[l.stage].push(l);
+      // For dynamic stages, lead.stage contains stage ID; for static - status string
+      if (map[l.stage]) {
+        map[l.stage].push(l);
+      } else if (l.stageId && map[l.stageId]) {
+        // Support stageId field for funnel-based leads
+        map[l.stageId].push(l);
+      }
     }
     // Sort: leads with unread messages first (combine WA + Social)
     for (const key of Object.keys(map)) {
@@ -163,11 +303,11 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
       });
     }
     return map;
-  }, [filteredLeads, waUnreadMap, socialUnreadMap]);
+  }, [filteredLeads, waUnreadMap, socialUnreadMap, dynamicStages]);
 
   // Stage totals
   const stageTotals = useMemo(() => {
-    return PIPELINE_STAGES.map(stage => {
+    return dynamicStages.map(stage => {
       const stageLeads = leadsByStage[stage.status] || [];
       return {
         ...stage,
@@ -175,7 +315,7 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
         totalAmount: stageLeads.reduce((sum, l) => sum + (l.amount || 0), 0),
       };
     });
-  }, [leadsByStage]);
+  }, [leadsByStage, dynamicStages]);
 
   const handleCardClick = useCallback((lead: CrmLead) => {
     setSelectedLead(lead);
@@ -183,16 +323,16 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
   }, []);
 
   const handleStageChange = useCallback(async (leadId: string, _fromStage: string, toStage: string) => {
-    // Optimistic update
+    // Optimistic update - set both stage and stageId for proper grouping
     const prevLeads = [...leads];
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: toStage } : l));
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: toStage, stageId: toStage } : l));
 
     try {
       const res = await fetch(`/api/crm/leads/${leadId}`, {
         method: 'PATCH',
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: toStage }),
+        body: JSON.stringify({ stageId: toStage }),
       });
       if (!res.ok) {
         setLeads(prevLeads);
@@ -227,6 +367,74 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
     <div className="space-y-4">
       {/* ── FILTERS BAR ── */}
       <div className="flex flex-wrap items-center gap-3">
+        {/* Funnel selector */}
+        <div className="relative" ref={funnelDropdownRef}>
+          <button
+            onClick={() => setFunnelDropdownOpen(!funnelDropdownOpen)}
+            className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            {currentFunnel && (
+              <span
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: currentFunnel.color }}
+              />
+            )}
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <span className="truncate max-w-[140px]">
+              {currentFunnel?.name || t('crm.selectFunnel')}
+            </span>
+            <svg className={`w-4 h-4 transition-transform ${funnelDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {funnelDropdownOpen && (
+            <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-20 py-1">
+              {funnels.length > 0 ? (
+                funnels.map(funnel => (
+                  <button
+                    key={funnel.id}
+                    onClick={() => {
+                      setSelectedFunnelId(funnel.id);
+                      setFunnelDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors ${
+                      selectedFunnelId === funnel.id
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: funnel.color }}
+                    />
+                    <span className="flex-1 truncate">{funnel.name}</span>
+                    {funnel.isDefault && (
+                      <span className="text-xs text-green-600 dark:text-green-400">✓</span>
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-4 text-center">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    {t('crm.settings.noFunnels')}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setFunnelDropdownOpen(false);
+                      setSettingsModalOpen(true);
+                    }}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {t('crm.settings.createFirstFunnel')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* View mode toggle */}
         <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <button
@@ -352,20 +560,21 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
             </svg>
           </button>
         )}
-      </div>
+
+              </div>
 
       {/* ── STAGE SUMMARY ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="flex flex-wrap gap-1.5">
         {stageTotals.map(stage => (
-          <div key={stage.status} className={`${stage.bgClass} border ${stage.borderClass} rounded-xl p-3`}>
-            <div className="flex items-center gap-2 mb-1">
-              <div className={`w-2 h-2 rounded-full ${stage.dotClass}`} />
-              <span className={`text-xs font-medium ${stage.textClass} truncate`}>{t(stage.labelKey)}</span>
-            </div>
-            <div className="text-lg font-bold text-gray-900 dark:text-white">{stage.count}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-              {stage.totalAmount > 0 ? formatAmount(stage.totalAmount) : '—'}
-            </div>
+          <div key={stage.status} className={`${stage.bgClass} border ${stage.borderClass} rounded-lg px-2.5 py-1.5 flex items-center gap-2`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${stage.dotClass}`} />
+            <span className={`text-xs ${stage.textClass} truncate max-w-[80px]`}>
+              {stage.label || t(stage.labelKey)}
+            </span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">{stage.count}</span>
+            {stage.totalAmount > 0 && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">{formatAmount(stage.totalAmount)}</span>
+            )}
           </div>
         ))}
       </div>
@@ -374,7 +583,7 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
       {viewMode === 'kanban' ? (
         <CrmKanbanBoard
           leadsByStage={leadsByStage}
-          stages={PIPELINE_STAGES}
+          stages={dynamicStages}
           onStageChange={handleStageChange}
           onCardClick={handleCardClick}
           formatAmount={formatAmount}
@@ -385,7 +594,7 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
       ) : (
         <CrmTableView
           leads={filteredLeads}
-          stages={PIPELINE_STAGES}
+          stages={dynamicStages}
           onCardClick={handleCardClick}
           formatAmount={formatAmount}
           t={t}
@@ -421,6 +630,7 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
         onClose={() => setSettingsModalOpen(false)}
         t={t}
       />
+
     </div>
   );
 }

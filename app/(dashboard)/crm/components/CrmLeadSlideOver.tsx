@@ -22,7 +22,6 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
   const initials = `${lead.firstName[0] || ''}${lead.lastName[0] || ''}`;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [calling, setCalling] = useState<string | null>(null);
   const [callResult, setCallResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [msgTab, setMsgTab] = useState<'whatsapp' | 'messenger' | 'instagram'>('whatsapp');
@@ -38,7 +37,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
         method: 'PATCH',
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: newStage }),
+        body: JSON.stringify({ stageId: newStage }),
       });
       if (res.ok) {
         const updated = await res.json();
@@ -47,27 +46,14 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
     } catch { /* ignore */ }
   };
 
-  const handleCall = async (phone: string) => {
-    setCalling(phone);
-    setCallResult(null);
-    try {
-      const res = await fetch('/api/crm/call', {
-        method: 'POST',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setCallResult({ type: 'success', message: t('crm.callInitiated') || 'Звонок инициирован' });
-      } else {
-        setCallResult({ type: 'error', message: data.error || 'Ошибка' });
-      }
-    } catch {
-      setCallResult({ type: 'error', message: 'Ошибка сети' });
-    }
-    setCalling(null);
-    setTimeout(() => setCallResult(null), 4000);
+  const handleCall = (phone: string) => {
+    // Dispatch custom event to open MarSIP widget and initiate call
+    const event = new CustomEvent('marsip:call', {
+      detail: { phone, leadId: lead.id }
+    });
+    window.dispatchEvent(event);
+    setCallResult({ type: 'success', message: t('crm.callInitiated') || 'Звонок инициирован' });
+    setTimeout(() => setCallResult(null), 3000);
   };
 
   const handleDelete = async () => {
@@ -231,13 +217,12 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
                 <span>{lead.phone}</span>
                 <button
                   onClick={() => handleCall(lead.phone!)}
-                  disabled={calling === lead.phone}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/40 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/40 transition-colors"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  {calling === lead.phone ? '...' : t('crm.call') || 'Позвонить'}
+                  {t('crm.call') || 'Позвонить'}
                 </button>
               </span>
             ) : '—'
@@ -250,13 +235,12 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
                 <span>{lead.parentPhone}</span>
                 <button
                   onClick={() => handleCall(lead.parentPhone!)}
-                  disabled={calling === lead.parentPhone}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/40 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/40 transition-colors"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  {calling === lead.parentPhone ? '...' : t('crm.call') || 'Позвонить'}
+                  {t('crm.call') || 'Позвонить'}
                 </button>
               </span>
             ) : '—'
