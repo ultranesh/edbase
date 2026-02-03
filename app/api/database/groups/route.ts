@@ -23,7 +23,7 @@ export async function GET() {
         language: { select: { id: true, name: true, code: true } },
         studyDirection: { select: { id: true, name: true, code: true } },
         groupIndex: { select: { id: true, name: true, symbol: true } },
-        branch: { select: { id: true, name: true } },
+        branch: { select: { id: true, name: true, code: true } },
         teacher: {
           select: {
             id: true,
@@ -32,7 +32,7 @@ export async function GET() {
         },
         subjects: {
           include: {
-            subject: { select: { id: true, name: true } },
+            subject: { select: { id: true, nameRu: true, nameKz: true } },
           },
         },
         students: {
@@ -76,15 +76,15 @@ export async function POST(request: Request) {
       ? await prisma.branch.findUnique({ where: { id: data.branchId } })
       : null;
 
-    // Build name: 5RMA-Omega-O (class + language + time + branch first letter + index + online suffix)
+    // Build name: 5RQM-Omega-O (class + language + branch + time + index + online suffix)
     const gradeCode = gradeLevel?.code || '0';
     const langCode = language?.code || 'R';
+    const branchCode = branch ? (branch.code || transliterate(branch.name)) : '';
     const timeCode = data.timeOfDay === 'MORNING' ? 'M' : data.timeOfDay === 'AFTERNOON' ? 'A' : 'E';
-    const branchCode = branch ? transliterate(branch.name) : '';
     const indexName = groupIndex?.name || 'Alpha';
     const formatSuffix = data.studyFormat?.includes('ONLINE') ? '-O' : '';
 
-    const generatedName = `${gradeCode}${langCode}${timeCode}${branchCode}-${indexName}${formatSuffix}`;
+    const generatedName = `${gradeCode}${langCode}${branchCode}${timeCode}-${indexName}${formatSuffix}`;
 
     const item = await prisma.group.create({
       data: {
@@ -98,6 +98,7 @@ export async function POST(request: Request) {
         studyFormat: data.studyFormat || null,
         timeOfDay: data.timeOfDay || null,
         maxStudents: data.maxStudents || 15,
+        maxHoursPerWeek: data.maxHoursPerWeek || 9,
         isActive: true,
       },
       include: {
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
         language: { select: { id: true, name: true, code: true } },
         studyDirection: { select: { id: true, name: true, code: true } },
         groupIndex: { select: { id: true, name: true, symbol: true } },
-        branch: { select: { id: true, name: true } },
+        branch: { select: { id: true, name: true, code: true } },
         teacher: {
           select: {
             id: true,
@@ -114,7 +115,7 @@ export async function POST(request: Request) {
         },
         subjects: {
           include: {
-            subject: { select: { id: true, name: true } },
+            subject: { select: { id: true, nameRu: true, nameKz: true } },
           },
         },
         students: {

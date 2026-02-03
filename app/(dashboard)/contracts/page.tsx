@@ -11,7 +11,7 @@ export default async function ContractsPage() {
   }
 
   // Only coordinators, admins and superadmins can access
-  const allowedRoles: string[] = ['COORDINATOR', 'ADMIN', 'SUPERADMIN'];
+  const allowedRoles: string[] = ['COORDINATOR', 'COORDINATOR_MANAGER', 'ADMIN', 'SUPERADMIN'];
   if (!allowedRoles.includes(session.user.role)) {
     redirect('/dashboard');
   }
@@ -21,18 +21,13 @@ export default async function ContractsPage() {
       user={{
         firstName: session.user.firstName,
         lastName: session.user.lastName,
-        email: session.user.email,
+        iin: session.user.iin || undefined,
         role: session.user.role,
+        switchToken: (session.user as any).switchToken || undefined,
       }}
-      title="Договоры"
+      titleKey="contracts.title"
     >
-      <div className="space-y-6">
-        <p className="text-sm text-gray-600">
-          Список договоров учеников. Вы можете скачать договор в формате PDF.
-        </p>
-
-        <ContractsList />
-      </div>
+      <ContractsList userRole={session.user.role} />
     </DashboardLayout>
   );
 }

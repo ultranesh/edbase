@@ -44,7 +44,7 @@ export async function GET(request: Request) {
         school: { select: { id: true, name: true } },
         subjects: {
           select: {
-            subject: { select: { id: true, name: true } },
+            subject: { select: { id: true, nameRu: true, nameKz: true } },
           },
         },
         groupStudents: {

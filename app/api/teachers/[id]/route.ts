@@ -31,7 +31,7 @@ export async function GET(
         category: { select: { id: true, name: true } },
         subjects: {
           include: {
-            subject: { select: { id: true, name: true } },
+            subject: { select: { id: true, nameRu: true, nameKz: true } },
           },
         },
         branches: {
@@ -196,7 +196,7 @@ export async function PATCH(
         category: { select: { id: true, name: true } },
         subjects: {
           include: {
-            subject: { select: { id: true, name: true } },
+            subject: { select: { id: true, nameRu: true, nameKz: true } },
           },
         },
         branches: {

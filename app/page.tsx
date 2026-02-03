@@ -23,7 +23,7 @@ export default function Home() {
               <a href="#subjects" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Предметы</a>
             </nav>
             <Link
-              href="/login"
+              href="https://classroom.ertis.academy/login"
               className="px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
             >
               Войти в Classroom
@@ -51,7 +51,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/login"
+              href="https://classroom.ertis.academy/login"
               className="px-8 py-4 bg-gray-900 text-white font-medium rounded-xl hover:bg-gray-800 transition-all hover:scale-105"
             >
               Начать обучение
@@ -367,7 +367,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/login"
+              href="https://classroom.ertis.academy/login"
               className="px-8 py-4 bg-white text-gray-900 font-medium rounded-xl hover:bg-gray-100 transition-all hover:scale-105"
             >
               Войти в Classroom

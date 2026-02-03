@@ -46,8 +46,8 @@ export default async function TeachersPage() {
             firstName: true,
             lastName: true,
             middleName: true,
-            email: true,
             phone: true,
+            avatar: true,
             lastLogin: true,
             createdAt: true,
           },
@@ -55,7 +55,7 @@ export default async function TeachersPage() {
         category: { select: { id: true, name: true } },
         subjects: {
           include: {
-            subject: { select: { id: true, name: true } },
+            subject: { select: { id: true, nameRu: true, nameKz: true, nameEn: true } },
           },
         },
         branches: {
@@ -69,7 +69,7 @@ export default async function TeachersPage() {
     prisma.refSubject.findMany({
       where: { isActive: true },
       orderBy: { orderIndex: 'asc' },
-      select: { id: true, name: true },
+      select: { id: true, nameRu: true, nameKz: true, nameEn: true },
     }),
     // Fetch branches for dropdown
     prisma.branch.findMany({
@@ -90,14 +90,15 @@ export default async function TeachersPage() {
       user={{
         firstName: session.user.firstName,
         lastName: session.user.lastName,
-        email: session.user.email,
+        iin: session.user.iin || undefined,
         role: session.user.role,
+        switchToken: (session.user as any).switchToken || undefined,
       }}
-      title="Преподаватели"
+      titleKey="teachers.title"
     >
       <TeachersClient
         initialTeachers={teachers}
-        subjects={subjects}
+        subjects={subjects.map(s => ({ ...s, name: s.nameRu || s.nameKz || '' }))}
         branches={branches}
         categories={categories}
         userRole={session.user.role}

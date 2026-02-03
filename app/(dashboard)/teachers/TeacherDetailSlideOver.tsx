@@ -3,10 +3,18 @@
 import { useState } from 'react';
 import SlideOver from '../components/SlideOver';
 import { useNotification } from '@/app/components/ui/NotificationProvider';
+import { useLanguage } from '@/app/components/LanguageProvider';
 
 interface RefOption {
   id: string;
   name: string;
+}
+
+interface SubjectOption {
+  id: string;
+  nameRu: string | null;
+  nameKz: string | null;
+  nameEn?: string | null;
 }
 
 interface Teacher {
@@ -24,13 +32,12 @@ interface Teacher {
     firstName: string;
     lastName: string;
     middleName: string | null;
-    email: string;
     phone: string | null;
     lastLogin: Date | null;
     createdAt: Date;
   };
   category: RefOption | null;
-  subjects: { id: string; subject: RefOption }[];
+  subjects: { id: string; subject: SubjectOption }[];
   branches: { id: string; branch: RefOption }[];
 }
 
@@ -40,7 +47,7 @@ interface TeacherDetailSlideOverProps {
   onClose: () => void;
   onUpdate: () => void;
   userRole: string;
-  subjects: RefOption[];
+  subjects: SubjectOption[];
   branches: RefOption[];
   categories: RefOption[];
 }
@@ -49,7 +56,6 @@ type FormData = {
   firstName: string;
   lastName: string;
   middleName: string;
-  email: string;
   userPhone: string;
   phone: string;
   dateOfBirth: string;
@@ -108,7 +114,6 @@ export default function TeacherDetailSlideOver({
     firstName: '',
     lastName: '',
     middleName: '',
-    email: '',
     userPhone: '',
     phone: '',
     dateOfBirth: '',
@@ -122,6 +127,7 @@ export default function TeacherDetailSlideOver({
   });
   const [isSaving, setIsSaving] = useState(false);
   const { showToast } = useNotification();
+  const { t } = useLanguage();
 
   if (!teacher) return null;
 
@@ -132,7 +138,6 @@ export default function TeacherDetailSlideOver({
       firstName: teacher.user.firstName,
       lastName: teacher.user.lastName,
       middleName: teacher.user.middleName || '',
-      email: teacher.user.email,
       userPhone: teacher.user.phone || '',
       phone: teacher.phone || '',
       dateOfBirth: teacher.dateOfBirth ? new Date(teacher.dateOfBirth).toISOString().split('T')[0] : '',
@@ -158,15 +163,15 @@ export default function TeacherDetailSlideOver({
 
       if (response.ok) {
         setIsEditing(false);
-        showToast({ message: 'Данные успешно сохранены', type: 'success' });
+        showToast({ message: t('teachers.savedSuccess'), type: 'success' });
         onUpdate();
       } else {
         const errorData = await response.json();
-        showToast({ message: errorData.error || 'Ошибка при сохранении', type: 'error' });
+        showToast({ message: errorData.error || t('teachers.saveError'), type: 'error' });
       }
     } catch (error) {
       console.error('Save error:', error);
-      showToast({ message: 'Ошибка при сохранении', type: 'error' });
+      showToast({ message: t('teachers.saveError'), type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -184,9 +189,9 @@ export default function TeacherDetailSlideOver({
       RESERVE: 'bg-amber-500 text-white',
     };
     const labels: Record<string, string> = {
-      ACTIVE: 'Активный',
-      SUSPENDED: 'Отстранен',
-      RESERVE: 'Резерв',
+      ACTIVE: t('teachers.statusActive'),
+      SUSPENDED: t('teachers.statusSuspended'),
+      RESERVE: t('teachers.statusReserve'),
     };
     return (
       <span className={`px-3 py-1 text-xs font-semibold rounded-full ${styles[status] || 'bg-gray-500 text-white'}`}>
@@ -213,7 +218,12 @@ export default function TeacherDetailSlideOver({
     }));
   };
 
-  const inputClass = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-gray-900";
+  const inputClass = "w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all text-gray-900 dark:text-white";
+  const selectClass = "w-full px-3 py-2 pr-10 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400";
+  const labelClass = "text-xs text-gray-500 dark:text-gray-400";
+  const valueClass = "text-sm font-medium text-gray-900 dark:text-white";
+  const sectionBoxClass = "bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3";
+  const sectionHeaderClass = "text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2";
 
   return (
     <SlideOver
@@ -232,25 +242,25 @@ export default function TeacherDetailSlideOver({
             {canEdit && !isEditing && (
               <button
                 onClick={handleEdit}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-gray-700 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors"
               >
-                Редактировать
+                {t('teachers.edit')}
               </button>
             )}
             {isEditing && (
               <>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
-                  Отмена
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
-                  {isSaving ? 'Сохранение...' : 'Сохранить'}
+                  {isSaving ? t('teachers.saving') : t('common.save')}
                 </button>
               </>
             )}
@@ -259,14 +269,14 @@ export default function TeacherDetailSlideOver({
 
         {/* Section 1: Personal Information */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs text-blue-600">1</span>
-            Личная информация
+          <h3 className={sectionHeaderClass}>
+            <span className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-xs text-blue-600 dark:text-blue-400">1</span>
+            {t('teachers.personalInfo')}
           </h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className={sectionBoxClass}>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Фамилия</label>
+                <label className={labelClass}>{t('teachers.lastName')}</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -275,11 +285,11 @@ export default function TeacherDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{teacher.user.lastName}</div>
+                  <div className={valueClass}>{teacher.user.lastName}</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Имя</label>
+                <label className={labelClass}>{t('teachers.firstName')}</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -288,13 +298,13 @@ export default function TeacherDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{teacher.user.firstName}</div>
+                  <div className={valueClass}>{teacher.user.firstName}</div>
                 )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Отчество</label>
+                <label className={labelClass}>{t('teachers.middleName')}</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -303,11 +313,11 @@ export default function TeacherDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{teacher.user.middleName || '-'}</div>
+                  <div className={valueClass}>{teacher.user.middleName || '-'}</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Дата рождения</label>
+                <label className={labelClass}>{t('teachers.birthDate')}</label>
                 {isEditing ? (
                   <input
                     type="date"
@@ -316,13 +326,13 @@ export default function TeacherDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{formatDate(teacher.dateOfBirth)}</div>
+                  <div className={valueClass}>{formatDate(teacher.dateOfBirth)}</div>
                 )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">ИИН</label>
+                <label className={labelClass}>{t('teachers.iin')}</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -333,11 +343,11 @@ export default function TeacherDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{teacher.iin ? formatIIN(teacher.iin) : '-'}</div>
+                  <div className={valueClass}>{teacher.iin ? formatIIN(teacher.iin) : '-'}</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Телефон</label>
+                <label className={labelClass}>{t('teachers.phone')}</label>
                 {isEditing ? (
                   <input
                     type="tel"
@@ -347,44 +357,31 @@ export default function TeacherDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{teacher.phone ? formatPhone(teacher.phone) : teacher.user.phone ? formatPhone(teacher.user.phone) : '-'}</div>
+                  <div className={valueClass}>{teacher.phone ? formatPhone(teacher.phone) : teacher.user.phone ? formatPhone(teacher.user.phone) : '-'}</div>
                 )}
               </div>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">Email</label>
-              {isEditing ? (
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={inputClass}
-                />
-              ) : (
-                <div className="text-sm font-medium text-gray-900">{teacher.user.email}</div>
-              )}
             </div>
           </div>
         </div>
 
         {/* Section 2: Professional Information */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs text-blue-600">2</span>
-            Профессиональная информация
+          <h3 className={sectionHeaderClass}>
+            <span className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-xs text-blue-600 dark:text-blue-400">2</span>
+            {t('teachers.professionalInfo')}
           </h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Категория</label>
+                <label className={labelClass}>{t('teachers.category')}</label>
                 {isEditing ? (
                   <div className="relative mt-1">
                     <select
                       value={formData.categoryId}
                       onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                      className="w-full px-3 py-2 pr-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                      className={selectClass}
                     >
-                      <option value="">Не указано</option>
+                      <option value="">{t('teachers.notSpecified')}</option>
                       {categories.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
@@ -396,21 +393,21 @@ export default function TeacherDetailSlideOver({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{teacher.category?.name || 'Не указано'}</div>
+                  <div className={valueClass}>{teacher.category?.name || t('teachers.notSpecified')}</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Статус</label>
+                <label className={labelClass}>{t('teachers.status')}</label>
                 {isEditing ? (
                   <div className="relative mt-1">
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full px-3 py-2 pr-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                      className={selectClass}
                     >
-                      <option value="ACTIVE">Активный</option>
-                      <option value="SUSPENDED">Отстранен</option>
-                      <option value="RESERVE">Резерв</option>
+                      <option value="ACTIVE">{t('teachers.statusActive')}</option>
+                      <option value="SUSPENDED">{t('teachers.statusSuspended')}</option>
+                      <option value="RESERVE">{t('teachers.statusReserve')}</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -427,10 +424,10 @@ export default function TeacherDetailSlideOver({
             {/* Subjects */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs text-gray-500">Предметы</label>
+                <label className={labelClass}>{t('teachers.subjects')}</label>
                 {isEditing && (
-                  <span className="text-xs text-gray-500">
-                    Выбрано: <span className="font-semibold text-indigo-600">{formData.subjectIds.length}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('teachers.selected', { count: formData.subjectIds.length })}
                   </span>
                 )}
               </div>
@@ -445,12 +442,12 @@ export default function TeacherDetailSlideOver({
                         onClick={() => toggleSubject(subject.id)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all text-left text-sm ${
                           isSelected
-                            ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                            : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                            ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-500 text-indigo-700 dark:text-indigo-300'
+                            : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600'
                         }`}
                       >
                         <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${
-                          isSelected ? 'bg-indigo-500' : 'border-2 border-gray-300'
+                          isSelected ? 'bg-indigo-500' : 'border-2 border-gray-300 dark:border-gray-500'
                         }`}>
                           {isSelected && (
                             <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -458,7 +455,7 @@ export default function TeacherDetailSlideOver({
                             </svg>
                           )}
                         </div>
-                        <span className="font-medium">{subject.name}</span>
+                        <span className="font-medium">{subject.nameRu || subject.nameKz}</span>
                       </button>
                     );
                   })}
@@ -467,12 +464,12 @@ export default function TeacherDetailSlideOver({
                 <div className="flex flex-wrap gap-2">
                   {teacher.subjects.length > 0 ? (
                     teacher.subjects.map(s => (
-                      <span key={s.id} className="px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-lg">
-                        {s.subject.name}
+                      <span key={s.id} className="px-3 py-1.5 text-sm bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg">
+                        {s.subject.nameRu || s.subject.nameKz}
                       </span>
                     ))
                   ) : (
-                    <span className="text-sm text-gray-500">Не указаны</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('teachers.notSpecified')}</span>
                   )}
                 </div>
               )}
@@ -481,10 +478,10 @@ export default function TeacherDetailSlideOver({
             {/* Branches */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs text-gray-500">Филиалы</label>
+                <label className={labelClass}>{t('teachers.branches')}</label>
                 {isEditing && (
-                  <span className="text-xs text-gray-500">
-                    Выбрано: <span className="font-semibold text-emerald-600">{formData.branchIds.length}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('teachers.selected', { count: formData.branchIds.length })}
                   </span>
                 )}
               </div>
@@ -499,12 +496,12 @@ export default function TeacherDetailSlideOver({
                         onClick={() => toggleBranch(branch.id)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all text-left text-sm ${
                           isSelected
-                            ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                            : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                            ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-500 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600'
                         }`}
                       >
                         <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${
-                          isSelected ? 'bg-emerald-500' : 'border-2 border-gray-300'
+                          isSelected ? 'bg-emerald-500' : 'border-2 border-gray-300 dark:border-gray-500'
                         }`}>
                           {isSelected && (
                             <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -521,12 +518,12 @@ export default function TeacherDetailSlideOver({
                 <div className="flex flex-wrap gap-2">
                   {teacher.branches.length > 0 ? (
                     teacher.branches.map(b => (
-                      <span key={b.id} className="px-3 py-1.5 text-sm bg-emerald-100 text-emerald-700 rounded-lg">
+                      <span key={b.id} className="px-3 py-1.5 text-sm bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-lg">
                         {b.branch.name}
                       </span>
                     ))
                   ) : (
-                    <span className="text-sm text-gray-500">Не указаны</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('teachers.notSpecified')}</span>
                   )}
                 </div>
               )}
@@ -536,24 +533,24 @@ export default function TeacherDetailSlideOver({
 
         {/* Section 3: Salary */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs text-blue-600">3</span>
-            Оплата труда
+          <h3 className={sectionHeaderClass}>
+            <span className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-xs text-blue-600 dark:text-blue-400">3</span>
+            {t('teachers.salary')}
           </h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className={sectionBoxClass}>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Формат оплаты</label>
+                <label className={labelClass}>{t('teachers.salaryFormat')}</label>
                 {isEditing ? (
                   <div className="relative mt-1">
                     <select
                       value={formData.salaryFormat}
                       onChange={(e) => setFormData({ ...formData, salaryFormat: e.target.value })}
-                      className="w-full px-3 py-2 pr-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                      className={selectClass}
                     >
-                      <option value="">Не указано</option>
-                      <option value="HOURLY">Почасовая</option>
-                      <option value="MONTHLY">Месячная ЗП</option>
+                      <option value="">{t('teachers.notSpecified')}</option>
+                      <option value="HOURLY">{t('teachers.hourly')}</option>
+                      <option value="MONTHLY">{t('teachers.monthly')}</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -562,28 +559,28 @@ export default function TeacherDetailSlideOver({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">
-                    {teacher.salaryFormat === 'HOURLY' ? 'Почасовая' :
-                     teacher.salaryFormat === 'MONTHLY' ? 'Месячная ЗП' : 'Не указано'}
+                  <div className={valueClass}>
+                    {teacher.salaryFormat === 'HOURLY' ? t('teachers.hourly') :
+                     teacher.salaryFormat === 'MONTHLY' ? t('teachers.monthly') : t('teachers.notSpecified')}
                   </div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">
+                <label className={labelClass}>
                   {formData.salaryFormat === 'HOURLY' || teacher.salaryFormat === 'HOURLY'
-                    ? 'Ставка за час (₸)'
-                    : 'Зарплата в месяц (₸)'}
+                    ? t('teachers.hourlyRate')
+                    : t('teachers.monthlySalary')}
                 </label>
                 {isEditing ? (
                   <input
                     type="number"
                     value={formData.salaryAmount}
                     onChange={(e) => setFormData({ ...formData, salaryAmount: e.target.value })}
-                    placeholder={formData.salaryFormat === 'HOURLY' ? 'Ставка за час' : 'Сумма в месяц'}
+                    placeholder={formData.salaryFormat === 'HOURLY' ? t('teachers.hourlyRate') : t('teachers.monthlySalary')}
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className={valueClass}>
                     {teacher.salaryAmount
                       ? `${new Intl.NumberFormat('ru-RU').format(teacher.salaryAmount)} ₸`
                       : '-'}
@@ -596,23 +593,23 @@ export default function TeacherDetailSlideOver({
 
         {/* Section 4: Activity */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs text-blue-600">4</span>
-            Активность
+          <h3 className={sectionHeaderClass}>
+            <span className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-xs text-blue-600 dark:text-blue-400">4</span>
+            {t('teachers.activity')}
           </h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className={sectionBoxClass}>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Последний вход</label>
-                <div className="text-sm font-medium text-gray-900">
+                <label className={labelClass}>{t('teachers.lastLogin')}</label>
+                <div className={valueClass}>
                   {teacher.user.lastLogin
                     ? new Date(teacher.user.lastLogin).toLocaleString('ru-RU')
-                    : 'Никогда'}
+                    : t('teachers.never')}
                 </div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">Дата регистрации</label>
-                <div className="text-sm font-medium text-gray-900">
+                <label className={labelClass}>{t('teachers.registrationDate')}</label>
+                <div className={valueClass}>
                   {formatDate(teacher.user.createdAt)}
                 </div>
               </div>

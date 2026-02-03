@@ -1,6 +1,5 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
 import DashboardLayout from '../../components/DashboardLayout';
 import DatabaseClient from './DatabaseClient';
 
@@ -16,50 +15,18 @@ export default async function DatabaseSettingsPage() {
     redirect('/dashboard');
   }
 
-  // Fetch all data
-  const [branches, subjects, mathTopics] = await Promise.all([
-    prisma.branch.findMany({
-      orderBy: { name: 'asc' },
-      include: {
-        classrooms: {
-          orderBy: { name: 'asc' },
-        },
-      },
-    }),
-    prisma.taskSubject.findMany({
-      orderBy: { orderIndex: 'asc' },
-    }),
-    prisma.taskTopic.findMany({
-      where: {
-        subject: {
-          name: 'Математика',
-        },
-      },
-      orderBy: { orderIndex: 'asc' },
-      include: {
-        subtopics: {
-          orderBy: { orderIndex: 'asc' },
-        },
-      },
-    }),
-  ]);
-
   return (
     <DashboardLayout
       user={{
         firstName: session.user.firstName,
         lastName: session.user.lastName,
-        email: session.user.email,
+        iin: session.user.iin || undefined,
         role: session.user.role,
+        switchToken: (session.user as any).switchToken || undefined,
       }}
-      title="Настройки базы данных"
+      titleKey="database.title"
     >
-      <DatabaseClient
-        initialBranches={branches}
-        initialSubjects={subjects}
-        initialMathTopics={mathTopics}
-        userRole={session.user.role}
-      />
+      <DatabaseClient userRole={session.user.role} />
     </DashboardLayout>
   );
 }

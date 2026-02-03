@@ -40,10 +40,11 @@ export default async function TasksLibraryPage() {
       user={{
         firstName: session.user.firstName,
         lastName: session.user.lastName,
-        email: session.user.email,
+        iin: session.user.iin || undefined,
         role: session.user.role,
+        switchToken: (session.user as any).switchToken || undefined,
       }}
-      title="Библиотека задач"
+      titleKey="tasksLibrary.title"
     >
       <TasksLibraryClient
         subjects={subjects}

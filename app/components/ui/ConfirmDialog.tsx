@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLanguage } from '../../components/LanguageProvider';
 
 export interface ConfirmDialogProps {
   title: string;
@@ -15,12 +16,15 @@ export interface ConfirmDialogProps {
 export default function ConfirmDialog({
   title,
   message,
-  confirmText = 'Подтвердить',
-  cancelText = 'Отмена',
+  confirmText,
+  cancelText,
   type = 'info',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useLanguage();
+  const finalConfirmText = confirmText || t('common.confirm');
+  const finalCancelText = cancelText || t('common.cancel');
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -57,9 +61,9 @@ export default function ConfirmDialog({
   };
 
   const iconStyles = {
-    danger: 'bg-red-100 text-red-600',
-    warning: 'bg-yellow-100 text-yellow-600',
-    info: 'bg-blue-100 text-blue-600',
+    danger: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+    warning: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400',
+    info: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
   };
 
   const confirmButtonStyles = {
@@ -85,7 +89,7 @@ export default function ConfirmDialog({
       {/* Dialog */}
       <div
         className={`
-          relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6
+          relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6
           transition-all duration-200
           ${isVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}
         `}
@@ -95,23 +99,23 @@ export default function ConfirmDialog({
             {icons[type]}
           </div>
           <div className="flex-1 pt-1">
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-            <p className="mt-2 text-sm text-gray-600">{message}</p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{message}</p>
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 mt-6">
           <button
             onClick={() => handleClose(false)}
-            className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
-            {cancelText}
+            {finalCancelText}
           </button>
           <button
             onClick={() => handleClose(true)}
             className={`px-4 py-2.5 text-sm font-medium rounded-xl transition-colors ${confirmButtonStyles[type]}`}
           >
-            {confirmText}
+            {finalConfirmText}
           </button>
         </div>
       </div>

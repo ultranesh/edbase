@@ -36,7 +36,8 @@ export async function GET(request: Request) {
             subject: {
               select: {
                 id: true,
-                name: true,
+                nameRu: true,
+                nameKz: true,
               },
             },
           },

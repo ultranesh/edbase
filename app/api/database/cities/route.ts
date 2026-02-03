@@ -1,23 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Cache for 1 hour, revalidate in background
-export const revalidate = 3600;
+// No cache for admin database pages
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
     const items = await prisma.refCity.findMany({
-      include: { _count: { select: { schools: true } } },
-      orderBy: { name: 'asc' },
+      include: { region: true },
+      orderBy: { orderIndex: 'asc' },
     });
-    return NextResponse.json(items, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-      },
-    });
+    return NextResponse.json(items);
   } catch (error) {
-    console.error('Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
+    console.error('Error fetching cities:', error);
+    return NextResponse.json({
+      error: 'Failed to fetch',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 

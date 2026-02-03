@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNotification } from '@/app/components/ui/NotificationProvider';
+import { useLanguage } from '@/app/components/LanguageProvider';
 
 interface Classroom {
   id: string;
@@ -156,6 +157,7 @@ export default function ScheduleClient({
   });
 
   const { showToast, showConfirm } = useNotification();
+  const { t } = useLanguage();
 
   // Load teachers and groups
   useEffect(() => {
@@ -290,7 +292,7 @@ export default function ScheduleClient({
   const handleCreateSlot = async () => {
     if (!formData.branchId || !formData.classroomId || !formData.subject ||
         !formData.startTime || !formData.endTime || formData.days.length === 0) {
-      showToast({ message: 'Заполните все обязательные поля', type: 'warning' });
+      showToast({ message: t('common.required'), type: 'warning' });
       return;
     }
 
@@ -315,7 +317,7 @@ export default function ScheduleClient({
 
         if (!response.ok) {
           const error = await response.json();
-          showToast({ message: error.error || 'Ошибка создания', type: 'error' });
+          showToast({ message: error.error || t('common.error'), type: 'error' });
           return;
         }
 
@@ -326,10 +328,10 @@ export default function ScheduleClient({
       setSlots([...slots, ...newSlots]);
       setShowCreateForm(false);
       setSelectedCell(null);
-      showToast({ message: `Создано ${newSlots.length} занятий`, type: 'success' });
+      showToast({ message: t('schedule.createdSuccess', { count: newSlots.length }), type: 'success' });
     } catch (error) {
       console.error('Create slot error:', error);
-      showToast({ message: 'Ошибка создания', type: 'error' });
+      showToast({ message: t('common.error'), type: 'error' });
     }
   };
 
@@ -337,10 +339,10 @@ export default function ScheduleClient({
     if (!editingSlot) return;
 
     const confirmed = await showConfirm({
-      title: 'Удалить занятие',
-      message: 'Вы уверены, что хотите удалить это занятие?',
-      confirmText: 'Удалить',
-      cancelText: 'Отмена',
+      title: t('schedule.deleteLesson'),
+      message: t('schedule.deleteLessonConfirm'),
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
       type: 'danger',
     });
     if (!confirmed) return;
@@ -348,16 +350,16 @@ export default function ScheduleClient({
     try {
       const response = await fetch(`/api/schedule/${editingSlot.id}`, { method: 'DELETE' });
       if (!response.ok) {
-        showToast({ message: 'Ошибка удаления', type: 'error' });
+        showToast({ message: t('common.error'), type: 'error' });
         return;
       }
 
       setSlots(slots.filter(s => s.id !== editingSlot.id));
       setShowEditModal(false);
       setEditingSlot(null);
-      showToast({ message: 'Занятие удалено', type: 'success' });
+      showToast({ message: t('schedule.deletedSuccess'), type: 'success' });
     } catch (error) {
-      showToast({ message: 'Ошибка удаления', type: 'error' });
+      showToast({ message: t('common.error'), type: 'error' });
     }
   };
 
@@ -379,7 +381,7 @@ export default function ScheduleClient({
       });
 
       if (!response.ok) {
-        showToast({ message: 'Ошибка обновления', type: 'error' });
+        showToast({ message: t('common.error'), type: 'error' });
         return;
       }
 
@@ -387,9 +389,9 @@ export default function ScheduleClient({
       setSlots(slots.map(s => s.id === updatedSlot.id ? updatedSlot : s));
       setShowEditModal(false);
       setEditingSlot(null);
-      showToast({ message: 'Занятие обновлено', type: 'success' });
+      showToast({ message: t('schedule.updatedSuccess'), type: 'success' });
     } catch (error) {
-      showToast({ message: 'Ошибка обновления', type: 'error' });
+      showToast({ message: t('common.error'), type: 'error' });
     }
   };
 
@@ -442,12 +444,12 @@ export default function ScheduleClient({
 
   if (!selectedBranchData) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-gray-200">
-        <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+        <svg className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
-        <p className="text-gray-600 font-medium">Филиалы не найдены</p>
-        <p className="text-gray-400 text-sm mt-1">Добавьте филиал в настройках</p>
+        <p className="text-gray-600 dark:text-gray-400 font-medium">Филиалы не найдены</p>
+        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Добавьте филиал в настройках</p>
       </div>
     );
   }
@@ -455,10 +457,10 @@ export default function ScheduleClient({
   return (
     <div className="space-y-4">
       {/* Header Panel */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           {/* View Mode Tabs */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
             {[
               { id: 'week', label: 'Неделя', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z' },
               { id: 'day', label: 'День', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
@@ -470,8 +472,8 @@ export default function ScheduleClient({
                 onClick={() => setViewMode(mode.id as ViewMode)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
                   viewMode === mode.id
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -487,7 +489,7 @@ export default function ScheduleClient({
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-gray-900"
+              className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 text-gray-900 dark:text-white"
             >
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>{branch.name}</option>
@@ -500,20 +502,20 @@ export default function ScheduleClient({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setSelectedDay(prev => prev === 0 ? 6 : prev - 1)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
               >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <span className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium min-w-[140px] text-center">
+              <span className="px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg font-medium min-w-[140px] text-center">
                 {DAYS[selectedDay]}
               </span>
               <button
                 onClick={() => setSelectedDay(prev => prev === 6 ? 0 : prev + 1)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
               >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
@@ -525,7 +527,7 @@ export default function ScheduleClient({
             <select
               value={selectedTeacherId}
               onChange={(e) => setSelectedTeacherId(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-gray-900"
+              className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 text-gray-900 dark:text-white"
             >
               <option value="">Выберите учителя</option>
               {teachers.map((teacher) => (
@@ -541,7 +543,7 @@ export default function ScheduleClient({
             <select
               value={selectedGroupId}
               onChange={(e) => setSelectedGroupId(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-gray-900"
+              className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 text-gray-900 dark:text-white"
             >
               <option value="">Выберите группу</option>
               {groups.map((group) => (
@@ -562,8 +564,8 @@ export default function ScheduleClient({
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
                 hasActiveFilters
-                  ? 'bg-blue-50 border-blue-200 text-blue-700'
-                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                  ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300'
+                  : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -580,8 +582,8 @@ export default function ScheduleClient({
               onClick={() => setShowStatsPanel(!showStatsPanel)}
               className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
                 showStatsPanel
-                  ? 'bg-purple-50 border-purple-200 text-purple-700'
-                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                  ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300'
+                  : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -620,14 +622,14 @@ export default function ScheduleClient({
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Учитель:</label>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Учитель:</label>
                 <select
                   value={filterTeacher}
                   onChange={(e) => setFilterTeacher(e.target.value)}
-                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 text-gray-900"
+                  className="px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 text-gray-900 dark:text-white"
                 >
                   <option value="">Все</option>
                   {teachers.map((teacher) => (
@@ -639,11 +641,11 @@ export default function ScheduleClient({
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Группа:</label>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Группа:</label>
                 <select
                   value={filterGroup}
                   onChange={(e) => setFilterGroup(e.target.value)}
-                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 text-gray-900"
+                  className="px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 text-gray-900 dark:text-white"
                 >
                   <option value="">Все</option>
                   {groups.map((group) => (
@@ -653,11 +655,11 @@ export default function ScheduleClient({
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Предмет:</label>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Предмет:</label>
                 <select
                   value={filterSubject}
                   onChange={(e) => setFilterSubject(e.target.value)}
-                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 text-gray-900"
+                  className="px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 text-gray-900 dark:text-white"
                 >
                   <option value="">Все</option>
                   {uniqueSubjects.map((subject) => (
@@ -669,7 +671,7 @@ export default function ScheduleClient({
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
+                  className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition"
                 >
                   Сбросить
                 </button>
@@ -681,25 +683,25 @@ export default function ScheduleClient({
 
       {/* Statistics Panel */}
       {showStatsPanel && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Статистика расписания</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Статистика расписания</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Summary */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
-              <div className="text-3xl font-bold text-blue-700">{stats.totalSlots}</div>
-              <div className="text-sm text-blue-600">занятий в неделю</div>
-              <div className="mt-2 text-2xl font-semibold text-blue-800">{stats.totalHours} ч</div>
-              <div className="text-sm text-blue-600">общая нагрузка</div>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl p-4">
+              <div className="text-3xl font-bold text-blue-700 dark:text-blue-300">{stats.totalSlots}</div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">занятий в неделю</div>
+              <div className="mt-2 text-2xl font-semibold text-blue-800 dark:text-blue-200">{stats.totalHours} ч</div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">общая нагрузка</div>
             </div>
 
             {/* By Teacher */}
             <div className="space-y-2">
-              <h4 className="font-medium text-gray-700">По учителям</h4>
+              <h4 className="font-medium text-gray-700 dark:text-gray-300">По учителям</h4>
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {stats.teacherHours.slice(0, 5).map(([name, hours]) => (
                   <div key={name} className="flex justify-between text-sm">
-                    <span className="text-gray-600 truncate">{name}</span>
-                    <span className="font-medium text-gray-900">{hours}ч</span>
+                    <span className="text-gray-600 dark:text-gray-400 truncate">{name}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{hours}ч</span>
                   </div>
                 ))}
               </div>
@@ -707,12 +709,12 @@ export default function ScheduleClient({
 
             {/* By Subject */}
             <div className="space-y-2">
-              <h4 className="font-medium text-gray-700">По предметам</h4>
+              <h4 className="font-medium text-gray-700 dark:text-gray-300">По предметам</h4>
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {stats.subjectHours.slice(0, 5).map(([name, hours]) => (
                   <div key={name} className="flex justify-between text-sm">
-                    <span className="text-gray-600 truncate">{name}</span>
-                    <span className="font-medium text-gray-900">{hours}ч</span>
+                    <span className="text-gray-600 dark:text-gray-400 truncate">{name}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{hours}ч</span>
                   </div>
                 ))}
               </div>
@@ -722,35 +724,35 @@ export default function ScheduleClient({
       )}
 
       {/* Main Schedule Grid */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         {/* Week View */}
         {viewMode === 'week' && (
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase sticky left-0 bg-gray-50 border-r border-gray-200 w-20">
+                <tr className="bg-gray-50 dark:bg-gray-700">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase sticky left-0 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600 w-20">
                     Время
                   </th>
                   {DAYS.map((day, dayIndex) => (
                     <th
                       key={dayIndex}
                       colSpan={selectedBranchData.classrooms.length}
-                      className={`px-2 py-3 text-center text-sm font-semibold border-r border-gray-200 ${
-                        dayIndex === 5 || dayIndex === 6 ? 'bg-orange-50 text-orange-800' : 'text-gray-900'
+                      className={`px-2 py-3 text-center text-sm font-semibold border-r border-gray-200 dark:border-gray-600 ${
+                        dayIndex === 5 || dayIndex === 6 ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300' : 'text-gray-900 dark:text-white'
                       }`}
                     >
                       {day}
                     </th>
                   ))}
                 </tr>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="sticky left-0 bg-gray-50 border-r border-gray-200"></th>
+                <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                  <th className="sticky left-0 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600"></th>
                   {DAYS.map((_, dayIndex) => (
                     selectedBranchData.classrooms.map((classroom) => (
                       <th
                         key={`${dayIndex}-${classroom.id}`}
-                        className="px-1 py-2 text-xs font-medium text-gray-500 border-r border-gray-100"
+                        className="px-1 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 border-r border-gray-100 dark:border-gray-600"
                         style={{ minWidth: '100px' }}
                       >
                         {classroom.name}
@@ -759,10 +761,10 @@ export default function ScheduleClient({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {TIME_SLOTS.slice(0, -1).map((time) => (
-                  <tr key={time} className="hover:bg-gray-50/50">
-                    <td className="px-3 py-1 text-xs font-medium text-gray-600 sticky left-0 bg-white border-r border-gray-200 text-center">
+                  <tr key={time} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
+                    <td className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 sticky left-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-600 text-center">
                       {time}
                     </td>
                     {DAYS.map((_, dayIndex) => (
@@ -779,9 +781,9 @@ export default function ScheduleClient({
                             key={`${dayIndex}-${classroom.id}`}
                             rowSpan={rowSpan}
                             onClick={() => handleCellClick(dayIndex, time, classroom.id)}
-                            className={`px-0.5 py-0.5 border-r border-gray-100 align-top ${
-                              canManageSchedule && !isOccupied ? 'cursor-pointer hover:bg-blue-50' : ''
-                            } ${dayIndex === 5 || dayIndex === 6 ? 'bg-orange-50/30' : ''}`}
+                            className={`px-0.5 py-0.5 border-r border-gray-100 dark:border-gray-700 align-top ${
+                              canManageSchedule && !isOccupied ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''
+                            } ${dayIndex === 5 || dayIndex === 6 ? 'bg-orange-50/30 dark:bg-orange-900/10' : ''}`}
                             style={{ height: slot ? `${rowSpan * 32}px` : '32px' }}
                           >
                             {slot && renderSlotCard(slot, true)}
@@ -801,9 +803,9 @@ export default function ScheduleClient({
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {selectedBranchData.classrooms.map((classroom) => (
-                <div key={classroom.id} className="border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                    <h4 className="font-medium text-gray-900">{classroom.name}</h4>
+                <div key={classroom.id} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 border-b border-gray-200 dark:border-gray-600">
+                    <h4 className="font-medium text-gray-900 dark:text-white">{classroom.name}</h4>
                   </div>
                   <div className="p-2 space-y-2 min-h-[200px]">
                     {filteredSlots
@@ -811,7 +813,7 @@ export default function ScheduleClient({
                       .sort((a, b) => TIME_SLOTS.indexOf(a.startTime) - TIME_SLOTS.indexOf(b.startTime))
                       .map(slot => renderSlotCard(slot))}
                     {filteredSlots.filter(s => s.dayOfWeek === selectedDay && s.classroomId === classroom.id).length === 0 && (
-                      <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
+                      <div className="flex items-center justify-center h-32 text-gray-400 dark:text-gray-500 text-sm">
                         Нет занятий
                       </div>
                     )}
@@ -826,15 +828,15 @@ export default function ScheduleClient({
         {viewMode === 'teacher' && (
           <div className="p-6">
             {!selectedTeacherId ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 Выберите учителя для просмотра расписания
               </div>
             ) : (
               <div className="grid grid-cols-7 gap-2">
                 {DAYS.map((day, dayIndex) => (
-                  <div key={dayIndex} className="border border-gray-200 rounded-xl overflow-hidden">
-                    <div className={`px-3 py-2 text-center border-b ${dayIndex >= 5 ? 'bg-orange-50' : 'bg-gray-50'}`}>
-                      <span className="font-medium text-gray-900">{DAYS_SHORT[dayIndex]}</span>
+                  <div key={dayIndex} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                    <div className={`px-3 py-2 text-center border-b border-gray-200 dark:border-gray-600 ${dayIndex >= 5 ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                      <span className="font-medium text-gray-900 dark:text-white">{DAYS_SHORT[dayIndex]}</span>
                     </div>
                     <div className="p-2 space-y-2 min-h-[300px]">
                       {filteredSlots
@@ -853,15 +855,15 @@ export default function ScheduleClient({
         {viewMode === 'group' && (
           <div className="p-6">
             {!selectedGroupId ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 Выберите группу для просмотра расписания
               </div>
             ) : (
               <div className="grid grid-cols-7 gap-2">
                 {DAYS.map((day, dayIndex) => (
-                  <div key={dayIndex} className="border border-gray-200 rounded-xl overflow-hidden">
-                    <div className={`px-3 py-2 text-center border-b ${dayIndex >= 5 ? 'bg-orange-50' : 'bg-gray-50'}`}>
-                      <span className="font-medium text-gray-900">{DAYS_SHORT[dayIndex]}</span>
+                  <div key={dayIndex} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                    <div className={`px-3 py-2 text-center border-b border-gray-200 dark:border-gray-600 ${dayIndex >= 5 ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                      <span className="font-medium text-gray-900 dark:text-white">{DAYS_SHORT[dayIndex]}</span>
                     </div>
                     <div className="p-2 space-y-2 min-h-[300px]">
                       {filteredSlots
@@ -879,11 +881,11 @@ export default function ScheduleClient({
 
       {/* Quick Tips */}
       {canManageSchedule && viewMode === 'week' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-          <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-start gap-3">
+          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <div className="text-sm text-blue-800">
+          <div className="text-sm text-blue-800 dark:text-blue-300">
             <strong>Подсказка:</strong> Нажмите на пустую ячейку чтобы добавить занятие, или на существующее занятие чтобы редактировать его.
           </div>
         </div>
@@ -891,13 +893,13 @@ export default function ScheduleClient({
 
       {/* Create Slot Modal */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-gray-900">Добавить занятие</h3>
+        <div className="fixed inset-0 bg-black/30 dark:bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Добавить занятие</h3>
               <button
                 onClick={() => { setShowCreateForm(false); setSelectedCell(null); }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -909,7 +911,7 @@ export default function ScheduleClient({
               {/* Color & Subject */}
               <div className="grid grid-cols-[auto,1fr] gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Цвет</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Цвет</label>
                   <div className="flex gap-2">
                     {COLORS.map(color => (
                       <button
@@ -922,7 +924,7 @@ export default function ScheduleClient({
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Предмет <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -930,7 +932,7 @@ export default function ScheduleClient({
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     placeholder="Например: Математика"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -938,11 +940,11 @@ export default function ScheduleClient({
               {/* Teacher & Group */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Учитель</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Учитель</label>
                   <select
                     value={formData.teacherId}
                     onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
                   >
                     <option value="">Выберите учителя</option>
                     {teachers.map(t => (
@@ -951,11 +953,11 @@ export default function ScheduleClient({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Группа</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Группа</label>
                   <select
                     value={formData.groupId}
                     onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
                   >
                     <option value="">Выберите группу</option>
                     {groups.map(g => (
@@ -968,13 +970,13 @@ export default function ScheduleClient({
               {/* Branch & Classroom */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Филиал <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.branchId}
                     onChange={(e) => setFormData({ ...formData, branchId: e.target.value, classroomId: '' })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
                   >
                     {branches.map(b => (
                       <option key={b.id} value={b.id}>{b.name}</option>
@@ -982,13 +984,13 @@ export default function ScheduleClient({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Кабинет <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.classroomId}
                     onChange={(e) => setFormData({ ...formData, classroomId: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
                   >
                     <option value="">Выберите кабинет</option>
                     {branches.find(b => b.id === formData.branchId)?.classrooms.map(c => (
@@ -1001,25 +1003,25 @@ export default function ScheduleClient({
               {/* Time */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Начало <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.startTime}
                     onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
                   >
                     {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Окончание <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.endTime}
                     onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
                   >
                     {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -1045,7 +1047,7 @@ export default function ScheduleClient({
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                         formData.days.includes(index)
                           ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
                       {DAYS_SHORT[index]}
@@ -1055,10 +1057,10 @@ export default function ScheduleClient({
               </div>
             </div>
 
-            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+            <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end gap-3">
               <button
                 onClick={() => { setShowCreateForm(false); setSelectedCell(null); }}
-                className="px-6 py-2.5 border border-gray-300 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition"
+                className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
               >
                 Отмена
               </button>
@@ -1075,13 +1077,13 @@ export default function ScheduleClient({
 
       {/* Edit Slot Modal */}
       {showEditModal && editingSlot && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-gray-900">Редактировать</h3>
+        <div className="fixed inset-0 bg-black/30 dark:bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Редактировать</h3>
               <button
                 onClick={() => { setShowEditModal(false); setEditingSlot(null); }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1092,7 +1094,7 @@ export default function ScheduleClient({
             <div className="p-6 space-y-4">
               {/* Color */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Цвет</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Цвет</label>
                 <div className="flex gap-2">
                   {COLORS.map(color => (
                     <button
@@ -1107,7 +1109,7 @@ export default function ScheduleClient({
 
               {/* Subject */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Предмет</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Предмет</label>
                 <input
                   type="text"
                   value={editingSlot.subject || ''}
@@ -1118,7 +1120,7 @@ export default function ScheduleClient({
 
               {/* Teacher */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Учитель</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Учитель</label>
                 <select
                   value={editingSlot.teacherId || ''}
                   onChange={(e) => setEditingSlot({ ...editingSlot, teacherId: e.target.value || null })}
@@ -1133,7 +1135,7 @@ export default function ScheduleClient({
 
               {/* Group */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Группа</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Группа</label>
                 <select
                   value={editingSlot.groupId || ''}
                   onChange={(e) => setEditingSlot({ ...editingSlot, groupId: e.target.value || null })}
@@ -1149,7 +1151,7 @@ export default function ScheduleClient({
               {/* Time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Начало</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Начало</label>
                   <select
                     value={editingSlot.startTime}
                     onChange={(e) => setEditingSlot({ ...editingSlot, startTime: e.target.value })}
@@ -1159,7 +1161,7 @@ export default function ScheduleClient({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Окончание</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Окончание</label>
                   <select
                     value={editingSlot.endTime}
                     onChange={(e) => setEditingSlot({ ...editingSlot, endTime: e.target.value })}
@@ -1171,13 +1173,13 @@ export default function ScheduleClient({
               </div>
 
               {/* Info */}
-              <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-sm text-gray-600 dark:text-gray-300">
                 <div><strong>День:</strong> {DAYS[editingSlot.dayOfWeek]}</div>
                 <div><strong>Кабинет:</strong> {editingSlot.classroom.name}</div>
               </div>
             </div>
 
-            <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between">
+            <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between">
               <button
                 onClick={handleDeleteSlot}
                 className="px-5 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition"
@@ -1187,7 +1189,7 @@ export default function ScheduleClient({
               <div className="flex gap-3">
                 <button
                   onClick={() => { setShowEditModal(false); setEditingSlot(null); }}
-                  className="px-5 py-2.5 border border-gray-300 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition"
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                 >
                   Отмена
                 </button>

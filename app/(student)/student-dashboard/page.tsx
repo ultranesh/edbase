@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import StudentHeader from './StudentHeader';
 
 export default async function StudentDashboard() {
   const session = await auth();
@@ -19,7 +20,6 @@ export default async function StudentDashboard() {
         select: {
           firstName: true,
           lastName: true,
-          email: true,
           phone: true,
         },
       },
@@ -28,7 +28,7 @@ export default async function StudentDashboard() {
       studyDirection: { select: { name: true, code: true } },
       city: { select: { name: true } },
       school: { select: { name: true } },
-      subjects: { select: { subject: { select: { name: true } } } },
+      subjects: { select: { subject: { select: { nameRu: true, nameKz: true } } } },
     },
   });
 
@@ -88,9 +88,9 @@ export default async function StudentDashboard() {
     return direction.name;
   };
 
-  const formatSubjects = (subjects: { subject: { name: string } }[]) => {
+  const formatSubjects = (subjects: { subject: { nameRu: string | null, nameKz: string | null } }[]) => {
     if (!subjects || subjects.length === 0) return '-';
-    return subjects.map(s => s.subject.name).join(', ');
+    return subjects.map(s => s.subject.nameRu || s.subject.nameKz || '-').join(', ');
   };
 
 
@@ -111,21 +111,14 @@ export default async function StudentDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {student.user.firstName} {student.user.lastName}
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">{student.user.email}</p>
-            </div>
-            <div>
-              {getStatusBadge(student.status)}
-            </div>
-          </div>
-        </div>
-      </header>
+      <StudentHeader
+        firstName={student.user.firstName}
+        lastName={student.user.lastName}
+        iin={session.user.iin}
+        role={session.user.role}
+        switchToken={(session.user as any).switchToken || undefined}
+        statusBadge={getStatusBadge(student.status)}
+      />
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">

@@ -144,6 +144,123 @@ async function main() {
     console.log(`Created special need: ${need.name}`);
   }
 
+  // Роли пользователей
+  console.log('\nCreating user roles...');
+  const userRoles = [
+    { code: 'SUPERADMIN', name: 'Супер админ', nameKz: 'Супер әкімші', nameRu: 'Супер админ', nameEn: 'Super Admin', orderIndex: 1 },
+    { code: 'ADMIN', name: 'Администратор', nameKz: 'Әкімші', nameRu: 'Администратор', nameEn: 'Administrator', orderIndex: 2 },
+    { code: 'DEPARTMENT_HEAD', name: 'Руководитель отдела', nameKz: 'Бөлім басшысы', nameRu: 'Руководитель отдела', nameEn: 'Department Head', orderIndex: 3 },
+    { code: 'CURATOR', name: 'Куратор', nameKz: 'Куратор', nameRu: 'Куратор', nameEn: 'Curator', orderIndex: 4 },
+    { code: 'COORDINATOR', name: 'Координатор', nameKz: 'Үйлестіруші', nameRu: 'Координатор', nameEn: 'Coordinator', orderIndex: 5 },
+    { code: 'TEACHER', name: 'Учитель', nameKz: 'Мұғалім', nameRu: 'Учитель', nameEn: 'Teacher', orderIndex: 6 },
+    { code: 'PARENT', name: 'Родитель', nameKz: 'Ата-ана', nameRu: 'Родитель', nameEn: 'Parent', orderIndex: 7 },
+    { code: 'ONLINE_MENTOR', name: 'Онлайн ментор', nameKz: 'Онлайн тәлімгер', nameRu: 'Онлайн ментор', nameEn: 'Online Mentor', orderIndex: 8 },
+  ];
+  for (const role of userRoles) {
+    await prisma.refUserRole.upsert({
+      where: { code: role.code },
+      update: {},
+      create: role,
+    });
+    console.log(`Created user role: ${role.name}`);
+  }
+
+  // Пол
+  console.log('\nCreating genders...');
+  const genders = [
+    { code: 'MALE', name: 'Мужской', nameKz: 'Ер', nameRu: 'Мужской', nameEn: 'Male', orderIndex: 1 },
+    { code: 'FEMALE', name: 'Женский', nameKz: 'Әйел', nameRu: 'Женский', nameEn: 'Female', orderIndex: 2 },
+  ];
+  for (const gender of genders) {
+    await prisma.refGender.upsert({
+      where: { code: gender.code },
+      update: {},
+      create: gender,
+    });
+    console.log(`Created gender: ${gender.name}`);
+  }
+
+  // Гражданство
+  console.log('\nCreating citizenships...');
+  const citizenships = [
+    { code: 'KZ', name: 'Гражданин РК', nameKz: 'ҚР азаматы', nameRu: 'Гражданин РК', nameEn: 'Kazakhstan Citizen', orderIndex: 1 },
+    { code: 'FOREIGN', name: 'Иностранный гражданин', nameKz: 'Шетелдік азамат', nameRu: 'Иностранный гражданин', nameEn: 'Foreign Citizen', orderIndex: 2 },
+  ];
+  for (const citizenship of citizenships) {
+    await prisma.refCitizenship.upsert({
+      where: { code: citizenship.code },
+      update: {},
+      create: citizenship,
+    });
+    console.log(`Created citizenship: ${citizenship.name}`);
+  }
+
+  // Форматы обучения
+  console.log('\nCreating study formats...');
+  const studyFormats = [
+    { code: 'ONLINE_GROUP', name: 'Онлайн группа', nameKz: 'Онлайн топ', nameRu: 'Онлайн группа', nameEn: 'Online Group', orderIndex: 1 },
+    { code: 'OFFLINE_GROUP', name: 'Очная группа', nameKz: 'Офлайн топ', nameRu: 'Очная группа', nameEn: 'Offline Group', orderIndex: 2 },
+    { code: 'ONLINE_INDIVIDUAL', name: 'Онлайн индивидуально', nameKz: 'Онлайн жеке', nameRu: 'Онлайн индивидуально', nameEn: 'Online Individual', orderIndex: 3 },
+    { code: 'OFFLINE_INDIVIDUAL', name: 'Очно индивидуально', nameKz: 'Офлайн жеке', nameRu: 'Очно индивидуально', nameEn: 'Offline Individual', orderIndex: 4 },
+  ];
+  for (const format of studyFormats) {
+    await prisma.refStudyFormat.upsert({
+      where: { code: format.code },
+      update: {},
+      create: format,
+    });
+    console.log(`Created study format: ${format.name}`);
+  }
+
+  // Гарантии
+  console.log('\nCreating guarantees...');
+  const guarantees = [
+    { code: 'NONE', name: 'Без гарантии', nameKz: 'Кепілдіксіз', nameRu: 'Без гарантии', nameEn: 'No Guarantee', orderIndex: 1 },
+    { code: 'FIFTY_PERCENT', name: '50% гарантия', nameKz: '50% кепілдік', nameRu: '50% гарантия', nameEn: '50% Guarantee', orderIndex: 2 },
+    { code: 'EIGHTY_PERCENT', name: '80% гарантия', nameKz: '80% кепілдік', nameRu: '80% гарантия', nameEn: '80% Guarantee', orderIndex: 3 },
+    { code: 'HUNDRED_PERCENT', name: '100% гарантия', nameKz: '100% кепілдік', nameRu: '100% гарантия', nameEn: '100% Guarantee', orderIndex: 4 },
+  ];
+  for (const guarantee of guarantees) {
+    await prisma.refGuarantee.upsert({
+      where: { code: guarantee.code },
+      update: {},
+      create: guarantee,
+    });
+    console.log(`Created guarantee: ${guarantee.name}`);
+  }
+
+  // Расписания занятий
+  console.log('\nCreating study schedules...');
+  const studySchedules = [
+    { code: 'PSP', name: 'Пн-Ср-Пт', nameKz: 'Дс-Ср-Жм', nameRu: 'Пн-Ср-Пт', nameEn: 'Mon-Wed-Fri', orderIndex: 1 },
+    { code: 'VCS', name: 'Вт-Чт-Сб', nameKz: 'Сс-Бс-Сн', nameRu: 'Вт-Чт-Сб', nameEn: 'Tue-Thu-Sat', orderIndex: 2 },
+    { code: 'CUSTOM', name: 'Особый', nameKz: 'Ерекше', nameRu: 'Особый', nameEn: 'Custom', orderIndex: 3 },
+  ];
+  for (const schedule of studySchedules) {
+    await prisma.refStudySchedule.upsert({
+      where: { code: schedule.code },
+      update: {},
+      create: schedule,
+    });
+    console.log(`Created study schedule: ${schedule.name}`);
+  }
+
+  // Типы документов родителя
+  console.log('\nCreating parent document types...');
+  const parentDocumentTypes = [
+    { code: 'ID_CARD', name: 'Удостоверение личности', nameKz: 'Жеке куәлік', nameRu: 'Удостоверение личности', nameEn: 'ID Card', orderIndex: 1 },
+    { code: 'RK_PASSPORT', name: 'Паспорт гражданина РК', nameKz: 'ҚР азаматының паспорты', nameRu: 'Паспорт гражданина РК', nameEn: 'RK Passport', orderIndex: 2 },
+    { code: 'FOREIGN', name: 'Иностранный документ', nameKz: 'Шетелдік құжат', nameRu: 'Иностранный документ', nameEn: 'Foreign Document', orderIndex: 3 },
+  ];
+  for (const docType of parentDocumentTypes) {
+    await prisma.refParentDocumentType.upsert({
+      where: { code: docType.code },
+      update: {},
+      create: docType,
+    });
+    console.log(`Created parent document type: ${docType.name}`);
+  }
+
   // Города
   console.log('\nCreating cities...');
   const cities = [
@@ -211,30 +328,31 @@ async function main() {
   // Предметы (для справочника, не TaskSubject)
   console.log('\nCreating reference subjects...');
   const refSubjects = [
-    { name: 'Математика', nameRu: 'Математика', nameKz: 'Математика', nameEn: 'Mathematics', icon: '📐', orderIndex: 1 },
-    { name: 'Логика', nameRu: 'Логика', nameKz: 'Логика', nameEn: 'Logic', icon: '🧠', orderIndex: 2 },
-    { name: 'Казахский язык', nameRu: 'Казахский язык', nameKz: 'Қазақ тілі', nameEn: 'Kazakh', icon: '🇰🇿', orderIndex: 3 },
-    { name: 'Русский язык', nameRu: 'Русский язык', nameKz: 'Орыс тілі', nameEn: 'Russian', icon: '📚', orderIndex: 4 },
-    { name: 'Английский язык', nameRu: 'Английский язык', nameKz: 'Ағылшын тілі', nameEn: 'English', icon: '🇬🇧', orderIndex: 5 },
-    { name: 'Естествознание', nameRu: 'Естествознание', nameKz: 'Жаратылыстану', nameEn: 'Natural Science', icon: '🔬', orderIndex: 6 },
-    { name: 'Алгебра', nameRu: 'Алгебра', nameKz: 'Алгебра', nameEn: 'Algebra', icon: '🔢', orderIndex: 7 },
-    { name: 'Геометрия', nameRu: 'Геометрия', nameKz: 'Геометрия', nameEn: 'Geometry', icon: '📐', orderIndex: 8 },
-    { name: 'Физика', nameRu: 'Физика', nameKz: 'Физика', nameEn: 'Physics', icon: '⚡', orderIndex: 9 },
-    { name: 'Химия', nameRu: 'Химия', nameKz: 'Химия', nameEn: 'Chemistry', icon: '🧪', orderIndex: 10 },
-    { name: 'Биология', nameRu: 'Биология', nameKz: 'Биология', nameEn: 'Biology', icon: '🧬', orderIndex: 11 },
-    { name: 'История Казахстана', nameRu: 'История Казахстана', nameKz: 'Қазақстан тарихы', nameEn: 'History of Kazakhstan', icon: '📜', orderIndex: 12 },
-    { name: 'География', nameRu: 'География', nameKz: 'География', nameEn: 'Geography', icon: '🌍', orderIndex: 13 },
-    { name: 'Всемирная история', nameRu: 'Всемирная история', nameKz: 'Дүниежүзілік тарих', nameEn: 'World History', icon: '🌏', orderIndex: 14 },
-    { name: 'Информатика', nameRu: 'Информатика', nameKz: 'Информатика', nameEn: 'Computer Science', icon: '💻', orderIndex: 15 },
-    { name: 'Литература', nameRu: 'Литература', nameKz: 'Әдебиет', nameEn: 'Literature', icon: '📖', orderIndex: 16 },
+    { code: 'MATH', nameRu: 'Математика', nameKz: 'Математика', nameEn: 'Mathematics', icon: '📐', orderIndex: 1 },
+    { code: 'LOGIC', nameRu: 'Логика', nameKz: 'Логика', nameEn: 'Logic', icon: '🧠', orderIndex: 2 },
+    { code: 'KAZ', nameRu: 'Казахский язык', nameKz: 'Қазақ тілі', nameEn: 'Kazakh', icon: '🇰🇿', orderIndex: 3 },
+    { code: 'RUS', nameRu: 'Русский язык', nameKz: 'Орыс тілі', nameEn: 'Russian', icon: '📚', orderIndex: 4 },
+    { code: 'ENG', nameRu: 'Английский язык', nameKz: 'Ағылшын тілі', nameEn: 'English', icon: '🇬🇧', orderIndex: 5 },
+    { code: 'SCI', nameRu: 'Естествознание', nameKz: 'Жаратылыстану', nameEn: 'Natural Science', icon: '🔬', orderIndex: 6 },
+    { code: 'ALG', nameRu: 'Алгебра', nameKz: 'Алгебра', nameEn: 'Algebra', icon: '🔢', orderIndex: 7 },
+    { code: 'GEOM', nameRu: 'Геометрия', nameKz: 'Геометрия', nameEn: 'Geometry', icon: '📐', orderIndex: 8 },
+    { code: 'PHYS', nameRu: 'Физика', nameKz: 'Физика', nameEn: 'Physics', icon: '⚡', orderIndex: 9 },
+    { code: 'CHEM', nameRu: 'Химия', nameKz: 'Химия', nameEn: 'Chemistry', icon: '🧪', orderIndex: 10 },
+    { code: 'BIO', nameRu: 'Биология', nameKz: 'Биология', nameEn: 'Biology', icon: '🧬', orderIndex: 11 },
+    { code: 'HISTKZ', nameRu: 'История Казахстана', nameKz: 'Қазақстан тарихы', nameEn: 'History of Kazakhstan', icon: '📜', orderIndex: 12 },
+    { code: 'GEO', nameRu: 'География', nameKz: 'География', nameEn: 'Geography', icon: '🌍', orderIndex: 13 },
+    { code: 'HISTW', nameRu: 'Всемирная история', nameKz: 'Дүниежүзілік тарих', nameEn: 'World History', icon: '🌏', orderIndex: 14 },
+    { code: 'CS', nameRu: 'Информатика', nameKz: 'Информатика', nameEn: 'Computer Science', icon: '💻', orderIndex: 15 },
+    { code: 'EXT', nameRu: 'Продленка', nameKz: 'Ұзартылған күн', nameEn: 'Extended Day', icon: '🏫', orderIndex: 16 },
   ];
   for (const subj of refSubjects) {
-    await prisma.refSubject.upsert({
-      where: { name: subj.name },
-      update: {},
-      create: subj,
-    });
-    console.log(`Created ref subject: ${subj.name}`);
+    const existing = await prisma.refSubject.findFirst({ where: { nameRu: subj.nameRu } });
+    if (!existing) {
+      await prisma.refSubject.create({ data: subj });
+      console.log(`Created ref subject: ${subj.nameRu}`);
+    } else {
+      console.log(`Ref subject already exists: ${subj.nameRu}`);
+    }
   }
 
   // ==========================================
@@ -345,7 +463,7 @@ async function main() {
     { name: 'География', nameRu: 'География', nameKz: 'География', nameEn: 'Geography', icon: '🌍', orderIndex: 13 },
     { name: 'Всемирная история', nameRu: 'Всемирная история', nameKz: 'Дүниежүзілік тарих', nameEn: 'World History', icon: '🌏', orderIndex: 14 },
     { name: 'Информатика', nameRu: 'Информатика', nameKz: 'Информатика', nameEn: 'Computer Science', icon: '💻', orderIndex: 15 },
-    { name: 'Литература', nameRu: 'Литература', nameKz: 'Әдебиет', nameEn: 'Literature', icon: '📖', orderIndex: 16 },
+    { name: 'Продленка', nameRu: 'Продленка', nameKz: 'Ұзартылған күн', nameEn: 'Extended Day', icon: '🏫', orderIndex: 16 },
   ];
 
   const mathSubject = await prisma.taskSubject.upsert({

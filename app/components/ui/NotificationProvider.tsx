@@ -93,19 +93,15 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       {children}
 
       {/* Toasts */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
-        {toasts.map((toast, index) => (
-          <div
+      <div className="fixed top-6 right-6 z-50 flex flex-col gap-3">
+        {toasts.map((toast) => (
+          <Toast
             key={toast.id}
-            style={{ transform: `translateY(-${index * 8}px)` }}
-          >
-            <Toast
-              message={toast.message}
-              type={toast.type}
-              duration={toast.duration}
-              onClose={() => removeToast(toast.id)}
-            />
-          </div>
+            message={toast.message}
+            type={toast.type}
+            duration={toast.duration}
+            onClose={() => removeToast(toast.id)}
+          />
         ))}
       </div>
 

@@ -21,7 +21,7 @@ interface GeneratedTest {
   createdAt: string;
   subject: {
     id: string;
-    name: string;
+    nameRu: string | null;
     nameKz: string | null;
   } | null;
   createdBy?: {
@@ -42,7 +42,7 @@ interface GeneratedTest {
 
 interface Subject {
   id: string;
-  name: string;
+  nameRu: string | null;
   nameKz: string | null;
 }
 
@@ -79,7 +79,13 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
   const [activeTab, setActiveTab] = useState<'my' | 'shared'>('my');
   const [myTests, setMyTests] = useState<GeneratedTest[]>([]);
   const [sharedTests, setSharedTests] = useState<GeneratedTest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(false);
+
+  // Search and filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [formatFilter, setFormatFilter] = useState<'all' | 'TEST' | 'EXAM'>('all');
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
 
   // Pagination
   const [myPage, setMyPage] = useState(1);
@@ -116,11 +122,33 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
   const [previewTasks, setPreviewTasks] = useState<Array<{
     id: string;
     question: string;
+    questionKz?: string;
+    questionRu?: string;
+    questionEn?: string;
+    questionImage?: string | null;
     options: string[];
+    optionsKz?: string[];
+    optionsRu?: string[];
+    optionsEn?: string[];
     correctAnswer: number;
     explanation: string | null;
+    explanationKz?: string | null;
+    explanationRu?: string | null;
+    explanationEn?: string | null;
+    hint?: string | null;
+    hintKz?: string | null;
+    hintRu?: string | null;
+    hintEn?: string | null;
     difficulty: number;
-    topic: { name: string; nameKz: string | null } | null;
+    topic: { name: string; nameKz?: string | null; nameRu?: string | null; nameEn?: string | null } | null;
+    linkedSubtopics?: Array<{
+      id: string;
+      name: string;
+      nameKz?: string | null;
+      nameRu?: string | null;
+      nameEn?: string | null;
+      topic?: { id: string; name: string; nameKz?: string | null; nameRu?: string | null; nameEn?: string | null } | null;
+    }>;
   }>>([]);
   const [downloadLang, setDownloadLang] = useState<'ru' | 'kz' | 'en'>('kz');
   const [showPreview, setShowPreview] = useState(false);
@@ -164,10 +192,23 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
   const [reportingError, setReportingError] = useState(false);
   const [errorReported, setErrorReported] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const filterPanelRef = useRef<HTMLDivElement>(null);
 
   // Interactive overlay calibration
   const [showOverlay, setShowOverlay] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // Edit topics modal
+  const [showEditTopics, setShowEditTopics] = useState(false);
+  const [editTopicsLoading, setEditTopicsLoading] = useState(false);
+  const [savingTopics, setSavingTopics] = useState(false);
+  const [availableTopics, setAvailableTopics] = useState<Array<{
+    id: string;
+    name: string;
+    nameKz: string | null;
+    nameRu: string | null;
+  }>>([]);
+  const [taskTopicSelections, setTaskTopicSelections] = useState<Record<string, string[]>>({});
 
   // Legacy calibration state (kept for compatibility)
   const [calibrationMode, setCalibrationMode] = useState(false);
@@ -270,6 +311,14 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
       of: 'из',
       prev: 'Назад',
       next: 'Вперед',
+      // Edit topics
+      editTopics: 'Редактировать темы',
+      editTopicsTitle: 'Редактирование тем задач',
+      selectTopicsForTask: 'Выберите темы',
+      noTopicsSelected: 'Темы не выбраны',
+      saveTopics: 'Сохранить',
+      topicsSaved: 'Темы сохранены',
+      topicsSaveError: 'Ошибка сохранения тем',
     },
     kz: {
       title: 'Менің тесттерім',
@@ -360,6 +409,14 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
       of: '/',
       prev: 'Артқа',
       next: 'Алға',
+      // Edit topics
+      editTopics: 'Тақырыптарды өзгерту',
+      editTopicsTitle: 'Тапсырмалар тақырыптарын өзгерту',
+      selectTopicsForTask: 'Тақырыптарды таңдаңыз',
+      noTopicsSelected: 'Тақырыптар таңдалмаған',
+      saveTopics: 'Сақтау',
+      topicsSaved: 'Тақырыптар сақталды',
+      topicsSaveError: 'Тақырыптарды сақтау қатесі',
     },
     en: {
       title: 'My Tests',
@@ -450,10 +507,40 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
       of: 'of',
       prev: 'Previous',
       next: 'Next',
+      // Edit topics
+      editTopics: 'Edit topics',
+      editTopicsTitle: 'Edit task topics',
+      selectTopicsForTask: 'Select topics',
+      noTopicsSelected: 'No topics selected',
+      saveTopics: 'Save',
+      topicsSaved: 'Topics saved',
+      topicsSaveError: 'Failed to save topics',
     },
   };
 
-  const tr = translations[locale as keyof typeof translations] || translations.ru;
+  const tr = translations[downloadLang as keyof typeof translations] || translations.ru;
+
+  // Filter tests based on search and format filter
+  const filterTests = (tests: GeneratedTest[]) => {
+    return tests.filter(test => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = test.title?.toLowerCase().includes(query) ||
+                          test.titleKz?.toLowerCase().includes(query) ||
+                          test.titleEn?.toLowerCase().includes(query);
+        const subjectMatch = test.subject?.nameRu?.toLowerCase().includes(query) ||
+                            test.subject?.nameKz?.toLowerCase().includes(query);
+        if (!titleMatch && !subjectMatch) return false;
+      }
+      // Format filter
+      if (formatFilter !== 'all' && test.format !== formatFilter) return false;
+      return true;
+    });
+  };
+
+  const filteredMyTests = filterTests(myTests);
+  const filteredSharedTests = filterTests(sharedTests);
 
   const fetchMyTests = useCallback(async () => {
     try {
@@ -506,24 +593,52 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
 
   useEffect(() => {
     Promise.all([fetchMyTests(), fetchSharedTests(), fetchSubjects()]).finally(() => {
-      setLoading(false);
+      setIsLoading(false);
+      setShowSkeleton(false);
     });
   }, [fetchMyTests, fetchSharedTests, fetchSubjects]);
+
+  // Show skeleton only if loading takes more than 200ms
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => setShowSkeleton(true), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
+  // Close filter panel when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterPanelRef.current && !filterPanelRef.current.contains(event.target as Node)) {
+        setShowFilterPanel(false);
+      }
+    };
+    if (showFilterPanel) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFilterPanel]);
+
+  // Reset page when search or filter changes
+  useEffect(() => {
+    setMyPage(1);
+    setSharedPage(1);
+  }, [searchQuery, formatFilter]);
 
   useEffect(() => {
     fetchTopics();
   }, [fetchTopics]);
 
   const getTitle = (test: GeneratedTest) => {
-    if (locale === 'kz' && test.titleKz) return test.titleKz;
-    if (locale === 'en' && test.titleEn) return test.titleEn;
+    if (downloadLang === 'kz' && test.titleKz) return test.titleKz;
+    if (downloadLang === 'en' && test.titleEn) return test.titleEn;
     return test.title;
   };
 
   const getSubjectName = (subject: Subject | null) => {
     if (!subject) return '';
-    if (locale === 'kz' && subject.nameKz) return subject.nameKz;
-    return subject.name;
+    if (downloadLang === 'kz' && subject.nameKz) return subject.nameKz;
+    return subject.nameRu || subject.nameKz || '';
   };
 
   const handleGenerate = async () => {
@@ -658,6 +773,95 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
       console.error('Error downloading:', error);
       showToast({ message: 'Ошибка скачивания', type: 'error' });
     }
+  };
+
+  const handleOpenEditTopics = async () => {
+    if (!previewTest) return;
+
+    setEditTopicsLoading(true);
+    setShowEditTopics(true);
+
+    try {
+      // Load available topics (with cache bust to get fresh data)
+      const subjectId = previewTest.subject?.id;
+      const cacheBust = Date.now();
+      const url = subjectId
+        ? `/api/task-topics?subjectId=${subjectId}&_=${cacheBust}`
+        : `/api/task-topics?_=${cacheBust}`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) {
+        const topics = await res.json();
+        setAvailableTopics(topics);
+      }
+
+      // Initialize selections from current task topics
+      const selections: Record<string, string[]> = {};
+      for (const task of previewTasks) {
+        const topicIds: string[] = [];
+        if (task.linkedSubtopics) {
+          task.linkedSubtopics.forEach(sub => {
+            if (sub.topic && !topicIds.includes(sub.topic.id)) {
+              topicIds.push(sub.topic.id);
+            }
+          });
+        }
+        selections[task.id] = topicIds;
+      }
+      setTaskTopicSelections(selections);
+    } catch (error) {
+      console.error('Error loading topics:', error);
+      showToast({ message: 'Ошибка загрузки тем', type: 'error' });
+    } finally {
+      setEditTopicsLoading(false);
+    }
+  };
+
+  const handleSaveTopics = async () => {
+    setSavingTopics(true);
+
+    try {
+      let successCount = 0;
+      const taskIds = Object.keys(taskTopicSelections);
+
+      for (const taskId of taskIds) {
+        const topicIds = taskTopicSelections[taskId];
+        const res = await fetch(`/api/tasks/${taskId}/topics`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topicIds }),
+        });
+
+        if (res.ok) {
+          successCount++;
+        }
+      }
+
+      if (successCount === taskIds.length) {
+        showToast({ message: tr.topicsSaved, type: 'success' });
+        setShowEditTopics(false);
+        // Reload preview to show updated topics
+        if (previewTest) {
+          openPreview(previewTest);
+        }
+      } else {
+        showToast({ message: tr.topicsSaveError, type: 'error' });
+      }
+    } catch (error) {
+      console.error('Error saving topics:', error);
+      showToast({ message: tr.topicsSaveError, type: 'error' });
+    } finally {
+      setSavingTopics(false);
+    }
+  };
+
+  const toggleTaskTopic = (taskId: string, topicId: string) => {
+    setTaskTopicSelections(prev => {
+      const current = prev[taskId] || [];
+      const newSelection = current.includes(topicId)
+        ? current.filter(id => id !== topicId)
+        : [...current, topicId];
+      return { ...prev, [taskId]: newSelection };
+    });
   };
 
   const handleShare = async () => {
@@ -1134,32 +1338,32 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
   };
 
   const TestCard = ({ test, isShared = false }: { test: GeneratedTest; isShared?: boolean }) => (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-gray-300 hover:shadow-sm transition">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-              test.format === 'EXAM' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+              test.format === 'EXAM' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
             }`}>
               {test.format === 'EXAM' ? tr.exam : tr.test}
             </span>
             {test.subject && (
-              <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                 {getSubjectName(test.subject)}
               </span>
             )}
             {test.gradeLevel && (
-              <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                 {test.gradeLevel} {locale === 'kz' ? 'сынып' : 'класс'}
               </span>
             )}
           </div>
 
-          <h3 className="font-semibold text-gray-900 mb-1 truncate">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-1 truncate">
             {getTitle(test)}
           </h3>
 
-          <div className="flex items-center gap-4 text-sm text-gray-500">
+          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
             <span>{test.taskIds.length} {tr.questions}</span>
             {test.duration && <span>{test.duration} {tr.minutes}</span>}
             {isShared && test.createdBy && (
@@ -1182,7 +1386,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
             <div className="relative group">
               <button
                 onClick={() => openPreview(test)}
-                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1199,7 +1403,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 <div className="relative group">
                   <button
                     onClick={() => openCheckModal(test)}
-                    className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -1213,7 +1417,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 <div className="relative group">
                   <button
                     onClick={() => openResultsModal(test)}
-                    className="p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg transition"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -1227,7 +1431,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 <div className="relative group">
                   <button
                     onClick={() => setShareTest(test)}
-                    className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -1241,7 +1445,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 <div className="relative group">
                   <button
                     onClick={() => handleDelete(test.id)}
-                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1260,7 +1464,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
             <div className="relative group">
               <button
                 onClick={() => openPreview(test)}
-                className="p-2 text-gray-500 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded-lg transition"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1274,7 +1478,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
             <div className="relative group">
               <button
                 onClick={() => openPreview(test)}
-                className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1289,7 +1493,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
             <div className="relative group">
               <button
                 onClick={() => openPreview(test)}
-                className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -1306,161 +1510,194 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
   );
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{tr.title}</h1>
-                <p className="text-gray-500 text-sm">{tr.subtitle}</p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowGenerator(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
-              {tr.generate}
-            </button>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{tr.title}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {activeTab === 'my'
+                  ? `Всего: ${filteredMyTests.length}${filteredMyTests.length !== myTests.length ? ` из ${myTests.length}` : ''}`
+                  : `Всего: ${filteredSharedTests.length}${filteredSharedTests.length !== sharedTests.length ? ` из ${sharedTests.length}` : ''}`
+                }
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Tabs and Legend */}
-        <div className="flex items-center justify-between mb-8">
+          {/* Tabs */}
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('my')}
-              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition ${
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === 'my'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               {tr.myTests}
-              {myTests.length > 0 && (
-                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                  activeTab === 'my' ? 'bg-blue-500' : 'bg-gray-100'
-                }`}>
-                  {myTests.length}
-                </span>
-              )}
             </button>
             <button
               onClick={() => setActiveTab('shared')}
-              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition ${
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === 'shared'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               {tr.sharedWithMe}
-              {sharedTests.length > 0 && (
-                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                activeTab === 'shared' ? 'bg-blue-500' : 'bg-gray-100'
-              }`}>
-                {sharedTests.length}
-              </span>
-            )}
-          </button>
-          </div>
-
-          {/* Legend */}
-          <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500">
-            <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <span>{tr.preview}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-              <span>{tr.checkTest}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span>{tr.viewResults}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              <span>{tr.share}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              <span>{tr.delete}</span>
-            </div>
+            </button>
           </div>
         </div>
 
-        {/* Content */}
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-200 p-6 animate-pulse">
-                <div className="h-5 bg-gray-200 rounded w-1/3 mb-3"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              </div>
-            ))}
+        {/* Search and action bar */}
+        <div className="flex gap-2">
+          {/* Search input */}
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск по названию теста, предмету..."
+              className="block w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
+
+          {/* Filter button */}
+          <div className="relative" ref={filterPanelRef}>
+            <button
+              onClick={() => setShowFilterPanel(!showFilterPanel)}
+              className={`px-3 py-2.5 rounded-xl border transition-colors flex items-center gap-2 ${
+                showFilterPanel || formatFilter !== 'all'
+                  ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400'
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              {formatFilter !== 'all' && (
+                <span className="text-xs font-medium bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center">
+                  1
+                </span>
+              )}
+            </button>
+
+            {/* Filter dropdown */}
+            {showFilterPanel && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{tr.format}</span>
+                </div>
+                <div className="p-2 space-y-1">
+                  {[
+                    { key: 'all', label: 'Все' },
+                    { key: 'TEST', label: tr.test },
+                    { key: 'EXAM', label: tr.exam },
+                  ].map(option => (
+                    <button
+                      key={option.key}
+                      onClick={() => {
+                        setFormatFilter(option.key as 'all' | 'TEST' | 'EXAM');
+                        setShowFilterPanel(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                        formatFilter === option.key
+                          ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Create button */}
+          <button
+            onClick={() => setShowGenerator(true)}
+            className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            + {tr.generate}
+          </button>
+        </div>
+      </div>
+
+        {/* Content */}
+        {isLoading ? (
+          showSkeleton ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+                  <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-3"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                </div>
+              ))}
+            </div>
+          ) : null
         ) : activeTab === 'my' ? (
-          myTests.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          filteredMyTests.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{tr.noMyTests}</h3>
-              <p className="text-gray-500 mb-6">{tr.createFirst}</p>
-              <button
-                onClick={() => setShowGenerator(true)}
-                className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-              >
-                {tr.generate}
-              </button>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                {myTests.length === 0 ? tr.noMyTests : 'Ничего не найдено'}
+              </h3>
+              {myTests.length === 0 && (
+                <p className="text-gray-500 dark:text-gray-400">{tr.createFirst}</p>
+              )}
             </div>
           ) : (
             <>
               <div className="space-y-4">
-                {myTests
+                {filteredMyTests
                   .slice((myPage - 1) * TESTS_PER_PAGE, myPage * TESTS_PER_PAGE)
                   .map((test) => (
                     <TestCard key={test.id} test={test} />
                   ))}
               </div>
-              {myTests.length > TESTS_PER_PAGE && (
+              {filteredMyTests.length > TESTS_PER_PAGE && (
                 <div className="flex items-center justify-center gap-4 mt-6">
                   <button
                     onClick={() => setMyPage(p => Math.max(1, p - 1))}
                     disabled={myPage === 1}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {tr.prev}
                   </button>
-                  <span className="text-sm text-gray-600">
-                    {tr.page} {myPage} {tr.of} {Math.ceil(myTests.length / TESTS_PER_PAGE)}
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {tr.page} {myPage} {tr.of} {Math.ceil(filteredMyTests.length / TESTS_PER_PAGE)}
                   </span>
                   <button
-                    onClick={() => setMyPage(p => Math.min(Math.ceil(myTests.length / TESTS_PER_PAGE), p + 1))}
-                    disabled={myPage >= Math.ceil(myTests.length / TESTS_PER_PAGE)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    onClick={() => setMyPage(p => Math.min(Math.ceil(filteredMyTests.length / TESTS_PER_PAGE), p + 1))}
+                    disabled={myPage >= Math.ceil(filteredMyTests.length / TESTS_PER_PAGE)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {tr.next}
                   </button>
@@ -1469,40 +1706,42 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
             </>
           )
         ) : (
-          sharedTests.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          filteredSharedTests.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{tr.noSharedTests}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                {sharedTests.length === 0 ? tr.noSharedTests : 'Ничего не найдено'}
+              </h3>
             </div>
           ) : (
             <>
               <div className="space-y-4">
-                {sharedTests
+                {filteredSharedTests
                   .slice((sharedPage - 1) * TESTS_PER_PAGE, sharedPage * TESTS_PER_PAGE)
                   .map((test) => (
                     <TestCard key={test.id} test={test} isShared />
                   ))}
               </div>
-              {sharedTests.length > TESTS_PER_PAGE && (
+              {filteredSharedTests.length > TESTS_PER_PAGE && (
                 <div className="flex items-center justify-center gap-4 mt-6">
                   <button
                     onClick={() => setSharedPage(p => Math.max(1, p - 1))}
                     disabled={sharedPage === 1}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {tr.prev}
                   </button>
-                  <span className="text-sm text-gray-600">
-                    {tr.page} {sharedPage} {tr.of} {Math.ceil(sharedTests.length / TESTS_PER_PAGE)}
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {tr.page} {sharedPage} {tr.of} {Math.ceil(filteredSharedTests.length / TESTS_PER_PAGE)}
                   </span>
                   <button
-                    onClick={() => setSharedPage(p => Math.min(Math.ceil(sharedTests.length / TESTS_PER_PAGE), p + 1))}
-                    disabled={sharedPage >= Math.ceil(sharedTests.length / TESTS_PER_PAGE)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    onClick={() => setSharedPage(p => Math.min(Math.ceil(filteredSharedTests.length / TESTS_PER_PAGE), p + 1))}
+                    disabled={sharedPage >= Math.ceil(filteredSharedTests.length / TESTS_PER_PAGE)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {tr.next}
                   </button>
@@ -1515,15 +1754,15 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
         {/* Generator Modal */}
         {showGenerator && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">{tr.generatorTitle}</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{tr.generatorTitle}</h2>
                   <button
                     onClick={() => { setShowGenerator(false); resetGenForm(); }}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
                   >
-                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -1534,8 +1773,8 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 {/* Title with Language Tabs */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">{tr.testTitle}</label>
-                    <div className="flex bg-gray-100 rounded-lg p-0.5">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{tr.testTitle}</label>
+                    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
                       {(['kz', 'ru', 'en'] as const).map((lang) => (
                         <button
                           key={lang}
@@ -1543,8 +1782,8 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                           onClick={() => setTitleLang(lang)}
                           className={`px-3 py-1 rounded-md text-xs font-medium transition ${
                             titleLang === lang
-                              ? 'bg-white text-gray-900 shadow-sm'
-                              : 'text-gray-500 hover:text-gray-700'
+                              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                           }`}
                         >
                           {lang.toUpperCase()}
@@ -1557,7 +1796,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                       type="text"
                       value={genForm.titleKz}
                       onChange={(e) => setGenForm({ ...genForm, titleKz: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       placeholder="Тест атауын енгізіңіз"
                     />
                   )}
@@ -1566,7 +1805,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                       type="text"
                       value={genForm.title}
                       onChange={(e) => setGenForm({ ...genForm, title: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       placeholder="Введите название теста"
                     />
                   )}
@@ -1575,7 +1814,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                       type="text"
                       value={genForm.titleEn}
                       onChange={(e) => setGenForm({ ...genForm, titleEn: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       placeholder="Enter test title"
                     />
                   )}
@@ -1583,15 +1822,15 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
 
                 {/* Format */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{tr.format}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{tr.format}</label>
                   <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={() => setGenForm({ ...genForm, format: 'TEST' })}
                       className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition border-2 ${
                         genForm.format === 'TEST'
-                          ? 'border-blue-600 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                          : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
                       {tr.test}
@@ -1601,8 +1840,8 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                       onClick={() => setGenForm({ ...genForm, format: 'EXAM' })}
                       className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition border-2 ${
                         genForm.format === 'EXAM'
-                          ? 'border-red-600 bg-red-50 text-red-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          ? 'border-red-600 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
                       {tr.exam}
@@ -1613,11 +1852,11 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 {/* Subject & Grade */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{tr.subject}</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{tr.subject}</label>
                     <select
                       value={genForm.subjectId}
                       onChange={(e) => setGenForm({ ...genForm, subjectId: e.target.value, selectedTopics: [], topicCounts: {} })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white dark:bg-gray-700"
                     >
                       <option value="">{tr.selectSubject}</option>
                       {subjects.map((subject) => (
@@ -1628,11 +1867,11 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{tr.grade}</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{tr.grade}</label>
                     <select
                       value={genForm.gradeLevel}
                       onChange={(e) => setGenForm({ ...genForm, gradeLevel: parseInt(e.target.value), selectedTopics: [], topicCounts: {} })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white dark:bg-gray-700"
                     >
                       {Array.from({ length: 11 }, (_, i) => (
                         <option key={i + 1} value={i + 1}>
@@ -1646,11 +1885,11 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 {/* Duration & Task Count */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{tr.taskCount}</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{tr.taskCount}</label>
                     <select
                       value={genForm.taskCount}
                       onChange={(e) => setGenForm({ ...genForm, taskCount: parseInt(e.target.value) })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white dark:bg-gray-700"
                     >
                       {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60].map((num) => (
                         <option key={num} value={num}>
@@ -1660,14 +1899,14 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{tr.duration}</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{tr.duration}</label>
                     <input
                       type="number"
                       value={genForm.duration}
                       onChange={(e) => setGenForm({ ...genForm, duration: parseInt(e.target.value) || 60 })}
                       min={10}
                       max={180}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   </div>
                 </div>
@@ -1676,29 +1915,29 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 {genForm.subjectId && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-700">{tr.topics}</label>
-                      <label className="flex items-center gap-2 text-sm text-gray-600">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{tr.topics}</label>
+                      <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <input
                           type="checkbox"
                           checked={genForm.useTopics}
                           onChange={(e) => setGenForm({ ...genForm, useTopics: e.target.checked })}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                         />
                         {tr.useTopics}
                       </label>
                     </div>
                     {genForm.useTopics && (
                       topics.length > 0 ? (
-                        <div className="border border-gray-200 rounded-xl max-h-72 overflow-y-auto">
+                        <div className="border border-gray-200 dark:border-gray-600 rounded-xl max-h-72 overflow-y-auto">
                           {topics.map((topic) => {
                             const hasChildren = topic.children && topic.children.length > 0;
                             const isExpanded = expandedTopics.has(topic.id);
                             const getTopicName = (t: Topic) => locale === 'kz' && t.nameKz ? t.nameKz : t.name;
 
                             return (
-                              <div key={topic.id} className="border-b border-gray-100 last:border-b-0">
+                              <div key={topic.id} className="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                                 {/* Parent topic row */}
-                                <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50">
+                                <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
                                   {hasChildren ? (
                                     <button
                                       type="button"
@@ -1713,7 +1952,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                                           return next;
                                         });
                                       }}
-                                      className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600"
+                                      className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-gray-400"
                                     >
                                       <svg
                                         className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
@@ -1732,7 +1971,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                                       className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
                                   )}
-                                  <span className={`text-sm flex-1 ${hasChildren ? 'font-medium text-gray-900' : 'text-gray-700'}`}>
+                                  <span className={`text-sm flex-1 ${hasChildren ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-700'}`}>
                                     {getTopicName(topic)}
                                   </span>
                                   {topic._count && topic._count.tasks > 0 && !hasChildren && (
@@ -1753,7 +1992,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                                       })}
                                       min={1}
                                       max={20}
-                                      className="w-14 px-2 py-1 border border-gray-200 rounded text-sm text-center text-gray-900"
+                                      className="w-14 px-2 py-1 border border-gray-200 rounded text-sm text-center text-gray-900 dark:text-white"
                                       onClick={(e) => e.stopPropagation()}
                                     />
                                   )}
@@ -1761,11 +2000,11 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
 
                                 {/* Children topics */}
                                 {hasChildren && isExpanded && (
-                                  <div className="bg-gray-50">
+                                  <div className="bg-gray-50 dark:bg-gray-700">
                                     {topic.children!.map((child) => (
                                       <div
                                         key={child.id}
-                                        className="flex items-center gap-2 pl-10 pr-4 py-2.5 hover:bg-gray-100 border-t border-gray-100"
+                                        className="flex items-center gap-2 pl-10 pr-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-600 border-t border-gray-100 dark:border-gray-700"
                                       >
                                         <input
                                           type="checkbox"
@@ -1773,7 +2012,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                                           onChange={() => toggleTopicSelection(child.id)}
                                           className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                         />
-                                        <span className="text-sm text-gray-700 flex-1">
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
                                           {getTopicName(child)}
                                         </span>
                                         {child._count && child._count.tasks > 0 && (
@@ -1794,7 +2033,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                                             })}
                                             min={1}
                                             max={20}
-                                            className="w-14 px-2 py-1 border border-gray-200 rounded text-sm text-center text-gray-900"
+                                            className="w-14 px-2 py-1 border border-gray-200 rounded text-sm text-center text-gray-900 dark:text-white"
                                             onClick={(e) => e.stopPropagation()}
                                           />
                                         )}
@@ -1807,7 +2046,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                           })}
                         </div>
                       ) : (
-                        <div className="border border-gray-200 rounded-xl p-4 text-center text-gray-500 text-sm">
+                        <div className="border border-gray-200 rounded-xl p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
                           {tr.noTopics}
                         </div>
                       )
@@ -1819,7 +2058,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-700">{tr.difficulty}</label>
-                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <input
                         type="checkbox"
                         checked={genForm.useDifficulty}
@@ -1832,7 +2071,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                   {genForm.useDifficulty && (
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1">{tr.easy}</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{tr.easy}</label>
                         <input
                           type="number"
                           value={genForm.difficultyConfig.easy}
@@ -1841,11 +2080,11 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                             difficultyConfig: { ...genForm.difficultyConfig, easy: parseInt(e.target.value) || 0 },
                           })}
                           min={0}
-                          className="w-full px-3 py-2 border border-green-200 bg-green-50 rounded-lg text-sm text-center text-gray-900"
+                          className="w-full px-3 py-2 border border-green-200 bg-green-50 rounded-lg text-sm text-center text-gray-900 dark:text-white"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1">{tr.medium}</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{tr.medium}</label>
                         <input
                           type="number"
                           value={genForm.difficultyConfig.medium}
@@ -1854,11 +2093,11 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                             difficultyConfig: { ...genForm.difficultyConfig, medium: parseInt(e.target.value) || 0 },
                           })}
                           min={0}
-                          className="w-full px-3 py-2 border border-amber-200 bg-amber-50 rounded-lg text-sm text-center text-gray-900"
+                          className="w-full px-3 py-2 border border-amber-200 bg-amber-50 rounded-lg text-sm text-center text-gray-900 dark:text-white"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1">{tr.hard}</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{tr.hard}</label>
                         <input
                           type="number"
                           value={genForm.difficultyConfig.hard}
@@ -1867,7 +2106,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                             difficultyConfig: { ...genForm.difficultyConfig, hard: parseInt(e.target.value) || 0 },
                           })}
                           min={0}
-                          className="w-full px-3 py-2 border border-red-200 bg-red-50 rounded-lg text-sm text-center text-gray-900"
+                          className="w-full px-3 py-2 border border-red-200 bg-red-50 rounded-lg text-sm text-center text-gray-900 dark:text-white"
                         />
                       </div>
                     </div>
@@ -1878,7 +2117,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
               <div className="p-6 border-t border-gray-200 flex gap-3">
                 <button
                   onClick={() => { setShowGenerator(false); resetGenForm(); }}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 dark:bg-gray-700 transition"
                 >
                   {tr.cancel}
                 </button>
@@ -1897,21 +2136,21 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
         {/* Preview Modal */}
         {showPreview && previewTest && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">{getTitle(previewTest)}</h2>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{getTitle(previewTest)}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       {previewTest.taskIds.length} {tr.questions}
                       {previewTest.duration && ` • ${previewTest.duration} ${tr.minutes}`}
                     </p>
                   </div>
                   <button
                     onClick={() => { setShowPreview(false); setPreviewTest(null); setPreviewTasks([]); }}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
                   >
-                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -1920,15 +2159,15 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 {/* Download Controls */}
                 <div className="flex items-center gap-3 mt-4 flex-wrap">
                   {/* Language Tabs */}
-                  <div className="flex bg-gray-100 rounded-lg p-1">
+                  <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                     {(['kz', 'ru', 'en'] as const).map((lang) => (
                       <button
                         key={lang}
                         onClick={() => setDownloadLang(lang)}
                         className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
                           downloadLang === lang
-                            ? 'bg-white text-gray-900 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                       >
                         {lang.toUpperCase()}
@@ -1938,7 +2177,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
 
                   <button
                     onClick={() => handleDownload('test')}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-900/70 transition"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -1948,7 +2187,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
 
                   <button
                     onClick={() => handleDownload('solutions')}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition"
+                    className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium hover:bg-green-200 dark:hover:bg-green-900/70 transition"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1958,12 +2197,22 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
 
                   <button
                     onClick={() => handleDownload('blank')}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition"
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg text-sm font-medium hover:bg-purple-200 dark:hover:bg-purple-900/70 transition"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     {tr.downloadBlank}
+                  </button>
+
+                  <button
+                    onClick={handleOpenEditTopics}
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-lg text-sm font-medium hover:bg-amber-200 dark:hover:bg-amber-900/70 transition"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    {tr.editTopics}
                   </button>
                 </div>
               </div>
@@ -1974,78 +2223,238 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                     <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-600 border-t-transparent"></div>
                   </div>
                 ) : previewTasks.length === 0 ? (
-                  <div className="flex items-center justify-center py-12 text-gray-500">
+                  <div className="flex items-center justify-center py-12 text-gray-500 dark:text-gray-400">
                     {locale === 'kz' ? 'Сұрақтар жоқ' : locale === 'en' ? 'No questions' : 'Нет вопросов'}
                   </div>
                 ) : (
                   <div className="space-y-6">
                     {previewTasks.map((task, index) => (
-                      <div key={task.id} className="border border-gray-200 rounded-xl p-5">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-medium text-blue-600">{tr.question} {index + 1}</span>
+                      <div key={task.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+                        <div className="flex items-start justify-between mb-3 gap-2">
                           <div className="flex items-center gap-2">
-                            {task.topic && (
-                              <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">
-                                {locale === 'kz' && task.topic.nameKz ? task.topic.nameKz : task.topic.name}
-                              </span>
-                            )}
+                            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{tr.question} {index + 1}</span>
                             <span className={`text-xs px-2 py-1 rounded ${
-                              task.difficulty === 1 ? 'bg-green-100 text-green-700' :
-                              task.difficulty === 2 ? 'bg-amber-100 text-amber-700' :
-                              'bg-red-100 text-red-700'
+                              task.difficulty === 1 ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
+                              task.difficulty === 2 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+                              'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
                             }`}>
                               {task.difficulty === 1 ? tr.easy : task.difficulty === 2 ? tr.medium : tr.hard}
                             </span>
                           </div>
-                        </div>
+                          {/* Темы (только родительские, без дублей) */}
+                          {task.linkedSubtopics && task.linkedSubtopics.length > 0 && (
+                            <div className="flex flex-wrap gap-1 justify-end max-w-[60%]">
+                              {(() => {
+                                // Собираем уникальные родительские темы
+                                type SubtopicType = NonNullable<typeof task.linkedSubtopics>[0];
+                                const uniqueTopics = new Map<string, SubtopicType['topic']>();
+                                task.linkedSubtopics!.forEach((sub: SubtopicType) => {
+                                  if (sub.topic && !uniqueTopics.has(sub.topic.id)) {
+                                    uniqueTopics.set(sub.topic.id, sub.topic);
+                                  }
+                                });
 
-                        <LatexRenderer text={task.question} className="text-gray-900 mb-4" />
-
-                        <div className="space-y-2">
-                          {task.options.map((option, optIndex) => (
-                            <div
-                              key={optIndex}
-                              className={`flex items-center gap-3 p-3 rounded-lg ${
-                                optIndex === task.correctAnswer
-                                  ? 'bg-green-50 border border-green-200'
-                                  : 'bg-gray-50'
-                              }`}
-                            >
-                              <span className={`w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium ${
-                                optIndex === task.correctAnswer
-                                  ? 'bg-green-600 text-white'
-                                  : 'bg-gray-200 text-gray-600'
-                              }`}>
-                                {String.fromCharCode(65 + optIndex)}
-                              </span>
-                              <LatexRenderer text={option} className="text-gray-700 flex-1" />
-                              {optIndex === task.correctAnswer && (
-                                <svg className="w-5 h-5 text-green-600 ml-auto" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              )}
+                                return Array.from(uniqueTopics.values()).map((topic, idx) => (
+                                  <span key={idx} className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded font-medium">
+                                    {downloadLang === 'kz' && topic?.nameKz ? topic.nameKz :
+                                     downloadLang === 'en' && topic?.nameEn ? topic.nameEn :
+                                     topic?.nameRu || topic?.name}
+                                  </span>
+                                ));
+                              })()}
                             </div>
-                          ))}
+                          )}
                         </div>
 
-                        {task.explanation && (
-                          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                            <p className="text-sm font-medium text-amber-800 mb-1">{tr.explanation}:</p>
-                            <LatexRenderer text={task.explanation} className="text-sm text-amber-700" />
+                        <LatexRenderer
+                          text={
+                            downloadLang === 'kz' ? (task.questionKz || task.question) :
+                            downloadLang === 'en' ? (task.questionEn || task.questionRu || task.question) :
+                            (task.questionRu || task.question)
+                          }
+                          className="text-gray-900 dark:text-white mb-4"
+                        />
+
+                        {task.questionImage && (
+                          <div className="mb-4">
+                            <img
+                              src={task.questionImage}
+                              alt="Question illustration"
+                              className="max-w-xs h-auto max-h-40 rounded-lg border border-gray-200 dark:border-gray-700"
+                            />
                           </div>
                         )}
+
+                        <div className="space-y-2">
+                          {(() => {
+                            const currentOptions =
+                              downloadLang === 'kz' ? (task.optionsKz || task.options) :
+                              downloadLang === 'en' ? (task.optionsEn || task.optionsRu || task.options) :
+                              (task.optionsRu || task.options);
+                            return currentOptions.map((option, optIndex) => (
+                              <div
+                                key={optIndex}
+                                className={`flex items-center gap-3 p-3 rounded-lg ${
+                                  optIndex === task.correctAnswer
+                                    ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800'
+                                    : 'bg-gray-50 dark:bg-gray-700'
+                                }`}
+                              >
+                                <span className={`w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium ${
+                                  optIndex === task.correctAnswer
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                                }`}>
+                                  {String.fromCharCode(65 + optIndex)}
+                                </span>
+                                <LatexRenderer text={option} className="text-gray-700 dark:text-gray-300 flex-1" />
+                                {optIndex === task.correctAnswer && (
+                                  <svg className="w-5 h-5 text-green-600 dark:text-green-400 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                            ));
+                          })()}
+                        </div>
+
+                        {/* Hint - yellow with lightbulb */}
+                        {(() => {
+                          const hint =
+                            downloadLang === 'kz' ? (task.hintKz || task.hint) :
+                            downloadLang === 'en' ? (task.hintEn || task.hintRu || task.hint) :
+                            (task.hintRu || task.hint);
+                          return hint ? (
+                            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2">
+                              <span className="text-amber-500 mt-0.5">💡</span>
+                              <LatexRenderer text={hint} className="text-sm text-amber-700 dark:text-amber-300" />
+                            </div>
+                          ) : null;
+                        })()}
+
+                        {/* Explanation/Solution - blue */}
+                        {(() => {
+                          const explanation =
+                            downloadLang === 'kz' ? (task.explanationKz || task.explanation) :
+                            downloadLang === 'en' ? (task.explanationEn || task.explanationRu || task.explanation) :
+                            (task.explanationRu || task.explanation);
+                          return explanation ? (
+                            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                              <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                                {downloadLang === 'kz' ? 'Дұрыс жауап:' : downloadLang === 'en' ? 'Correct answer:' : 'Правильный ответ:'}
+                              </p>
+                              <LatexRenderer text={explanation} className="text-sm text-blue-700 dark:text-blue-300" />
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
 
-              <div className="p-6 border-t border-gray-200">
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => { setShowPreview(false); setPreviewTest(null); setPreviewTasks([]); }}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                 >
                   {tr.close}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Topics Modal */}
+        {showEditTopics && previewTest && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{tr.editTopicsTitle}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{getTitle(previewTest)}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowEditTopics(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                  >
+                    <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                {editTopicsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-600 border-t-transparent"></div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {previewTasks.map((task, index) => {
+                      const questionText = downloadLang === 'kz' ? (task.questionKz || task.question) :
+                        downloadLang === 'en' ? (task.questionEn || task.questionRu || task.question) :
+                        (task.questionRu || task.question);
+                      const selectedTopics = taskTopicSelections[task.id] || [];
+
+                      return (
+                        <div key={task.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                          <div className="flex items-start gap-3">
+                            <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium">
+                              {index + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-900 dark:text-white line-clamp-2 mb-3">
+                                {questionText.length > 100 ? questionText.substring(0, 100) + '...' : questionText}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {availableTopics.map(topic => {
+                                  const isSelected = selectedTopics.includes(topic.id);
+                                  const topicName = downloadLang === 'kz' && topic.nameKz ? topic.nameKz :
+                                    topic.nameRu || topic.name;
+
+                                  return (
+                                    <button
+                                      key={topic.id}
+                                      onClick={() => toggleTaskTopic(task.id, topic.id)}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                                        isSelected
+                                          ? 'bg-blue-600 text-white'
+                                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                      }`}
+                                    >
+                                      {topicName}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              {selectedTopics.length === 0 && (
+                                <p className="text-xs text-gray-400 mt-2">{tr.noTopicsSelected}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+                <button
+                  onClick={() => setShowEditTopics(false)}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                >
+                  {tr.cancel}
+                </button>
+                <button
+                  onClick={handleSaveTopics}
+                  disabled={savingTopics}
+                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                >
+                  {savingTopics ? '...' : tr.saveTopics}
                 </button>
               </div>
             </div>
@@ -2055,27 +2464,27 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
         {/* Share Modal */}
         {shareTest && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-gray-900">{tr.shareTitle}</h2>
-                <p className="text-sm text-gray-500 mt-1">{getTitle(shareTest)}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{tr.shareTitle}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{getTitle(shareTest)}</p>
               </div>
 
               <div className="p-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">{tr.enterPhone}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{tr.enterPhone}</label>
                 <input
                   type="tel"
                   value={sharePhone}
                   onChange={(e) => setSharePhone(e.target.value)}
                   placeholder="+7 777 123 4567"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
 
-              <div className="p-6 border-t border-gray-200 flex gap-3">
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
                 <button
                   onClick={() => { setShareTest(null); setSharePhone(''); }}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                 >
                   {tr.cancel}
                 </button>
@@ -2094,31 +2503,31 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
         {/* Check Test Modal */}
         {checkTest && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">{tr.checkTestTitle}</h2>
-                    <p className="text-sm text-gray-500 mt-1">{getTitle(checkTest)}</p>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{tr.checkTestTitle}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{getTitle(checkTest)}</p>
                   </div>
                   <button
                     onClick={() => setCheckTest(null)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
                   >
-                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
 
                 {/* Mode Toggle */}
-                <div className="flex bg-gray-100 rounded-lg p-1 mt-4">
+                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 mt-4">
                   <button
                     onClick={() => setCheckMode('upload')}
                     className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition ${
                       checkMode === 'upload'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                     }`}
                   >
                     {tr.uploadPhoto}
@@ -2127,8 +2536,8 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                     onClick={() => setCheckMode('manual')}
                     className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition ${
                       checkMode === 'manual'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                     }`}
                   >
                     {tr.enterManually}
@@ -2142,22 +2551,22 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                     {/* Student Info - always visible */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{tr.studentName}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{tr.studentName}</label>
                         <input
                           type="text"
                           value={manualStudentName}
                           onChange={(e) => setManualStudentName(e.target.value)}
-                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                           placeholder={locale === 'kz' ? 'Оқушының аты-жөні' : 'ФИО ученика'}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{tr.studentClass}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{tr.studentClass}</label>
                         <input
                           type="text"
                           value={manualStudentClass}
                           onChange={(e) => setManualStudentClass(e.target.value)}
-                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                           placeholder={locale === 'kz' ? '11А' : '11А'}
                         />
                       </div>
@@ -2166,7 +2575,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                     {/* Upload Area or Preview */}
                     {!selectedFile ? (
                       <div
-                        className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-purple-400 transition"
+                        className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-12 text-center cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 transition"
                         onClick={() => fileInputRef.current?.click()}
                         onDragOver={(e) => {
                           e.preventDefault();
@@ -2188,11 +2597,11 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                           }
                         }}
                       >
-                        <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <p className="text-gray-600 mb-2">{tr.uploadPhoto}</p>
-                        <p className="text-sm text-gray-400 mb-4">{tr.orDragDrop}</p>
+                        <p className="text-gray-600 dark:text-gray-400 mb-2">{tr.uploadPhoto}</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">{tr.orDragDrop}</p>
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -2227,16 +2636,16 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                       <div className="space-y-4">
                         {/* Scanning indicator */}
                         {scanning && (
-                          <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
+                          <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
                             <div className="flex items-center gap-3">
                               <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
-                              <span className="text-blue-700">{tr.processing}</span>
+                              <span className="text-blue-700 dark:text-blue-300">{tr.processing}</span>
                             </div>
                           </div>
                         )}
 
                         {/* Scan Preview */}
-                        <div className="relative bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center min-h-[200px]">
+                        <div className="relative bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden flex items-center justify-center min-h-[200px]">
                           <canvas
                             ref={previewCanvasRef}
                             className="max-w-full max-h-[500px]"
@@ -2247,12 +2656,12 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                         {/* Scan Result */}
                         {scanResult && (
                           <div className={`p-4 rounded-xl ${
-                            scanResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                            scanResult.success ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800'
                           }`}>
                             {scanResult.success ? (
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2 text-green-700">
+                                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
@@ -2264,7 +2673,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                                     <button
                                       onClick={reportScanError}
                                       disabled={reportingError}
-                                      className="text-xs text-gray-500 hover:text-red-600 flex items-center gap-1 transition"
+                                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 flex items-center gap-1 transition"
                                       title={locale === 'kz' ? 'Қате туралы хабарлау' : 'Сообщить об ошибке'}
                                     >
                                       {reportingError ? (
@@ -2288,7 +2697,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-sm text-green-600">
+                                <p className="text-sm text-green-600 dark:text-green-400">
                                   {locale === 'kz'
                                     ? `${scanResult.answers.filter(a => a !== null).length} жауап анықталды (сенімділік: ${Math.round(scanResult.confidence * 100)}%)`
                                     : `Обнаружено ${scanResult.answers.filter(a => a !== null).length} ответов (уверенность: ${Math.round(scanResult.confidence * 100)}%)`
@@ -2296,7 +2705,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                                 </p>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2 text-red-700">
+                              <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -2308,32 +2717,32 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
 
                         {/* Answer Key Input Section */}
                         {scanResult?.success && (
-                          <div className="mt-4 border border-purple-200 rounded-xl overflow-hidden">
+                          <div className="mt-4 border border-purple-200 dark:border-purple-800 rounded-xl overflow-hidden">
                             <button
                               onClick={() => setShowAnswerKeyInput(!showAnswerKeyInput)}
-                              className="w-full px-4 py-3 bg-purple-50 flex items-center justify-between hover:bg-purple-100 transition"
+                              className="w-full px-4 py-3 bg-purple-50 dark:bg-purple-900/30 flex items-center justify-between hover:bg-purple-100 dark:hover:bg-purple-900/50 transition"
                             >
                               <div className="flex items-center gap-2">
-                                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                                 </svg>
-                                <span className="font-medium text-purple-700">{tr.answerKey}</span>
+                                <span className="font-medium text-purple-700 dark:text-purple-300">{tr.answerKey}</span>
                               </div>
                               <svg
-                                className={`w-5 h-5 text-purple-600 transition-transform ${showAnswerKeyInput ? 'rotate-180' : ''}`}
+                                className={`w-5 h-5 text-purple-600 dark:text-purple-400 transition-transform ${showAnswerKeyInput ? 'rotate-180' : ''}`}
                                 fill="none" stroke="currentColor" viewBox="0 0 24 24"
                               >
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                               </svg>
                             </button>
                             {showAnswerKeyInput && (
-                              <div className="p-4 bg-white">
-                                <p className="text-sm text-gray-600 mb-3">{tr.enterAnswerKey}</p>
+                              <div className="p-4 bg-white dark:bg-gray-800">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{tr.enterAnswerKey}</p>
                                 <div className="max-h-[200px] overflow-y-auto">
                                   <div className="grid grid-cols-5 gap-2">
                                     {answerKey.map((answer, idx) => (
-                                      <div key={idx} className="flex items-center gap-1 p-2 bg-gray-50 rounded-lg">
-                                        <span className="text-xs font-medium text-gray-500 w-6">{idx + 1}.</span>
+                                      <div key={idx} className="flex items-center gap-1 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-6">{idx + 1}.</span>
                                         <div className="flex gap-1">
                                           {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => (
                                             <button
@@ -2346,7 +2755,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                                               className={`w-6 h-6 text-xs font-medium rounded transition ${
                                                 answer === optIdx
                                                   ? 'bg-purple-600 text-white'
-                                                  : 'bg-white border border-gray-200 text-gray-600 hover:border-purple-300'
+                                                  : 'bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 text-gray-600 dark:text-gray-300 hover:border-purple-300 dark:hover:border-purple-500'
                                               }`}
                                             >
                                               {opt}
@@ -2365,7 +2774,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                         {/* Rescan Button */}
                         <button
                           onClick={resetScan}
-                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition flex items-center justify-center gap-2"
+                          className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center justify-center gap-2"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -2380,22 +2789,22 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                     {/* Student Info */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{tr.studentName}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{tr.studentName}</label>
                         <input
                           type="text"
                           value={manualStudentName}
                           onChange={(e) => setManualStudentName(e.target.value)}
-                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                           placeholder={locale === 'kz' ? 'Аты-жөні' : 'ФИО ученика'}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{tr.studentClass}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{tr.studentClass}</label>
                         <input
                           type="text"
                           value={manualStudentClass}
                           onChange={(e) => setManualStudentClass(e.target.value)}
-                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                           placeholder={locale === 'kz' ? '11А' : '11А'}
                         />
                       </div>
@@ -2403,18 +2812,18 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
 
                     {/* Answer Grid */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                         {locale === 'kz' ? 'Жауаптар' : locale === 'en' ? 'Answers' : 'Ответы'}
                       </label>
-                      <div className="max-h-[400px] overflow-y-auto border border-gray-200 rounded-2xl">
-                        <div className="divide-y divide-gray-100">
+                      <div className="max-h-[400px] overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-2xl">
+                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
                           {manualAnswers.map((answer, idx) => {
                             const topic = checkTaskTopics[idx];
                             const topicName = topic ? (locale === 'kz' && topic.topicNameKz ? topic.topicNameKz : topic.topicName) : '';
                             return (
-                              <div key={idx} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition">
-                                <span className="text-sm font-bold text-gray-900 w-8">{idx + 1}.</span>
-                                <span className="flex-1 text-sm text-gray-500 truncate" title={topicName}>
+                              <div key={idx} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                <span className="text-sm font-bold text-gray-900 dark:text-white w-8">{idx + 1}.</span>
+                                <span className="flex-1 text-sm text-gray-500 dark:text-gray-400 truncate" title={topicName}>
                                   {topicName || '...'}
                                 </span>
                                 <div className="flex gap-1.5 shrink-0">
@@ -2430,7 +2839,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                                       className={`w-9 h-9 rounded-lg text-sm font-semibold transition-all ${
                                         answer === optIdx
                                           ? 'bg-purple-600 text-white shadow-md scale-105'
-                                          : 'bg-white border-2 border-gray-200 text-gray-600 hover:border-purple-400 hover:text-purple-600'
+                                          : 'bg-white dark:bg-gray-600 border-2 border-gray-200 dark:border-gray-500 text-gray-600 dark:text-gray-300 hover:border-purple-400 dark:hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400'
                                       }`}
                                     >
                                       {opt}
@@ -2447,13 +2856,13 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 )}
               </div>
 
-              <div className="p-6 border-t border-gray-200 flex gap-3">
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
                 <button
                   onClick={() => {
                     setCheckTest(null);
                     resetScan();
                   }}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                 >
                   {tr.cancel}
                 </button>
@@ -2483,43 +2892,43 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
         {/* Results Modal */}
         {resultsTest && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-              <div className="p-6 border-b border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-5 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">{tr.results}</h2>
-                    <p className="text-sm text-gray-500 mt-1">{getTitle(resultsTest)}</p>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{tr.results}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{getTitle(resultsTest)}</p>
                   </div>
                   <button
                     onClick={() => { setResultsTest(null); setTestResults([]); }}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
                   >
-                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-5">
                 {loadingResults ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-purple-600 border-t-transparent"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
                   </div>
                 ) : testResults.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-7 h-7 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{tr.noResults}</h3>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">{tr.noResults}</h3>
                     <button
                       onClick={() => {
                         setResultsTest(null);
                         openCheckModal(resultsTest);
                       }}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition mt-4"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition mt-4"
                     >
                       {tr.checkTest}
                     </button>
@@ -2527,87 +2936,87 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 ) : (
                   <div className="space-y-6">
                     {/* Summary Stats */}
-                    <div className="grid grid-cols-3 gap-6 mb-8">
-                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 text-center border border-purple-100">
-                        <div className="text-4xl font-bold text-purple-600 mb-1">{testResults.length}</div>
-                        <div className="text-sm font-medium text-purple-500">
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="bg-white dark:bg-gray-700 rounded-xl p-5 text-center border border-gray-200 dark:border-gray-600">
+                        <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">{testResults.length}</div>
+                        <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           {locale === 'kz' ? 'Жауаптар' : locale === 'en' ? 'Responses' : 'Ответов'}
                         </div>
                       </div>
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 text-center border border-green-100">
-                        <div className="text-4xl font-bold text-green-600 mb-1">
+                      <div className="bg-white dark:bg-gray-700 rounded-xl p-5 text-center border border-gray-200 dark:border-gray-600">
+                        <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
                           {testResults.length > 0
                             ? Math.round(testResults.reduce((sum, r) => sum + r.percentage, 0) / testResults.length)
                             : 0}%
                         </div>
-                        <div className="text-sm font-medium text-green-500">
+                        <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           {locale === 'kz' ? 'Орташа балл' : locale === 'en' ? 'Average' : 'Средний балл'}
                         </div>
                       </div>
-                      <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl p-6 text-center border border-amber-100">
-                        <div className="text-4xl font-bold text-amber-600 mb-1">
+                      <div className="bg-white dark:bg-gray-700 rounded-xl p-5 text-center border border-gray-200 dark:border-gray-600">
+                        <div className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">
                           {testResults.length > 0
                             ? Math.round(Math.max(...testResults.map(r => r.percentage)))
                             : 0}%
                         </div>
-                        <div className="text-sm font-medium text-amber-500">
+                        <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           {locale === 'kz' ? 'Максимум' : locale === 'en' ? 'Max score' : 'Максимум'}
                         </div>
                       </div>
                     </div>
 
                     {/* Results Table */}
-                    <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                    <div className="border border-gray-200 dark:border-gray-600 rounded-xl overflow-hidden">
                       <table className="w-full">
-                        <thead className="bg-gray-50/80">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
                           <tr>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">{tr.studentName}</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">{tr.studentClass}</th>
-                            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">{tr.score}</th>
-                            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">%</th>
-                            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">{tr.date}</th>
-                            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700"></th>
+                            <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{tr.studentName}</th>
+                            <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{tr.studentClass}</th>
+                            <th className="px-5 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">{tr.score}</th>
+                            <th className="px-5 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">%</th>
+                            <th className="px-5 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">{tr.date}</th>
+                            <th className="px-5 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300"></th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
                           {testResults.map((result) => (
-                            <tr key={result.id} className="hover:bg-purple-50/30 transition-colors">
-                              <td className="px-6 py-4">
-                                <span className="text-sm font-medium text-gray-900">
+                            <tr key={result.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                              <td className="px-5 py-3">
+                                <span className="text-sm font-medium text-gray-900 dark:text-white">
                                   {result.studentName || (locale === 'kz' ? 'Белгісіз' : locale === 'en' ? 'Unknown' : 'Неизвестно')}
                                 </span>
                               </td>
-                              <td className="px-6 py-4">
-                                <span className="text-sm text-gray-600">
+                              <td className="px-5 py-3">
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
                                   {result.studentClass || '-'}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-center">
-                                <span className="text-sm font-semibold text-gray-900">
+                              <td className="px-5 py-3 text-center">
+                                <span className="text-sm font-semibold text-gray-900 dark:text-white">
                                   {result.correctCount}/{result.totalQuestions}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-center">
-                                <span className={`inline-flex px-3 py-1.5 rounded-full text-sm font-semibold ${
-                                  result.percentage >= 80 ? 'bg-green-100 text-green-700' :
-                                  result.percentage >= 50 ? 'bg-amber-100 text-amber-700' :
-                                  'bg-red-100 text-red-700'
+                              <td className="px-5 py-3 text-center">
+                                <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                                  result.percentage >= 80 ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
+                                  result.percentage >= 50 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+                                  'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
                                 }`}>
                                   {Math.round(result.percentage)}%
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-center text-sm text-gray-500">
+                              <td className="px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
                                 {new Date(result.scannedAt).toLocaleDateString(locale === 'kz' ? 'kk-KZ' : 'ru-RU', {
                                   day: 'numeric',
                                   month: 'short',
                                 })}
                               </td>
-                              <td className="px-6 py-4 text-center">
+                              <td className="px-5 py-3 text-center">
                                 <button
                                   onClick={() => {
                                     window.open(`/api/generated-tests/${resultsTest.id}/results/${result.id}/pdf?lang=${locale}`, '_blank');
                                   }}
-                                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition"
                                   title={locale === 'kz' ? 'PDF жүктеу' : 'Скачать PDF'}
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2625,10 +3034,10 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                 )}
               </div>
 
-              <div className="p-6 border-t border-gray-200 flex gap-3">
+              <div className="p-5 border-t border-gray-200 dark:border-gray-700 flex gap-3">
                 <button
                   onClick={() => { setResultsTest(null); setTestResults([]); }}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                 >
                   {tr.close}
                 </button>
@@ -2638,7 +3047,7 @@ export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientPro
                     setResultsTest(null);
                     openCheckModal(test);
                   }}
-                  className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition"
+                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition"
                 >
                   {tr.checkTest}
                 </button>

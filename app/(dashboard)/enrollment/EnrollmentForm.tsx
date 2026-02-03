@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DateInput from '../components/DateInput';
 import { useNotification } from '@/app/components/ui/NotificationProvider';
+import { useLanguage } from '@/app/components/LanguageProvider';
 
 interface EnrollmentFormProps {
   coordinatorId: string;
+  userRole: string;
 }
 
 interface RefOption {
@@ -22,7 +24,8 @@ interface Branch {
 
 interface Subject {
   id: string;
-  name: string;
+  nameRu: string | null;
+  nameKz: string | null;
 }
 
 // Helper: Auto-capitalize first letter of each word
@@ -125,9 +128,10 @@ const parseCurrency = (value: string): string => {
   return value.replace(/\s/g, '');
 };
 
-export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
+export default function EnrollmentForm({ coordinatorId, userRole }: EnrollmentFormProps) {
   const router = useRouter();
   const { showToast } = useNotification();
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -145,7 +149,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
   // Step 1: Personal Information
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [middleName, setMiddleName] = useState('');
+  const [citizenship, setCitizenship] = useState<'KZ' | 'FOREIGN'>('KZ');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState('');
   const [studentIIN, setStudentIIN] = useState('');
@@ -198,7 +202,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
   const [totalAmount, setTotalAmount] = useState('');
   const [monthlyPayment, setMonthlyPayment] = useState('');
 
-  // Auto-extract DOB from student IIN
+  // Auto-extract DOB and gender from student IIN
   useEffect(() => {
     const rawIIN = getRawIIN(studentIIN);
     if (rawIIN.length >= 6) {
@@ -206,6 +210,11 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
       if (dob) {
         setDateOfBirth(dob);
       }
+    }
+    // Extract gender from 7th digit: odd = MALE, even = FEMALE
+    if (rawIIN.length >= 7) {
+      const genderDigit = parseInt(rawIIN[6]);
+      setGender(genderDigit % 2 === 0 ? 'FEMALE' : 'MALE');
     }
   }, [studentIIN]);
 
@@ -366,21 +375,25 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
     );
   };
 
+  const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
+
   const handleNextStep = () => {
-    if (currentStep === 1) {
-      if (!firstName || !lastName || !studentIIN || !parentName || !parentPhone || !parentIIN || !parentDocumentNumber) {
-        showToast({ message: 'Пожалуйста, заполните все обязательные поля', type: 'warning' });
-        return;
-      }
-    } else if (currentStep === 2) {
-      if (!gradeLevelId || !languageId || !studyDirectionId) {
-        showToast({ message: 'Пожалуйста, выберите класс, язык и направление обучения', type: 'warning' });
-        return;
-      }
-    } else if (currentStep === 3) {
-      if (!studyFormat || !guarantee) {
-        showToast({ message: 'Пожалуйста, выберите формат обучения и гарантию', type: 'warning' });
-        return;
+    if (!isAdmin) {
+      if (currentStep === 1) {
+        if (!firstName || !lastName || !studentIIN || !parentName || !parentPhone || !parentIIN || !parentDocumentNumber) {
+          showToast({ message: t('enrollment.fillRequired'), type: 'warning' });
+          return;
+        }
+      } else if (currentStep === 2) {
+        if (!gradeLevelId || !languageId || !studyDirectionId) {
+          showToast({ message: t('enrollment.selectEducation'), type: 'warning' });
+          return;
+        }
+      } else if (currentStep === 3) {
+        if (!studyFormat || !guarantee) {
+          showToast({ message: t('enrollment.selectFormat'), type: 'warning' });
+          return;
+        }
       }
     }
     setCurrentStep(prev => prev + 1);
@@ -398,7 +411,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
       // Personal info
       firstName,
       lastName,
-      middleName: middleName || null,
+      citizenship,
       dateOfBirth: dateOfBirth || null,
       gender: gender || null,
       studentIIN: getRawIIN(studentIIN),
@@ -461,80 +474,95 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
       });
 
       if (response.ok) {
-        showToast({ message: 'Ученик успешно зачислен', type: 'success' });
+        showToast({ message: t('enrollment.success'), type: 'success' });
         router.push('/students');
         router.refresh();
       } else {
         const errorData = await response.json();
-        showToast({ message: errorData.error || 'Ошибка при зачислении ученика', type: 'error' });
+        showToast({ message: errorData.error || t('enrollment.error'), type: 'error' });
       }
     } catch (error) {
       console.error(error);
-      showToast({ message: 'Ошибка при зачислении ученика', type: 'error' });
+      showToast({ message: t('enrollment.error'), type: 'error' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const inputClass = "w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder-gray-400";
-  const selectClass = "w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%228%22%20viewBox%3D%220%200%2012%208%22%3E%3Cpath%20fill%3D%22%236B7280%22%20d%3D%22M1.41%200L6%204.59%2010.59%200%2012%201.41l-6%206-6-6z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[position:right_1rem_center] bg-no-repeat pr-10";
-  const labelClass = "block text-sm font-medium text-gray-700 mb-1.5";
+  const baseInputClass = "w-full px-4 py-3 bg-white dark:bg-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500";
+  const baseSelectClass = "w-full px-4 py-3 bg-white dark:bg-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all text-gray-900 dark:text-white appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%228%22%20viewBox%3D%220%200%2012%208%22%3E%3Cpath%20fill%3D%22%236B7280%22%20d%3D%22M1.41%200L6%204.59%2010.59%200%2012%201.41l-6%206-6-6z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[position:right_1rem_center] bg-no-repeat pr-10";
+  const labelClass = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5";
   const requiredClass = "text-red-500 ml-0.5";
+
+  const emptyBorderClass = "border-2 border-blue-500 dark:border-blue-400";
+  const filledBorderClass = "border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500";
+
+  const getInputClass = (value: string) => {
+    return `${baseInputClass} ${!value ? emptyBorderClass : filledBorderClass}`;
+  };
+
+  const getSelectClass = (value: string) => {
+    return `${baseSelectClass} ${!value ? emptyBorderClass : filledBorderClass}`;
+  };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div>
       {/* Step indicators */}
-      <div className="flex items-center justify-center gap-2 mb-10">
+      <div className="flex items-center justify-center mb-10">
         {[
-          { step: 1, label: 'Личные данные' },
-          { step: 2, label: 'Обучение' },
-          { step: 3, label: 'Филиал и формат' },
-          { step: 4, label: 'Оплата' },
+          { step: 1, label: t('enrollment.personalData') },
+          { step: 2, label: t('enrollment.education') },
+          { step: 3, label: t('enrollment.branchFormat') },
+          { step: 4, label: t('enrollment.payment') },
         ].map((item, index) => (
           <div key={item.step} className="flex items-center">
-            <div className="flex flex-col items-center">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all ${
+            <div className="flex flex-col items-center min-w-[80px]">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
                 currentStep === item.step
-                  ? 'bg-gray-900 text-white shadow-lg'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : currentStep > item.step
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-100 text-gray-500'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
               }`}>
                 {currentStep > item.step ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : item.step}
               </div>
-              <span className={`text-xs mt-1.5 font-medium ${
-                currentStep === item.step ? 'text-gray-900' : 'text-gray-500'
+              <span className={`text-xs mt-2 font-medium transition-colors ${
+                currentStep === item.step
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : currentStep > item.step
+                  ? 'text-gray-700 dark:text-gray-300'
+                  : 'text-gray-400 dark:text-gray-500'
               }`}>{item.label}</span>
             </div>
             {index < 3 && (
-              <div className={`w-20 h-0.5 mx-3 mt-[-20px] ${
-                currentStep > item.step ? 'bg-green-500' : 'bg-gray-200'
+              <div className={`w-16 h-0.5 mx-1 mb-5 transition-colors ${
+                currentStep > item.step ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
               }`} />
             )}
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} autoComplete="off">
         {/* Step 1: Personal Information */}
         {currentStep === 1 && (
           <div className="space-y-6">
             {/* Student Info */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm">👤</span>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium">1</span>
                 Данные ученика
               </h2>
 
@@ -548,8 +576,9 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={lastName}
                     onChange={(e) => handleNameChange(e.target.value, setLastName)}
                     required
-                    placeholder="Алькей"
-                    className={inputClass}
+                    placeholder="Байтурсынов"
+                    spellCheck={false}
+                    className={getInputClass(lastName)}
                   />
                 </div>
 
@@ -562,20 +591,22 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={firstName}
                     onChange={(e) => handleNameChange(e.target.value, setFirstName)}
                     required
-                    placeholder="Маргулан"
-                    className={inputClass}
+                    placeholder="Ахмет"
+                    spellCheck={false}
+                    className={getInputClass(firstName)}
                   />
                 </div>
 
                 <div>
-                  <label className={labelClass}>Отчество</label>
-                  <input
-                    type="text"
-                    value={middleName}
-                    onChange={(e) => handleNameChange(e.target.value, setMiddleName)}
-                    placeholder="Хаканович"
-                    className={inputClass}
-                  />
+                  <label className={labelClass}>Гражданство</label>
+                  <select
+                    value={citizenship}
+                    onChange={(e) => setCitizenship(e.target.value as 'KZ' | 'FOREIGN')}
+                    className={getSelectClass(citizenship)}
+                  >
+                    <option value="KZ">Республика Казахстан</option>
+                    <option value="FOREIGN">Другое</option>
+                  </select>
                 </div>
 
                 <div>
@@ -588,13 +619,13 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     onChange={(e) => handleIINChange(e.target.value, setStudentIIN)}
                     required
                     placeholder="000000 000000"
-                    className={inputClass}
+                    className={getInputClass(studentIIN)}
                   />
                 </div>
 
                 <div>
                   <label className={labelClass}>Дата рождения</label>
-                  <div className="px-4 py-3 bg-gray-50 text-gray-800 font-medium rounded-xl text-sm border border-gray-200">
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-xl text-sm border border-gray-200 dark:border-gray-600">
                     {dateOfBirth
                       ? new Date(dateOfBirth).toLocaleDateString('ru-RU')
                       : 'Определится по ИИН'}
@@ -603,15 +634,9 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
 
                 <div>
                   <label className={labelClass}>Пол</label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    className={selectClass}
-                  >
-                    <option value="">Выберите пол</option>
-                    <option value="MALE">Мужской</option>
-                    <option value="FEMALE">Женский</option>
-                  </select>
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-xl text-sm border border-gray-200 dark:border-gray-600">
+                    {gender === 'MALE' ? 'Мужской' : gender === 'FEMALE' ? 'Женский' : 'Определится по ИИН'}
+                  </div>
                 </div>
 
                 <div>
@@ -621,7 +646,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={studentPhone}
                     onChange={(e) => handlePhoneChange(e.target.value, setStudentPhone)}
                     placeholder="+7 700 200 21 21"
-                    className={inputClass}
+                    className={getInputClass(studentPhone)}
                   />
                 </div>
 
@@ -630,7 +655,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                   <select
                     value={cityId}
                     onChange={(e) => setCityId(e.target.value)}
-                    className={selectClass}
+                    className={getSelectClass(cityId)}
                   >
                     <option value="">Выберите город</option>
                     {cities.map((city) => (
@@ -646,16 +671,17 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="ул. Примерная, д. 1, кв. 1"
-                    className={inputClass}
+                    spellCheck={false}
+                    className={getInputClass(address)}
                   />
                 </div>
               </div>
             </div>
 
             {/* Parent Info */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-sm">👨‍👩‍👧</span>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-medium">2</span>
                 Данные родителя
               </h2>
 
@@ -669,8 +695,9 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={parentName}
                     onChange={(e) => handleNameChange(e.target.value, setParentName)}
                     required
-                    placeholder="Байтурсунов Ахмет"
-                    className={inputClass}
+                    placeholder="Алькей Маргулан Хаканович"
+                    spellCheck={false}
+                    className={getInputClass(parentName)}
                   />
                 </div>
 
@@ -684,7 +711,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     onChange={(e) => handlePhoneChange(e.target.value, setParentPhone)}
                     required
                     placeholder="+7 700 200 21 21"
-                    className={inputClass}
+                    className={getInputClass(parentPhone)}
                   />
                 </div>
 
@@ -698,13 +725,13 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     onChange={(e) => handleIINChange(e.target.value, setParentIIN)}
                     required
                     placeholder="000000 000000"
-                    className={inputClass}
+                    className={getInputClass(parentIIN)}
                   />
                 </div>
 
                 <div>
                   <label className={labelClass}>Дата рождения родителя</label>
-                  <div className="px-4 py-3 bg-gray-50 text-gray-800 font-medium rounded-xl text-sm border border-gray-200">
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-xl text-sm border border-gray-200 dark:border-gray-600">
                     {parentDateOfBirth
                       ? new Date(parentDateOfBirth).toLocaleDateString('ru-RU')
                       : 'Определится по ИИН'}
@@ -718,7 +745,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                   <select
                     value={parentDocumentType}
                     onChange={(e) => handleDocumentTypeChange(e.target.value as 'ID_CARD' | 'RK_PASSPORT' | 'FOREIGN')}
-                    className={selectClass}
+                    className={getSelectClass(parentDocumentType)}
                   >
                     <option value="ID_CARD">Удостоверение личности</option>
                     <option value="RK_PASSPORT">Паспорт гражданина РК</option>
@@ -740,9 +767,9 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                       parentDocumentType === 'RK_PASSPORT' ? 'N00000000' :
                       'Номер документа'
                     }
-                    className={inputClass}
+                    className={getInputClass(parentDocumentNumber)}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {parentDocumentType === 'ID_CARD' && '9 цифр через пробел'}
                     {parentDocumentType === 'RK_PASSPORT' && 'Буква N + 8 цифр'}
                     {parentDocumentType === 'FOREIGN' && 'Любой формат'}
@@ -755,7 +782,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
               <button
                 type="button"
                 onClick={handleNextStep}
-                className="px-8 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors"
+                className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
               >
                 Далее
               </button>
@@ -766,9 +793,9 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
         {/* Step 2: Academic Information */}
         {currentStep === 2 && (
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-green-50 text-green-600 flex items-center justify-center text-sm">📚</span>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-medium">3</span>
                 Учебная информация
               </h2>
 
@@ -781,7 +808,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={gradeLevelId}
                     onChange={(e) => setGradeLevelId(e.target.value)}
                     required
-                    className={selectClass}
+                    className={getSelectClass(gradeLevelId)}
                   >
                     <option value="">Выберите класс</option>
                     {gradeLevels.map((level) => (
@@ -795,7 +822,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                   <select
                     value={schoolId}
                     onChange={(e) => setSchoolId(e.target.value)}
-                    className={selectClass}
+                    className={getSelectClass(schoolId)}
                   >
                     <option value="">Выберите школу</option>
                     {schools.map((school) => (
@@ -812,7 +839,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={languageId}
                     onChange={(e) => setLanguageId(e.target.value)}
                     required
-                    className={selectClass}
+                    className={getSelectClass(languageId)}
                   >
                     <option value="">Выберите язык</option>
                     {languages.map((lang) => (
@@ -829,7 +856,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={studyDirectionId}
                     onChange={(e) => setStudyDirectionId(e.target.value)}
                     required
-                    className={selectClass}
+                    className={getSelectClass(studyDirectionId)}
                   >
                     <option value="">Выберите направление</option>
                     {studyDirections.map((dir) => (
@@ -848,8 +875,8 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                       key={subject.id}
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all border ${
                         selectedSubjects.includes(subject.id)
-                          ? 'bg-gray-900 text-white border-gray-900'
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                          ? 'bg-gray-900 dark:bg-blue-600 text-white border-gray-900 dark:border-blue-600'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
                       <input
@@ -858,7 +885,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                         onChange={() => toggleSubject(subject.id)}
                         className="hidden"
                       />
-                      <span className="text-sm">{subject.name}</span>
+                      <span className="text-sm">{subject.nameRu || subject.nameKz}</span>
                     </label>
                   ))}
                 </div>
@@ -874,7 +901,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all border ${
                         selectedSpecialNeeds.includes(need.id)
                           ? 'bg-orange-500 text-white border-orange-500'
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
                       <input
@@ -896,7 +923,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                   onChange={(e) => setAllergy(e.target.value)}
                   placeholder="Укажите аллергии или особенности здоровья, если есть"
                   rows={2}
-                  className={`${inputClass} resize-none`}
+                  className={`${getInputClass(allergy)} resize-none`}
                 />
               </div>
             </div>
@@ -905,14 +932,14 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
               <button
                 type="button"
                 onClick={handlePrevStep}
-                className="px-8 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
               >
                 Назад
               </button>
               <button
                 type="button"
                 onClick={handleNextStep}
-                className="px-8 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors"
+                className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
               >
                 Далее
               </button>
@@ -923,9 +950,9 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
         {/* Step 3: Branch, Format, Diagnostics */}
         {currentStep === 3 && (
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-yellow-50 text-yellow-600 flex items-center justify-center text-sm">🏫</span>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-amber-700 text-white flex items-center justify-center text-sm font-medium">4</span>
                 Филиал и условия обучения
               </h2>
 
@@ -935,7 +962,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                   <select
                     value={branchId}
                     onChange={(e) => setBranchId(e.target.value)}
-                    className={selectClass}
+                    className={getSelectClass(branchId)}
                   >
                     <option value="">Выберите филиал</option>
                     {branches.map((branch) => (
@@ -952,7 +979,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={studyFormat}
                     onChange={(e) => setStudyFormat(e.target.value)}
                     required
-                    className={selectClass}
+                    className={getSelectClass(studyFormat)}
                   >
                     <option value="">Выберите формат</option>
                     <option value="ONLINE_GROUP">Онлайн (группа)</option>
@@ -970,7 +997,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={guarantee}
                     onChange={(e) => setGuarantee(e.target.value)}
                     required
-                    className={selectClass}
+                    className={getSelectClass(guarantee)}
                   >
                     <option value="">Выберите гарантию</option>
                     <option value="NONE">Без гарантии</option>
@@ -990,7 +1017,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                       setStudySchedule(e.target.value as 'PSP' | 'VCS' | 'CUSTOM');
                       if (e.target.value !== 'CUSTOM') setCustomDays([]);
                     }}
-                    className={selectClass}
+                    className={getSelectClass(studySchedule)}
                   >
                     <option value="PSP">ПСП (Пн-Ср-Пт)</option>
                     <option value="VCS">ВЧС (Вт-Чт-Сб)</option>
@@ -1009,8 +1036,8 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                         key={day}
                         className={`flex items-center justify-center w-12 h-10 rounded-lg cursor-pointer transition-all border ${
                           customDays.includes(day)
-                            ? 'bg-gray-900 text-white border-gray-900'
-                            : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                            ? 'bg-gray-900 dark:bg-blue-600 text-white border-gray-900 dark:border-blue-600'
+                            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                         }`}
                       >
                         <input
@@ -1024,27 +1051,27 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     ))}
                   </div>
                   {customDays.length > 0 && (
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                       Расписание: <span className="font-medium">{getScheduleDisplay()}</span>
                     </p>
                   )}
                 </div>
               )}
 
-              <div className="border-t border-gray-100 pt-6">
-                <h3 className="text-base font-medium text-gray-900 mb-4">Диагностика и профориентация</h3>
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white mb-4">Диагностика и профориентация</h3>
                 <div className="grid grid-cols-2 gap-5">
                   <div>
                     <label className={labelClass}>Первая диагностика</label>
                     <select
                       value={firstDiagnosticId}
                       onChange={(e) => setFirstDiagnosticId(e.target.value)}
-                      className={selectClass}
+                      className={getSelectClass(firstDiagnosticId)}
                     >
                       <option value="">Не назначена</option>
                       <option value="pending">Будет назначена позже</option>
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">Диагностики будут доступны из базы</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Диагностики будут доступны из базы</p>
                   </div>
 
                   <div>
@@ -1052,7 +1079,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     <select
                       value={careerOrientationResult}
                       onChange={(e) => setCareerOrientationResult(e.target.value)}
-                      className={selectClass}
+                      className={getSelectClass(careerOrientationResult)}
                     >
                       <option value="">Не пройдена</option>
                       <option value="tech">Технические науки</option>
@@ -1069,14 +1096,14 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
               <button
                 type="button"
                 onClick={handlePrevStep}
-                className="px-8 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
               >
                 Назад
               </button>
               <button
                 type="button"
                 onClick={handleNextStep}
-                className="px-8 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors"
+                className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
               >
                 Далее
               </button>
@@ -1088,9 +1115,9 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
         {currentStep === 4 && (
           <div className="space-y-6">
             {/* Subscription */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">📅</span>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-indigo-800 text-white flex items-center justify-center text-sm font-medium">5</span>
                 Абонемент
               </h2>
 
@@ -1103,7 +1130,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={standardMonths}
                     onChange={(e) => setStandardMonths(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                     placeholder="0"
-                    className={inputClass}
+                    className={getInputClass(String(standardMonths))}
                   />
                 </div>
 
@@ -1115,7 +1142,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={bonusMonths}
                     onChange={(e) => setBonusMonths(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                     placeholder="0"
-                    className={inputClass}
+                    className={getInputClass(String(bonusMonths))}
                   />
                 </div>
 
@@ -1127,7 +1154,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={intensiveMonths}
                     onChange={(e) => setIntensiveMonths(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                     placeholder="0"
-                    className={inputClass}
+                    className={getInputClass(String(intensiveMonths))}
                   />
                 </div>
 
@@ -1139,7 +1166,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={freezeDays}
                     onChange={(e) => setFreezeDays(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                     placeholder="0"
-                    className={inputClass}
+                    className={getInputClass(String(freezeDays))}
                   />
                 </div>
               </div>
@@ -1154,12 +1181,13 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     value={startDate}
                     onChange={setStartDate}
                     required
+                    showEmptyGlow
                   />
                 </div>
 
                 <div>
                   <label className={labelClass}>Дата окончания</label>
-                  <div className="px-4 py-3 bg-gray-50 text-gray-800 font-medium rounded-xl text-sm border border-gray-200">
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-xl text-sm border border-gray-200 dark:border-gray-600">
                     {calculatedEndDate
                       ? new Date(calculatedEndDate).toLocaleDateString('ru-RU')
                       : 'Рассчитается автоматически'}
@@ -1169,9 +1197,9 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
             </div>
 
             {/* Payment */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">💳</span>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-medium">6</span>
                 Условия оплаты
               </h2>
 
@@ -1189,8 +1217,8 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                       key={option.value}
                       className={`flex flex-col px-4 py-3 rounded-xl cursor-pointer transition-all border ${
                         paymentPlan === option.value
-                          ? 'bg-gray-900 text-white border-gray-900'
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                          ? 'bg-gray-900 dark:bg-blue-600 text-white border-gray-900 dark:border-blue-600'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
                       <input
@@ -1201,7 +1229,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                         className="hidden"
                       />
                       <span className="font-medium">{option.label}</span>
-                      <span className={`text-xs ${paymentPlan === option.value ? 'text-gray-300' : 'text-gray-500'}`}>{option.desc}</span>
+                      <span className={`text-xs ${paymentPlan === option.value ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>{option.desc}</span>
                     </label>
                   ))}
                 </div>
@@ -1209,7 +1237,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
 
               <div className="space-y-4">
                 {/* Транш 1 */}
-                <div className="grid grid-cols-2 gap-5 p-4 bg-gray-50 rounded-xl">
+                <div className="grid grid-cols-2 gap-5 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                   <div>
                     <label className={labelClass}>
                       Сумма 1-го транша (₸)<span className={requiredClass}>*</span>
@@ -1220,7 +1248,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                       onChange={(e) => setTranche1Amount(parseCurrency(e.target.value))}
                       required
                       placeholder="0"
-                      className={inputClass}
+                      className={getInputClass(tranche1Amount)}
                     />
                   </div>
                   <div>
@@ -1232,13 +1260,14 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                       value={tranche1Date}
                       onChange={setTranche1Date}
                       required
+                      showEmptyGlow
                     />
                   </div>
                 </div>
 
                 {/* Транш 2 */}
                 {paymentPlan !== 'ONE_TRANCHE' && (
-                  <div className="grid grid-cols-2 gap-5 p-4 bg-gray-50 rounded-xl">
+                  <div className="grid grid-cols-2 gap-5 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                     <div>
                       <label className={labelClass}>
                         Сумма 2-го транша (₸)<span className={requiredClass}>*</span>
@@ -1249,7 +1278,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                         onChange={(e) => setTranche2Amount(parseCurrency(e.target.value))}
                         required
                         placeholder="0"
-                        className={inputClass}
+                        className={getInputClass(tranche2Amount)}
                       />
                     </div>
                     <div>
@@ -1261,6 +1290,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                         value={tranche2Date}
                         onChange={setTranche2Date}
                         required
+                        showEmptyGlow
                       />
                     </div>
                   </div>
@@ -1268,7 +1298,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
 
                 {/* Транш 3 */}
                 {paymentPlan === 'THREE_TRANCHES' && (
-                  <div className="grid grid-cols-2 gap-5 p-4 bg-gray-50 rounded-xl">
+                  <div className="grid grid-cols-2 gap-5 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                     <div>
                       <label className={labelClass}>
                         Сумма 3-го транша (₸)<span className={requiredClass}>*</span>
@@ -1279,7 +1309,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                         onChange={(e) => setTranche3Amount(parseCurrency(e.target.value))}
                         required
                         placeholder="0"
-                        className={inputClass}
+                        className={getInputClass(tranche3Amount)}
                       />
                     </div>
                     <div>
@@ -1291,18 +1321,19 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                         value={tranche3Date}
                         onChange={setTranche3Date}
                         required
+                        showEmptyGlow
                       />
                     </div>
                   </div>
                 )}
 
                 {/* Totals */}
-                <div className="grid grid-cols-2 gap-5 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-2 gap-5 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <div>
                     <label className={labelClass}>
                       Общая сумма (₸)
                     </label>
-                    <div className="px-4 py-3 bg-gray-50 text-gray-900 font-semibold rounded-xl text-sm border border-gray-200">
+                    <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold rounded-xl text-sm border border-gray-200 dark:border-gray-600">
                       {totalAmount ? new Intl.NumberFormat('ru-RU').format(parseFloat(totalAmount)) + ' ₸' : 'Рассчитается автоматически'}
                     </div>
                   </div>
@@ -1311,7 +1342,7 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
                     <label className={labelClass}>
                       Стоимость месяца (₸)
                     </label>
-                    <div className="px-4 py-3 bg-gray-50 text-gray-900 font-medium rounded-xl text-sm border border-gray-200">
+                    <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-medium rounded-xl text-sm border border-gray-200 dark:border-gray-600">
                       {monthlyPayment ? new Intl.NumberFormat('ru-RU').format(parseFloat(monthlyPayment)) + ' ₸' : 'Общая сумма ÷ стандартных месяцев'}
                     </div>
                   </div>
@@ -1323,14 +1354,14 @@ export default function EnrollmentForm({ coordinatorId }: EnrollmentFormProps) {
               <button
                 type="button"
                 onClick={handlePrevStep}
-                className="px-8 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
               >
                 Назад
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-8 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Зачисление...' : 'Зачислить ученика'}
               </button>

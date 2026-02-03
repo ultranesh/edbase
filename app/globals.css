@@ -1,8 +1,32 @@
 @import "tailwindcss";
 
+/* Configure dark mode to use class strategy instead of media query */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --bg-primary: #f9fafb;
+  --bg-secondary: #ffffff;
+  --border-color: #e5e7eb;
+  --border-light: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --logo-filter: none;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --border-color: #374151;
+  --border-light: #1f2937;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --logo-filter: brightness(0) invert(1);
 }
 
 @theme inline {
@@ -12,25 +36,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Disabled dark mode - always use light theme */
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-} */
-
 html {
-  background: #f9fafb !important;
   height: 100%;
   overflow: hidden;
+  background-color: var(--bg-primary);
 }
 
 body {
-  background: #f9fafb !important;
   height: 100%;
   overflow: hidden;
   color: var(--foreground);
+  background-color: var(--bg-primary);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -66,6 +82,33 @@ body {
   animation: toast-pop 0.3s ease-out;
 }
 
+@keyframes lightbox-backdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes lightbox-zoom {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-lightbox-backdrop {
+  animation: lightbox-backdrop 0.15s ease-out;
+}
+
+.animate-lightbox-zoom {
+  animation: lightbox-zoom 0.2s ease-out;
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Hide number input spinners */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
@@ -90,23 +133,57 @@ input[type="url"],
 input[type="search"],
 textarea,
 select {
-  color: #111827 !important; /* gray-900 */
+  color: var(--text-primary) !important;
+  background-color: var(--bg-secondary);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #9ca3af !important; /* gray-400 */
+  color: var(--text-muted) !important;
 }
 
 /* Fix for date inputs */
 input[type="date"]::-webkit-datetime-edit,
 input[type="time"]::-webkit-datetime-edit,
 input[type="datetime-local"]::-webkit-datetime-edit {
-  color: #111827;
+  color: var(--text-primary);
 }
 
 /* Option styling */
 option {
-  color: #111827;
-  background: white;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+/* Autofill styling for dark mode - prevents white background on autocomplete */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 30px var(--bg-secondary) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Date picker calendar styling for dark mode */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Color scheme for native date picker popup */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  color-scheme: light;
+}
+
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="datetime-local"] {
+  color-scheme: dark;
 }

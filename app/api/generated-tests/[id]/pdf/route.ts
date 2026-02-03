@@ -3,6 +3,42 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import puppeteer, { Browser } from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
+import fs from 'fs';
+import path from 'path';
+
+// Функция для конвертации изображения в base64 data URL
+function getImageDataUrl(imagePath: string | null): string | null {
+  if (!imagePath) return null;
+
+  try {
+    // Получаем абсолютный путь к файлу в папке public
+    const publicPath = path.join(process.cwd(), 'public', imagePath);
+
+    if (!fs.existsSync(publicPath)) {
+      console.warn(`Image not found: ${publicPath}`);
+      return null;
+    }
+
+    const imageBuffer = fs.readFileSync(publicPath);
+    const base64 = imageBuffer.toString('base64');
+
+    // Определяем MIME тип по расширению
+    const ext = path.extname(imagePath).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+    };
+    const mimeType = mimeTypes[ext] || 'image/png';
+
+    return `data:${mimeType};base64,${base64}`;
+  } catch (error) {
+    console.error(`Error reading image: ${imagePath}`, error);
+    return null;
+  }
+}
 
 // Функция для получения браузера
 async function getBrowser(): Promise<Browser> {
@@ -114,17 +150,34 @@ export async function GET(
       select: {
         id: true,
         questionText: true,
+        questionTextKz: true,
+        questionTextRu: true,
+        questionTextEn: true,
+        questionImage: true,
         answerText: true,
+        options: true,
+        correctAnswer: true,
         solutionText: true,
+        solutionTextKz: true,
+        solutionTextRu: true,
+        solutionTextEn: true,
+        hints: true,
+        hintsKz: true,
+        hintsRu: true,
+        hintsEn: true,
         difficultyLevel: true,
         subtopic: {
           select: {
             name: true,
             nameKz: true,
+            nameRu: true,
+            nameEn: true,
             topic: {
               select: {
                 name: true,
                 nameKz: true,
+                nameRu: true,
+                nameEn: true,
               },
             },
           },
@@ -160,17 +213,65 @@ export async function GET(
       }
     };
 
-    // Transform tasks to expected format
+    // Transform tasks to expected format with multi-language support
     const tasks = rawTasks.map(task => {
-      const { options, correctAnswer } = parseAnswerText(task.answerText);
+      // Check if task has new multi-language options format
+      const hasMultiLangOptions = task.options && Array.isArray(task.options);
+
+      let options: string[];
+      let optionsKz: string[];
+      let optionsRu: string[];
+      let optionsEn: string[];
+      let correctAnswerIndex: number;
+
+      if (hasMultiLangOptions) {
+        const multiLangOptions = task.options as Array<{ kz?: string; ru?: string; en?: string }>;
+        optionsKz = multiLangOptions.map(o => o.kz || o.ru || '');
+        optionsRu = multiLangOptions.map(o => o.ru || o.kz || '');
+        optionsEn = multiLangOptions.map(o => o.en || o.ru || o.kz || '');
+        options = optionsRu;
+        correctAnswerIndex = task.correctAnswer ?? 0;
+      } else {
+        const parsed = parseAnswerText(task.answerText);
+        options = parsed.options;
+        optionsKz = parsed.options;
+        optionsRu = parsed.options;
+        optionsEn = parsed.options;
+        correctAnswerIndex = parsed.correctAnswer;
+      }
+
       return {
         id: task.id,
-        question: task.questionText,
+        question: task.questionTextRu || task.questionText,
+        questionKz: task.questionTextKz || task.questionText,
+        questionRu: task.questionTextRu || task.questionText,
+        questionEn: task.questionTextEn || task.questionTextRu || task.questionText,
+        questionImage: getImageDataUrl(task.questionImage),
         options,
-        correctAnswer,
-        explanation: task.solutionText || null,
+        optionsKz,
+        optionsRu,
+        optionsEn,
+        correctAnswer: correctAnswerIndex,
+        explanation: task.solutionTextRu || task.solutionText || null,
+        explanationKz: task.solutionTextKz || task.solutionText || null,
+        explanationRu: task.solutionTextRu || task.solutionText || null,
+        explanationEn: task.solutionTextEn || task.solutionTextRu || task.solutionText || null,
+        hint: task.hintsRu?.[0] || task.hints?.[0] || null,
+        hintKz: task.hintsKz?.[0] || task.hints?.[0] || null,
+        hintRu: task.hintsRu?.[0] || task.hints?.[0] || null,
+        hintEn: task.hintsEn?.[0] || task.hintsRu?.[0] || task.hints?.[0] || null,
         difficulty: mapDifficulty(task.difficultyLevel),
-        topic: task.subtopic?.topic || task.subtopic || null,
+        topic: task.subtopic?.topic ? {
+          name: task.subtopic.topic.name,
+          nameKz: task.subtopic.topic.nameKz,
+          nameRu: task.subtopic.topic.nameRu,
+          nameEn: task.subtopic.topic.nameEn,
+        } : task.subtopic ? {
+          name: task.subtopic.name,
+          nameKz: task.subtopic.nameKz,
+          nameRu: task.subtopic.nameRu,
+          nameEn: task.subtopic.nameEn,
+        } : null,
       };
     });
 
@@ -271,6 +372,7 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
       answer: 'Ответ',
       correctAnswer: 'Правильный ответ',
       explanation: 'Объяснение',
+      hint: 'Подсказка',
       topic: 'Тема',
       difficulty: 'Сложность',
       easy: 'Легкий',
@@ -304,6 +406,7 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
       answer: 'Жауап',
       correctAnswer: 'Дұрыс жауап',
       explanation: 'Түсіндірме',
+      hint: 'Кеңес',
       topic: 'Тақырып',
       difficulty: 'Қиындық',
       easy: 'Жеңіл',
@@ -337,6 +440,7 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
       answer: 'Answer',
       correctAnswer: 'Correct answer',
       explanation: 'Explanation',
+      hint: 'Hint',
       topic: 'Topic',
       difficulty: 'Difficulty',
       easy: 'Easy',
@@ -368,7 +472,7 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
   const getSubjectName = () => {
     if (!test.subject) return '';
     if (lang === 'kz' && test.subject.nameKz) return test.subject.nameKz;
-    return test.subject.name;
+    return test.subject.nameRu || test.subject.nameKz || '';
   };
 
   const getDifficultyLabel = (difficulty: number) => {
@@ -379,20 +483,38 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getTaskQuestion = (task: any) => {
-    return task.question;
+    if (lang === 'kz' && task.questionKz) return task.questionKz;
+    if (lang === 'en' && task.questionEn) return task.questionEn;
+    return task.questionRu || task.question;
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getTaskOptions = (task: any) => {
-    const options = task.options as string[];
-    return options;
+    if (lang === 'kz' && task.optionsKz) return task.optionsKz as string[];
+    if (lang === 'en' && task.optionsEn) return task.optionsEn as string[];
+    return (task.optionsRu || task.options) as string[];
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getTaskExplanation = (task: any) => {
+    if (lang === 'kz' && task.explanationKz) return task.explanationKz;
+    if (lang === 'en' && task.explanationEn) return task.explanationEn;
+    return task.explanationRu || task.explanation;
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getTaskHint = (task: any) => {
+    if (lang === 'kz' && task.hintKz) return task.hintKz;
+    if (lang === 'en' && task.hintEn) return task.hintEn;
+    return task.hintRu || task.hint;
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getTopicName = (task: any) => {
     if (!task.topic) return '';
     if (lang === 'kz' && task.topic.nameKz) return task.topic.nameKz;
-    return task.topic.name;
+    if (lang === 'en' && task.topic.nameEn) return task.topic.nameEn;
+    return task.topic.nameRu || task.topic.name;
   };
 
   const documentTitle =
@@ -433,7 +555,7 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
               ${task.topic ? `<span class="task-topic">${getTopicName(task)}</span>` : ''}
             </div>
             <div class="task-question">${getTaskQuestion(task)}</div>
-            ${task.imageUrl ? `<img src="${task.imageUrl}" class="task-image" />` : ''}
+            ${task.questionImage ? `<img src="${task.questionImage}" class="task-image" />` : ''}
             <div class="task-options">
               ${getTaskOptions(task)
                 .map(
@@ -450,6 +572,25 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
         `
           )
           .join('')}
+      </div>
+    `;
+  } else if (type === 'keys') {
+    // Только ключи ответов
+    content = `
+      <div class="keys-section">
+        <h2 class="section-title">${tr.answerKeys}</h2>
+        <div class="keys-grid">
+          ${tasks
+            .map(
+              (task, index) => `
+            <div class="key-item">
+              <span class="key-number">${index + 1}.</span>
+              <span class="key-answer">${String.fromCharCode(65 + task.correctAnswer)}</span>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
       </div>
     `;
   } else if (type === 'solutions') {
@@ -491,7 +632,7 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
                 <span class="solution-difficulty ${getDifficultyClass(task.difficulty)}">${getDifficultyLabel(task.difficulty)}</span>
               </div>
               <div class="solution-question">${getTaskQuestion(task)}</div>
-              ${task.imageUrl ? `<img src="${task.imageUrl}" class="solution-image" />` : ''}
+              ${task.questionImage ? `<img src="${task.questionImage}" class="solution-image" />` : ''}
               <div class="solution-options">
                 ${getTaskOptions(task)
                   .map(
@@ -505,15 +646,25 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
                   )
                   .join('')}
               </div>
+              ${
+                getTaskHint(task)
+                  ? `
+                <div class="solution-hint">
+                  <span class="hint-icon">💡</span>
+                  <p>${getTaskHint(task)}</p>
+                </div>
+              `
+                  : ''
+              }
               <div class="solution-answer">
                 <strong>${tr.correctAnswer}:</strong> ${String.fromCharCode(65 + task.correctAnswer)}
               </div>
               ${
-                task.explanation
+                getTaskExplanation(task)
                   ? `
                 <div class="solution-explanation">
                   <strong>${tr.explanation}:</strong>
-                  <p>${task.explanation}</p>
+                  <p>${getTaskExplanation(task)}</p>
                 </div>
               `
                   : ''
@@ -946,16 +1097,40 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
       border-left: 3px solid #286786;
     }
 
+    .solution-hint {
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 4px;
+      font-size: 8pt;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .solution-hint .hint-icon {
+      font-size: 10pt;
+      flex-shrink: 0;
+    }
+
+    .solution-hint p {
+      margin: 0;
+      font-size: 8pt;
+      line-height: 1.4;
+      color: #92400e;
+    }
+
     .solution-explanation {
       margin-top: 6px;
       padding: 6px 8px;
-      background: #fffde7;
-      border-left: 3px solid #ffc107;
+      background: #eff6ff;
+      border-left: 3px solid #3b82f6;
       font-size: 8pt;
     }
 
     .solution-explanation strong {
-      color: #856404;
+      color: #1e40af;
       font-size: 8pt;
     }
 
@@ -963,7 +1138,7 @@ function generatePdfHtml(test: any, tasks: any[], type: string, lang: string): s
       margin-top: 4px;
       font-size: 8pt;
       line-height: 1.4;
-      color: #555;
+      color: #1e3a5f;
     }
 
     /* Sources Section */

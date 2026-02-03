@@ -26,7 +26,7 @@ export async function GET() {
           },
         },
         gradeLevel: { select: { name: true } },
-        subjects: { select: { subject: { select: { name: true } } } },
+        subjects: { select: { subject: { select: { nameRu: true, nameKz: true } } } },
       },
       orderBy: {
         createdAt: 'desc',
@@ -37,6 +37,7 @@ export async function GET() {
     const contracts = students.map((student) => ({
       id: student.id,
       studentId: student.id,
+      contractNumber: student.contractNumber || null,
       studentName: `${student.user.firstName} ${student.user.lastName}`,
       parentName: student.parentName,
       parentPhone: student.parentPhone,
@@ -44,7 +45,7 @@ export async function GET() {
       parentIIN: student.parentIIN || '-',
       documentNumber: student.parentDocumentNumber || '-',
       gradeLevel: student.gradeLevel?.name || null,
-      subjects: student.subjects.map(s => s.subject.name),
+      subjects: student.subjects.map(s => s.subject.nameRu || s.subject.nameKz || '-'),
       studyFormat: student.studyFormat,
       guarantee: student.guarantee,
       standardMonths: student.standardMonths,

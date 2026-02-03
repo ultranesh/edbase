@@ -56,17 +56,57 @@ export async function GET(
       select: {
         id: true,
         questionText: true,
+        questionTextKz: true,
+        questionTextRu: true,
+        questionTextEn: true,
+        questionImage: true,
         answerText: true,
+        options: true, // JSON field with multi-language options
+        correctAnswer: true,
         solutionText: true,
+        solutionTextKz: true,
+        solutionTextRu: true,
+        solutionTextEn: true,
+        hints: true,
+        hintsKz: true,
+        hintsRu: true,
+        hintsEn: true,
         difficultyLevel: true,
         subtopic: {
           select: {
             name: true,
             nameKz: true,
+            nameRu: true,
+            nameEn: true,
             topic: {
               select: {
                 name: true,
                 nameKz: true,
+                nameRu: true,
+                nameEn: true,
+              },
+            },
+          },
+        },
+        // Получаем все связанные подтемы через many-to-many
+        subtopics: {
+          select: {
+            subtopic: {
+              select: {
+                id: true,
+                name: true,
+                nameKz: true,
+                nameRu: true,
+                nameEn: true,
+                topic: {
+                  select: {
+                    id: true,
+                    name: true,
+                    nameKz: true,
+                    nameRu: true,
+                    nameEn: true,
+                  },
+                },
               },
             },
           },
@@ -102,17 +142,82 @@ export async function GET(
       }
     };
 
-    // Transform tasks to expected format
+    // Transform tasks to expected format with multi-language support
     const tasks = rawTasks.map(task => {
-      const { options, correctAnswer } = parseAnswerText(task.answerText);
+      // Check if task has new multi-language options format
+      const hasMultiLangOptions = task.options && Array.isArray(task.options);
+
+      let options: string[];
+      let optionsKz: string[];
+      let optionsRu: string[];
+      let optionsEn: string[];
+      let correctAnswerIndex: number;
+
+      if (hasMultiLangOptions) {
+        // New format: options is JSON array with {kz, ru, en} objects
+        const multiLangOptions = task.options as Array<{ kz?: string; ru?: string; en?: string }>;
+        optionsKz = multiLangOptions.map(o => o.kz || o.ru || '');
+        optionsRu = multiLangOptions.map(o => o.ru || o.kz || '');
+        optionsEn = multiLangOptions.map(o => o.en || o.ru || o.kz || '');
+        options = optionsRu; // Default to Russian
+        correctAnswerIndex = task.correctAnswer ?? 0;
+      } else {
+        // Legacy format: parse from answerText
+        const parsed = parseAnswerText(task.answerText);
+        options = parsed.options;
+        optionsKz = parsed.options;
+        optionsRu = parsed.options;
+        optionsEn = parsed.options;
+        correctAnswerIndex = parsed.correctAnswer;
+      }
+
       return {
         id: task.id,
-        question: task.questionText,
+        question: task.questionTextRu || task.questionText,
+        questionKz: task.questionTextKz || task.questionText,
+        questionRu: task.questionTextRu || task.questionText,
+        questionEn: task.questionTextEn || task.questionTextRu || task.questionText,
+        questionImage: task.questionImage || null,
         options,
-        correctAnswer,
-        explanation: task.solutionText || null,
+        optionsKz,
+        optionsRu,
+        optionsEn,
+        correctAnswer: correctAnswerIndex,
+        explanation: task.solutionTextRu || task.solutionText || null,
+        explanationKz: task.solutionTextKz || task.solutionText || null,
+        explanationRu: task.solutionTextRu || task.solutionText || null,
+        explanationEn: task.solutionTextEn || task.solutionTextRu || task.solutionText || null,
+        hint: task.hintsRu?.[0] || task.hints?.[0] || null,
+        hintKz: task.hintsKz?.[0] || task.hints?.[0] || null,
+        hintRu: task.hintsRu?.[0] || task.hints?.[0] || null,
+        hintEn: task.hintsEn?.[0] || task.hintsRu?.[0] || task.hints?.[0] || null,
         difficulty: mapDifficulty(task.difficultyLevel),
-        topic: task.subtopic?.topic || task.subtopic || null,
+        topic: task.subtopic?.topic ? {
+          name: task.subtopic.topic.name,
+          nameKz: task.subtopic.topic.nameKz,
+          nameRu: task.subtopic.topic.nameRu,
+          nameEn: task.subtopic.topic.nameEn,
+        } : task.subtopic ? {
+          name: task.subtopic.name,
+          nameKz: task.subtopic.nameKz,
+          nameRu: task.subtopic.nameRu,
+          nameEn: task.subtopic.nameEn,
+        } : null,
+        // Все связанные темы и подтемы
+        linkedSubtopics: task.subtopics?.map(link => ({
+          id: link.subtopic.id,
+          name: link.subtopic.name,
+          nameKz: link.subtopic.nameKz,
+          nameRu: link.subtopic.nameRu,
+          nameEn: link.subtopic.nameEn,
+          topic: link.subtopic.topic ? {
+            id: link.subtopic.topic.id,
+            name: link.subtopic.topic.name,
+            nameKz: link.subtopic.topic.nameKz,
+            nameRu: link.subtopic.topic.nameRu,
+            nameEn: link.subtopic.topic.nameEn,
+          } : null,
+        })) || [],
       };
     });
 

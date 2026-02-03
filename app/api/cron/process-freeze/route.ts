@@ -2,9 +2,15 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { StudentStatus } from '@prisma/client';
 
+// Vercel Cron calls GET, so we use GET method
 // This endpoint should be called daily by a cron job
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   try {
+    // Verify cron secret for security (optional - for Vercel Cron)
+    const authHeader = request.headers.get('authorization');
+    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     // Get all frozen students
     const frozenStudents = await prisma.student.findMany({
       where: {

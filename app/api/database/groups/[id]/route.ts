@@ -34,7 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         },
         subjects: {
           include: {
-            subject: { select: { id: true, name: true } },
+            subject: { select: { id: true, nameRu: true, nameKz: true } },
           },
         },
         students: {
@@ -80,6 +80,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (data.studyFormat !== undefined) updateData.studyFormat = data.studyFormat || null;
     if (data.timeOfDay !== undefined) updateData.timeOfDay = data.timeOfDay || null;
     if (data.maxStudents !== undefined) updateData.maxStudents = data.maxStudents;
+    if (data.maxHoursPerWeek !== undefined) updateData.maxHoursPerWeek = data.maxHoursPerWeek;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
     // Regenerate name if any name-affecting field changed
@@ -142,7 +143,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         },
         subjects: {
           include: {
-            subject: { select: { id: true, name: true } },
+            subject: { select: { id: true, nameRu: true, nameKz: true } },
           },
         },
         students: {

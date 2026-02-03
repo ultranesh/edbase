@@ -8,22 +8,46 @@ import { useNotification } from '@/app/components/ui/NotificationProvider';
 interface Student {
   id: string;
   status: StudentStatus;
+  // Student info
+  studentIIN: string | null;
+  citizenship: string | null;
+  dateOfBirth: Date | null;
+  gender: string | null;
+  address: string | null;
+  // Parent info
   parentName: string | null;
   parentPhone: string | null;
-  // Reference relations
-  gradeLevel: { name: string; code: string } | null;
-  language: { name: string; code: string } | null;
-  studyDirection: { name: string; code: string } | null;
-  city: { name: string } | null;
-  school: { name: string } | null;
-  subjects: { subject: { name: string } }[];
+  parentIIN: string | null;
+  parentDocumentType: string | null;
+  parentDocumentNumber: string | null;
+  // Reference relations (with IDs for editing)
+  gradeLevelId: string | null;
+  gradeLevel: { id: string; name: string; code: string } | null;
+  languageId: string | null;
+  language: { id: string; name: string; code: string } | null;
+  studyDirectionId: string | null;
+  studyDirection: { id: string; name: string; code: string } | null;
+  cityId: string | null;
+  city: { id: string; name: string } | null;
+  schoolId: string | null;
+  school: { id: string; name: string } | null;
+  branchId: string | null;
+  branch: { id: string; name: string } | null;
+  subjects: { subject: { id: string; nameRu: string | null; nameKz: string | null } }[];
+  specialNeeds: { specialNeed: { id: string; name: string } }[];
+  allergy: string | null;
+  // Study conditions
   guarantee: string | null;
   studyFormat: string | null;
+  studySchedule: string | null;
+  customDays: string[];
+  // Subscription
   standardMonths: number;
   bonusMonths: number;
   intensiveMonths: number;
   freezeDays: number;
   freezeEndDate: Date | null;
+  // Payment
   paymentPlan: string | null;
   tranche1Amount: number | null;
   tranche1Date: Date | null;
@@ -33,15 +57,31 @@ interface Student {
   tranche3Date: Date | null;
   totalAmount: number | null;
   monthlyPayment: number | null;
+  // Study period
   studyStartDate: Date | null;
   studyEndDate: Date | null;
   createdAt: Date;
   user: {
     firstName: string;
     lastName: string;
-    email: string;
+    middleName: string | null;
     phone: string | null;
   };
+}
+
+interface FilterOption {
+  id: string;
+  name: string;
+}
+
+interface FilterOptions {
+  gradeLevels: FilterOption[];
+  languages: FilterOption[];
+  studyDirections: FilterOption[];
+  cities: FilterOption[];
+  schools: FilterOption[];
+  branches: FilterOption[];
+  specialNeeds: FilterOption[];
 }
 
 interface StudentDetailSlideOverProps {
@@ -50,6 +90,7 @@ interface StudentDetailSlideOverProps {
   onClose: () => void;
   onUpdate: () => void;
   userRole: string;
+  filterOptions: FilterOptions;
 }
 
 // Format phone number as +7 XXX XXX XX XX
@@ -71,12 +112,34 @@ const formatPhone = (value: string): string => {
   return formatted;
 };
 
+// Enum options for dropdowns
+const studyFormatOptions = [
+  { value: 'ONLINE_GROUP', label: 'Онлайн (группа)' },
+  { value: 'OFFLINE_GROUP', label: 'Оффлайн (группа)' },
+  { value: 'ONLINE_INDIVIDUAL', label: 'Онлайн (индивидуально)' },
+  { value: 'OFFLINE_INDIVIDUAL', label: 'Оффлайн (индивидуально)' },
+];
+
+const guaranteeOptions = [
+  { value: 'NONE', label: 'Нет' },
+  { value: 'FIFTY_PERCENT', label: '50%' },
+  { value: 'EIGHTY_PERCENT', label: '80%' },
+  { value: 'HUNDRED_PERCENT', label: '100%' },
+];
+
+const paymentPlanOptions = [
+  { value: 'ONE_TRANCHE', label: '1 транш (полная оплата)' },
+  { value: 'TWO_TRANCHES', label: '2 транша' },
+  { value: 'THREE_TRANCHES', label: '3 транша' },
+];
+
 export default function StudentDetailSlideOver({
   student,
   isOpen,
   onClose,
   onUpdate,
   userRole,
+  filterOptions,
 }: StudentDetailSlideOverProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Record<string, unknown>>({});
@@ -90,32 +153,36 @@ export default function StudentDetailSlideOver({
 
   const handleEdit = () => {
     setFormData({
+      // User fields
       firstName: student.user.firstName,
       lastName: student.user.lastName,
-      email: student.user.email,
       phone: student.user.phone || '',
+      // Parent fields
       parentName: student.parentName || '',
       parentPhone: student.parentPhone || '',
-      gradeLevel: student.gradeLevel?.name || '',
-      school: student.school?.name || '',
-      language: student.language?.name || '',
-      studyDirection: student.studyDirection?.name || '',
-      subjects: student.subjects.map(s => s.subject.name).join(', '),
+      // Reference IDs for dropdowns
+      gradeLevelId: student.gradeLevelId || student.gradeLevel?.id || '',
+      schoolId: student.schoolId || student.school?.id || '',
+      languageId: student.languageId || student.language?.id || '',
+      studyDirectionId: student.studyDirectionId || student.studyDirection?.id || '',
+      // Enum fields
       guarantee: student.guarantee || '',
       studyFormat: student.studyFormat || '',
+      paymentPlan: student.paymentPlan || '',
+      // Numeric fields
       standardMonths: student.standardMonths,
       bonusMonths: student.bonusMonths,
       intensiveMonths: student.intensiveMonths,
       freezeDays: student.freezeDays,
-      paymentPlan: student.paymentPlan || '',
+      totalAmount: student.totalAmount || 0,
+      monthlyPayment: student.monthlyPayment || 0,
+      // Date fields (superadmin only)
       tranche1Amount: student.tranche1Amount || 0,
       tranche1Date: student.tranche1Date ? new Date(student.tranche1Date).toISOString().split('T')[0] : '',
       tranche2Amount: student.tranche2Amount || 0,
       tranche2Date: student.tranche2Date ? new Date(student.tranche2Date).toISOString().split('T')[0] : '',
       tranche3Amount: student.tranche3Amount || 0,
       tranche3Date: student.tranche3Date ? new Date(student.tranche3Date).toISOString().split('T')[0] : '',
-      totalAmount: student.totalAmount || 0,
-      monthlyPayment: student.monthlyPayment || 0,
       studyStartDate: student.studyStartDate ? new Date(student.studyStartDate).toISOString().split('T')[0] : '',
       studyEndDate: student.studyEndDate ? new Date(student.studyEndDate).toISOString().split('T')[0] : '',
     });
@@ -125,66 +192,53 @@ export default function StudentDetailSlideOver({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const userPayload: Record<string, unknown> = {
+      // Single API call to /api/students/[id] which handles both user and student updates
+      const payload: Record<string, unknown> = {
+        // User fields
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
-      };
-
-      if (isSuperAdmin) {
-        userPayload.email = formData.email;
-      }
-
-      const userResponse = await fetch(`/api/users/${student.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userPayload),
-      });
-
-      if (!userResponse.ok) {
-        const errorData = await userResponse.json();
-        showToast({ message: `Ошибка при сохранении пользователя: ${errorData.error || 'Неизвестная ошибка'}`, type: 'error' });
-        return;
-      }
-
-      // Note: For full editing support, we would need to fetch reference table IDs
-      // For now, we only update non-relation fields
-      const studentPayload: Record<string, unknown> = {
+        // Parent fields
         parentName: formData.parentName,
         parentPhone: formData.parentPhone,
-        // gradeLevel, school, language, studyDirection, subjects need ID-based updates
-        // which require additional UI work with dropdowns
-        guarantee: formData.guarantee,
-        studyFormat: formData.studyFormat,
-        standardMonths: parseInt(String(formData.standardMonths)),
-        bonusMonths: parseInt(String(formData.bonusMonths)),
-        intensiveMonths: parseInt(String(formData.intensiveMonths)),
-        freezeDays: parseInt(String(formData.freezeDays)),
-        paymentPlan: formData.paymentPlan,
+        // Reference fields (IDs)
+        gradeLevelId: formData.gradeLevelId || null,
+        schoolId: formData.schoolId || null,
+        languageId: formData.languageId || null,
+        studyDirectionId: formData.studyDirectionId || null,
+        // Enum fields
+        guarantee: formData.guarantee || null,
+        studyFormat: formData.studyFormat || null,
+        paymentPlan: formData.paymentPlan || null,
+        // Numeric fields
+        standardMonths: parseInt(String(formData.standardMonths)) || 0,
+        bonusMonths: parseInt(String(formData.bonusMonths)) || 0,
+        intensiveMonths: parseInt(String(formData.intensiveMonths)) || 0,
+        freezeDays: parseInt(String(formData.freezeDays)) || 0,
         totalAmount: parseFloat(String(formData.totalAmount)) || null,
         monthlyPayment: parseFloat(String(formData.monthlyPayment)) || null,
       };
 
       if (isSuperAdmin) {
-        studentPayload.tranche1Amount = parseFloat(String(formData.tranche1Amount)) || null;
-        studentPayload.tranche1Date = formData.tranche1Date ? new Date(formData.tranche1Date as string) : null;
-        studentPayload.tranche2Amount = parseFloat(String(formData.tranche2Amount)) || null;
-        studentPayload.tranche2Date = formData.tranche2Date ? new Date(formData.tranche2Date as string) : null;
-        studentPayload.tranche3Amount = parseFloat(String(formData.tranche3Amount)) || null;
-        studentPayload.tranche3Date = formData.tranche3Date ? new Date(formData.tranche3Date as string) : null;
-        studentPayload.studyStartDate = formData.studyStartDate ? new Date(formData.studyStartDate as string) : null;
-        studentPayload.studyEndDate = formData.studyEndDate ? new Date(formData.studyEndDate as string) : null;
+        payload.tranche1Amount = parseFloat(String(formData.tranche1Amount)) || null;
+        payload.tranche1Date = formData.tranche1Date ? new Date(formData.tranche1Date as string) : null;
+        payload.tranche2Amount = parseFloat(String(formData.tranche2Amount)) || null;
+        payload.tranche2Date = formData.tranche2Date ? new Date(formData.tranche2Date as string) : null;
+        payload.tranche3Amount = parseFloat(String(formData.tranche3Amount)) || null;
+        payload.tranche3Date = formData.tranche3Date ? new Date(formData.tranche3Date as string) : null;
+        payload.studyStartDate = formData.studyStartDate ? new Date(formData.studyStartDate as string) : null;
+        payload.studyEndDate = formData.studyEndDate ? new Date(formData.studyEndDate as string) : null;
       }
 
-      const studentResponse = await fetch(`/api/students/${student.id}`, {
+      const response = await fetch(`/api/students/${student.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(studentPayload),
+        body: JSON.stringify(payload),
       });
 
-      if (!studentResponse.ok) {
-        const errorData = await studentResponse.json();
-        showToast({ message: `Ошибка при сохранении студента: ${errorData.error || 'Неизвестная ошибка'}`, type: 'error' });
+      if (!response.ok) {
+        const errorData = await response.json();
+        showToast({ message: `Ошибка при сохранении: ${errorData.error || 'Неизвестная ошибка'}`, type: 'error' });
         return;
       }
 
@@ -224,11 +278,6 @@ export default function StudentDetailSlideOver({
     return direction.name;
   };
 
-  const formatSubjects = (subjects: { subject: { name: string } }[]) => {
-    if (!subjects || subjects.length === 0) return '-';
-    return subjects.map(s => s.subject.name).join(', ');
-  };
-
   const formatGuarantee = (guarantee: string | null) => {
     const guarantees: Record<string, string> = {
       NONE: 'Нет',
@@ -240,7 +289,54 @@ export default function StudentDetailSlideOver({
   };
 
   const formatStudyFormat = (format: string | null) => {
-    return format === 'ONLINE' ? 'Онлайн' : format === 'OFFLINE' ? 'Оффлайн' : '-';
+    const formats: Record<string, string> = {
+      ONLINE_GROUP: 'Онлайн (группа)',
+      ONLINE_INDIVIDUAL: 'Онлайн (индивидуально)',
+      OFFLINE_GROUP: 'Оффлайн (группа)',
+      OFFLINE_INDIVIDUAL: 'Оффлайн (индивидуально)',
+      ONLINE: 'Онлайн',
+      OFFLINE: 'Оффлайн',
+    };
+    return format ? formats[format] || format : '-';
+  };
+
+  const formatGender = (gender: string | null) => {
+    const genders: Record<string, string> = {
+      MALE: 'Мужской',
+      FEMALE: 'Женский',
+    };
+    return gender ? genders[gender] || gender : '-';
+  };
+
+  const formatIIN = (iin: string | null) => {
+    if (!iin) return '-';
+    if (iin.length === 12) {
+      return iin.slice(0, 6) + ' ' + iin.slice(6);
+    }
+    return iin;
+  };
+
+  const formatDocumentType = (type: string | null) => {
+    const types: Record<string, string> = {
+      ID_CARD: 'Уд. личности',
+      RK_PASSPORT: 'Паспорт РК',
+      FOREIGN: 'Иностранный документ',
+    };
+    return type ? types[type] || type : '-';
+  };
+
+  const formatSchedule = (schedule: string | null, customDays: string[]) => {
+    if (schedule === 'PSP') return 'ПСП (Пн-Ср-Пт)';
+    if (schedule === 'VCS') return 'ВЧС (Вт-Чт-Сб)';
+    if (schedule === 'CUSTOM' && customDays && customDays.length > 0) {
+      return 'Особый: ' + customDays.join(', ');
+    }
+    return schedule || '-';
+  };
+
+  const formatSpecialNeeds = (needs: { specialNeed: { name: string } }[]) => {
+    if (!needs || needs.length === 0) return null;
+    return needs.map(n => n.specialNeed.name).join(', ');
   };
 
   const formatPaymentPlan = (plan: string | null) => {
@@ -274,7 +370,12 @@ export default function StudentDetailSlideOver({
     );
   };
 
-  const inputClass = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-gray-900";
+  const inputClass = "w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all text-gray-900 dark:text-white";
+  const selectClass = "w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all text-gray-900 dark:text-white cursor-pointer";
+  const labelClass = "text-xs text-gray-500 dark:text-gray-400";
+  const valueClass = "text-sm font-medium text-gray-900 dark:text-white";
+  const sectionBoxClass = "bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3";
+  const sectionHeaderClass = "text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2";
 
   return (
     <SlideOver
@@ -293,7 +394,7 @@ export default function StudentDetailSlideOver({
             {canEdit && !isEditing && (
               <button
                 onClick={handleEdit}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-gray-700 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors"
               >
                 Редактировать
               </button>
@@ -302,7 +403,7 @@ export default function StudentDetailSlideOver({
               <>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   Отмена
                 </button>
@@ -320,27 +421,14 @@ export default function StudentDetailSlideOver({
 
         {/* Section 1: Personal Information */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs">1</span>
+          <h3 className={sectionHeaderClass}>
+            <span className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-xs text-blue-600 dark:text-blue-400">1</span>
             Личная информация
           </h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-4">
+          <div className={sectionBoxClass}>
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Имя</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.firstName as string}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className={inputClass}
-                  />
-                ) : (
-                  <div className="text-sm font-medium text-gray-900">{student.user.firstName}</div>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-gray-500">Фамилия</label>
+                <label className={labelClass}>Фамилия</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -349,26 +437,44 @@ export default function StudentDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{student.user.lastName}</div>
+                  <div className={valueClass}>{student.user.lastName}</div>
                 )}
+              </div>
+              <div>
+                <label className={labelClass}>Имя</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.firstName as string}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    className={inputClass}
+                  />
+                ) : (
+                  <div className={valueClass}>{student.user.firstName}</div>
+                )}
+              </div>
+              <div>
+                <label className={labelClass}>Гражданство</label>
+                <div className={valueClass}>{student.citizenship === 'KZ' ? 'Республика Казахстан' : student.citizenship === 'FOREIGN' ? 'Другое' : '-'}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className={labelClass}>ИИН</label>
+                <div className={valueClass}>{formatIIN(student.studentIIN)}</div>
+              </div>
+              <div>
+                <label className={labelClass}>Дата рождения</label>
+                <div className={valueClass}>{formatDate(student.dateOfBirth)}</div>
+              </div>
+              <div>
+                <label className={labelClass}>Пол</label>
+                <div className={valueClass}>{formatGender(student.gender)}</div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Email</label>
-                {isEditing && isSuperAdmin ? (
-                  <input
-                    type="email"
-                    value={formData.email as string}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className={inputClass}
-                  />
-                ) : (
-                  <div className="text-sm font-medium text-gray-900">{student.user.email}</div>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-gray-500">Телефон</label>
+                <label className={labelClass}>Телефон</label>
                 {isEditing ? (
                   <input
                     type="tel"
@@ -378,8 +484,18 @@ export default function StudentDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{student.user.phone ? formatPhone(student.user.phone) : '-'}</div>
+                  <div className={valueClass}>{student.user.phone ? formatPhone(student.user.phone) : '-'}</div>
                 )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Город</label>
+                <div className={valueClass}>{student.city?.name || '-'}</div>
+              </div>
+              <div>
+                <label className={labelClass}>Адрес</label>
+                <div className={valueClass}>{student.address || '-'}</div>
               </div>
             </div>
           </div>
@@ -387,14 +503,14 @@ export default function StudentDetailSlideOver({
 
         {/* Section 2: Parent Information */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs">2</span>
+          <h3 className={sectionHeaderClass}>
+            <span className="w-6 h-6 bg-purple-100 dark:bg-purple-900/50 rounded-full flex items-center justify-center text-xs text-purple-600 dark:text-purple-400">2</span>
             Данные родителя
           </h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className={sectionBoxClass}>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">ФИО родителя</label>
+                <label className={labelClass}>ФИО родителя</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -403,11 +519,11 @@ export default function StudentDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{student.parentName || '-'}</div>
+                  <div className={valueClass}>{student.parentName || '-'}</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Телефон родителя</label>
+                <label className={labelClass}>Телефон родителя</label>
                 {isEditing ? (
                   <input
                     type="tel"
@@ -417,8 +533,22 @@ export default function StudentDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{student.parentPhone ? formatPhone(student.parentPhone) : '-'}</div>
+                  <div className={valueClass}>{student.parentPhone ? formatPhone(student.parentPhone) : '-'}</div>
                 )}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className={labelClass}>ИИН родителя</label>
+                <div className={valueClass}>{formatIIN(student.parentIIN)}</div>
+              </div>
+              <div>
+                <label className={labelClass}>Тип документа</label>
+                <div className={valueClass}>{formatDocumentType(student.parentDocumentType)}</div>
+              </div>
+              <div>
+                <label className={labelClass}>Номер документа</label>
+                <div className={valueClass}>{student.parentDocumentNumber || '-'}</div>
               </div>
             </div>
           </div>
@@ -426,127 +556,194 @@ export default function StudentDetailSlideOver({
 
         {/* Section 3: Academic Information */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs">3</span>
+          <h3 className={sectionHeaderClass}>
+            <span className="w-6 h-6 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center text-xs text-green-600 dark:text-green-400">3</span>
             Учебная информация
           </h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className={sectionBoxClass}>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Класс</label>
+                <label className={labelClass}>Класс</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.gradeLevel as string}
-                    onChange={(e) => setFormData({ ...formData, gradeLevel: e.target.value })}
-                    placeholder="10 класс"
-                    className={inputClass}
-                  />
+                  <select
+                    value={formData.gradeLevelId as string}
+                    onChange={(e) => setFormData({ ...formData, gradeLevelId: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">Не выбрано</option>
+                    {filterOptions.gradeLevels.map((gl) => (
+                      <option key={gl.id} value={gl.id}>{gl.name}</option>
+                    ))}
+                  </select>
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{formatGradeLevel(student.gradeLevel)}</div>
+                  <div className={valueClass}>{formatGradeLevel(student.gradeLevel)}</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Школа</label>
+                <label className={labelClass}>Школа</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.school as string}
-                    onChange={(e) => setFormData({ ...formData, school: e.target.value })}
-                    className={inputClass}
-                  />
+                  <select
+                    value={formData.schoolId as string}
+                    onChange={(e) => setFormData({ ...formData, schoolId: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">Не выбрано</option>
+                    {filterOptions.schools.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{student.school?.name || '-'}</div>
+                  <div className={valueClass}>{student.school?.name || '-'}</div>
                 )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Язык обучения</label>
+                <label className={labelClass}>Язык обучения</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.language as string}
-                    onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                    placeholder="Русский / Казахский"
-                    className={inputClass}
-                  />
+                  <select
+                    value={formData.languageId as string}
+                    onChange={(e) => setFormData({ ...formData, languageId: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">Не выбрано</option>
+                    {filterOptions.languages.map((l) => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                  </select>
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{formatLanguage(student.language)}</div>
+                  <div className={valueClass}>{formatLanguage(student.language)}</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Направление обучения</label>
+                <label className={labelClass}>Направление обучения</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.studyDirection as string}
-                    onChange={(e) => setFormData({ ...formData, studyDirection: e.target.value })}
-                    placeholder="ЕНТ / СС / IELTS"
-                    className={inputClass}
-                  />
+                  <select
+                    value={formData.studyDirectionId as string}
+                    onChange={(e) => setFormData({ ...formData, studyDirectionId: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">Не выбрано</option>
+                    {filterOptions.studyDirections.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{formatStudyDirection(student.studyDirection)}</div>
+                  <div className={valueClass}>{formatStudyDirection(student.studyDirection)}</div>
                 )}
               </div>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Предметы</label>
+              <label className={labelClass}>Предметы</label>
+              {/* Subjects editing requires multi-select - showing read-only for now */}
               {isEditing ? (
-                <input
-                  type="text"
-                  value={formData.subjects as string}
-                  onChange={(e) => setFormData({ ...formData, subjects: e.target.value })}
-                  placeholder="MATHEMATICS, PHYSICS"
-                  className={inputClass}
-                />
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {student.subjects && student.subjects.length > 0 ? (
+                    student.subjects.map((s, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
+                      >
+                        {s.subject.nameRu || s.subject.nameKz}
+                      </span>
+                    ))
+                  ) : (
+                    <span className={valueClass}>-</span>
+                  )}
+                  <span className="text-xs text-gray-400 ml-2">(изменение через заявку)</span>
+                </div>
               ) : (
-                <div className="text-sm font-medium text-gray-900">{formatSubjects(student.subjects)}</div>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {student.subjects && student.subjects.length > 0 ? (
+                    student.subjects.map((s, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
+                      >
+                        {s.subject.nameRu || s.subject.nameKz}
+                      </span>
+                    ))
+                  ) : (
+                    <span className={valueClass}>-</span>
+                  )}
+                </div>
               )}
             </div>
+            {(formatSpecialNeeds(student.specialNeeds) || student.allergy) && (
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                {formatSpecialNeeds(student.specialNeeds) && (
+                  <div className="mb-2">
+                    <label className={labelClass}>Особые потребности</label>
+                    <div className={valueClass}>{formatSpecialNeeds(student.specialNeeds)}</div>
+                  </div>
+                )}
+                {student.allergy && (
+                  <div>
+                    <label className={labelClass}>Аллергии / Здоровье</label>
+                    <div className={valueClass}>{student.allergy}</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Section 4: Subscription */}
+        {/* Section 4: Study Conditions */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs">4</span>
-            Период обучения
+          <h3 className={sectionHeaderClass}>
+            <span className="w-6 h-6 bg-yellow-100 dark:bg-yellow-900/50 rounded-full flex items-center justify-center text-xs text-yellow-600 dark:text-yellow-400">4</span>
+            Условия обучения
           </h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className={sectionBoxClass}>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Формат обучения</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.studyFormat as string}
-                    onChange={(e) => setFormData({ ...formData, studyFormat: e.target.value })}
-                    placeholder="ONLINE / OFFLINE"
-                    className={inputClass}
-                  />
-                ) : (
-                  <div className="text-sm font-medium text-gray-900">{formatStudyFormat(student.studyFormat)}</div>
-                )}
+                <label className={labelClass}>Филиал</label>
+                <div className={valueClass}>{student.branch?.name || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">Гарантия</label>
+                <label className={labelClass}>Формат обучения</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.guarantee as string}
-                    onChange={(e) => setFormData({ ...formData, guarantee: e.target.value })}
-                    placeholder="FIFTY_PERCENT"
-                    className={inputClass}
-                  />
+                  <select
+                    value={formData.studyFormat as string}
+                    onChange={(e) => setFormData({ ...formData, studyFormat: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">Не выбрано</option>
+                    {studyFormatOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{formatGuarantee(student.guarantee)}</div>
+                  <div className={valueClass}>{formatStudyFormat(student.studyFormat)}</div>
                 )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Дата начала</label>
+                <label className={labelClass}>Гарантия</label>
+                {isEditing ? (
+                  <select
+                    value={formData.guarantee as string}
+                    onChange={(e) => setFormData({ ...formData, guarantee: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">Не выбрано</option>
+                    {guaranteeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className={valueClass}>{formatGuarantee(student.guarantee)}</div>
+                )}
+              </div>
+              <div>
+                <label className={labelClass}>Дни обучения</label>
+                <div className={valueClass}>{formatSchedule(student.studySchedule, student.customDays)}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Дата начала</label>
                 {isEditing && isSuperAdmin ? (
                   <input
                     type="date"
@@ -555,11 +752,11 @@ export default function StudentDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{formatDate(student.studyStartDate)}</div>
+                  <div className={valueClass}>{formatDate(student.studyStartDate)}</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Дата окончания</label>
+                <label className={labelClass}>Дата окончания</label>
                 {isEditing && isSuperAdmin ? (
                   <input
                     type="date"
@@ -568,13 +765,23 @@ export default function StudentDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{formatDate(student.studyEndDate)}</div>
+                  <div className={valueClass}>{formatDate(student.studyEndDate)}</div>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+          </div>
+        </div>
+
+        {/* Section 5: Subscription */}
+        <div>
+          <h3 className={sectionHeaderClass}>
+            <span className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center text-xs text-indigo-600 dark:text-indigo-400">5</span>
+            Абонемент
+          </h3>
+          <div className={sectionBoxClass}>
+            <div className="grid grid-cols-4 gap-4">
               <div>
-                <label className="text-xs text-gray-500">Стандартные месяцы</label>
+                <label className={labelClass}>Стандартные</label>
                 {isEditing ? (
                   <input
                     type="number"
@@ -583,11 +790,11 @@ export default function StudentDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{student.standardMonths} мес.</div>
+                  <div className={valueClass}>{student.standardMonths} мес.</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Бонусные месяцы</label>
+                <label className={labelClass}>Бонусные</label>
                 {isEditing ? (
                   <input
                     type="number"
@@ -596,11 +803,11 @@ export default function StudentDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{student.bonusMonths} мес.</div>
+                  <div className={valueClass}>{student.bonusMonths} мес.</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Интенсивные месяцы</label>
+                <label className={labelClass}>Интенсивные</label>
                 {isEditing ? (
                   <input
                     type="number"
@@ -609,50 +816,53 @@ export default function StudentDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{student.intensiveMonths} мес.</div>
+                  <div className={valueClass}>{student.intensiveMonths} мес.</div>
                 )}
               </div>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">Дни заморозки</label>
-              {isEditing ? (
-                <input
-                  type="number"
-                  value={formData.freezeDays as number}
-                  onChange={(e) => setFormData({ ...formData, freezeDays: parseInt(e.target.value) || 0 })}
-                  className={inputClass}
-                />
-              ) : (
-                <div className="text-sm font-medium text-gray-900">{student.freezeDays} дней</div>
-              )}
+              <div>
+                <label className={labelClass}>Заморозка</label>
+                {isEditing ? (
+                  <input
+                    type="number"
+                    value={formData.freezeDays as number}
+                    onChange={(e) => setFormData({ ...formData, freezeDays: parseInt(e.target.value) || 0 })}
+                    className={inputClass}
+                  />
+                ) : (
+                  <div className={valueClass}>{student.freezeDays} дней</div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Section 5: Payment */}
+        {/* Section 6: Payment */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs">5</span>
+          <h3 className={sectionHeaderClass}>
+            <span className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center text-xs text-emerald-600 dark:text-emerald-400">6</span>
             Оплата
           </h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className={sectionBoxClass}>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">План оплаты</label>
+                <label className={labelClass}>План оплаты</label>
                 {isEditing ? (
-                  <input
-                    type="text"
+                  <select
                     value={formData.paymentPlan as string}
                     onChange={(e) => setFormData({ ...formData, paymentPlan: e.target.value })}
-                    placeholder="ONE_TRANCHE"
-                    className={inputClass}
-                  />
+                    className={selectClass}
+                  >
+                    <option value="">Не выбрано</option>
+                    {paymentPlanOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{formatPaymentPlan(student.paymentPlan)}</div>
+                  <div className={valueClass}>{formatPaymentPlan(student.paymentPlan)}</div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-500">Общая сумма</label>
+                <label className={labelClass}>Общая сумма</label>
                 {isEditing ? (
                   <input
                     type="number"
@@ -661,13 +871,13 @@ export default function StudentDetailSlideOver({
                     className={inputClass}
                   />
                 ) : (
-                  <div className="text-lg font-bold text-gray-900">{formatAmount(student.totalAmount)}</div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-white">{formatAmount(student.totalAmount)}</div>
                 )}
               </div>
             </div>
             {isEditing ? (
               <div>
-                <label className="text-xs text-gray-500">Ежемесячный платеж</label>
+                <label className={labelClass}>Ежемесячный платеж</label>
                 <input
                   type="number"
                   value={formData.monthlyPayment as number}
@@ -677,18 +887,18 @@ export default function StudentDetailSlideOver({
               </div>
             ) : student.monthlyPayment ? (
               <div>
-                <label className="text-xs text-gray-500">Ежемесячный платеж</label>
-                <div className="text-sm font-medium text-gray-900">{formatAmount(student.monthlyPayment)}</div>
+                <label className={labelClass}>Ежемесячный платеж</label>
+                <div className={valueClass}>{formatAmount(student.monthlyPayment)}</div>
               </div>
             ) : null}
 
             {/* Tranches */}
             {(student.tranche1Amount || (isEditing && isSuperAdmin)) && (
-              <div className="pt-3 border-t border-gray-200">
-                <div className="text-xs font-medium text-gray-700 mb-2">График платежей</div>
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">График платежей</div>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Транш 1</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Транш 1</span>
                     {isEditing && isSuperAdmin ? (
                       <div className="flex gap-2">
                         <input
@@ -696,20 +906,20 @@ export default function StudentDetailSlideOver({
                           value={formData.tranche1Amount as number}
                           onChange={(e) => setFormData({ ...formData, tranche1Amount: parseFloat(e.target.value) || 0 })}
                           placeholder="Сумма"
-                          className="w-32 px-2 py-1 border border-gray-200 rounded text-sm"
+                          className="w-32 px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white"
                         />
                         <input
                           type="date"
                           value={formData.tranche1Date as string}
                           onChange={(e) => setFormData({ ...formData, tranche1Date: e.target.value })}
-                          className="px-2 py-1 border border-gray-200 rounded text-sm"
+                          className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white"
                         />
                       </div>
                     ) : (
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
                         {formatAmount(student.tranche1Amount)}
                         {student.tranche1Date && (
-                          <span className="text-xs text-gray-500 ml-2">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                             до {formatDate(student.tranche1Date)}
                           </span>
                         )}
@@ -718,7 +928,7 @@ export default function StudentDetailSlideOver({
                   </div>
                   {(student.tranche2Amount || (isEditing && isSuperAdmin)) && (
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Транш 2</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Транш 2</span>
                       {isEditing && isSuperAdmin ? (
                         <div className="flex gap-2">
                           <input
@@ -726,20 +936,20 @@ export default function StudentDetailSlideOver({
                             value={formData.tranche2Amount as number}
                             onChange={(e) => setFormData({ ...formData, tranche2Amount: parseFloat(e.target.value) || 0 })}
                             placeholder="Сумма"
-                            className="w-32 px-2 py-1 border border-gray-200 rounded text-sm"
+                            className="w-32 px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white"
                           />
                           <input
                             type="date"
                             value={formData.tranche2Date as string}
                             onChange={(e) => setFormData({ ...formData, tranche2Date: e.target.value })}
-                            className="px-2 py-1 border border-gray-200 rounded text-sm"
+                            className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white"
                           />
                         </div>
                       ) : student.tranche2Amount ? (
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
                           {formatAmount(student.tranche2Amount)}
                           {student.tranche2Date && (
-                            <span className="text-xs text-gray-500 ml-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                               до {formatDate(student.tranche2Date)}
                             </span>
                           )}
@@ -749,7 +959,7 @@ export default function StudentDetailSlideOver({
                   )}
                   {(student.tranche3Amount || (isEditing && isSuperAdmin)) && (
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Транш 3</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Транш 3</span>
                       {isEditing && isSuperAdmin ? (
                         <div className="flex gap-2">
                           <input
@@ -757,20 +967,20 @@ export default function StudentDetailSlideOver({
                             value={formData.tranche3Amount as number}
                             onChange={(e) => setFormData({ ...formData, tranche3Amount: parseFloat(e.target.value) || 0 })}
                             placeholder="Сумма"
-                            className="w-32 px-2 py-1 border border-gray-200 rounded text-sm"
+                            className="w-32 px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white"
                           />
                           <input
                             type="date"
                             value={formData.tranche3Date as string}
                             onChange={(e) => setFormData({ ...formData, tranche3Date: e.target.value })}
-                            className="px-2 py-1 border border-gray-200 rounded text-sm"
+                            className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white"
                           />
                         </div>
                       ) : student.tranche3Amount ? (
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
                           {formatAmount(student.tranche3Amount)}
                           {student.tranche3Date && (
-                            <span className="text-xs text-gray-500 ml-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                               до {formatDate(student.tranche3Date)}
                             </span>
                           )}
@@ -785,8 +995,8 @@ export default function StudentDetailSlideOver({
         </div>
 
         {/* Footer Metadata */}
-        <div className="pt-4 border-t border-gray-200">
-          <div className="text-xs text-gray-500">
+        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             Дата зачисления: {formatDate(student.createdAt)}
           </div>
         </div>

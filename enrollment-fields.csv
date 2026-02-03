@@ -1,0 +1,45 @@
+ID поля,Название (RU),Тип,Обязательное,Шаг,Категория
+lastName,Фамилия,text,Да,1,Ученик
+firstName,Имя,text,Да,1,Ученик
+citizenship,Гражданство,select (KZ/FOREIGN),Нет,1,Ученик
+studentIIN,ИИН ученика,text (12 цифр),Да,1,Ученик
+dateOfBirth,Дата рождения,авто из ИИН,Нет,1,Ученик
+gender,Пол,авто из ИИН (MALE/FEMALE),Нет,1,Ученик
+studentPhone,Телефон ученика,tel,Нет,1,Ученик
+cityId,Город,select,Нет,1,Ученик
+address,Адрес проживания,text,Нет,1,Ученик
+parentName,ФИО родителя,text,Да,1,Родитель
+parentPhone,Телефон родителя,tel,Да,1,Родитель
+parentIIN,ИИН родителя,text (12 цифр),Да,1,Родитель
+parentDateOfBirth,Дата рождения родителя,авто из ИИН,Нет,1,Родитель
+parentDocumentType,Тип документа,select (ID_CARD/RK_PASSPORT/FOREIGN),Да,1,Родитель
+parentDocumentNumber,Номер документа,text,Да,1,Родитель
+gradeLevelId,Класс,select,Да,2,Учеба
+schoolId,Школа,select,Нет,2,Учеба
+languageId,Язык обучения,select,Да,2,Учеба
+studyDirectionId,Направление обучения,select,Да,2,Учеба
+selectedSubjects,Предметы в абонементе,multi-checkbox (array),Нет,2,Учеба
+selectedSpecialNeeds,Особые потребности,multi-checkbox (array),Нет,2,Учеба
+allergy,Аллергии / Особенности здоровья,textarea,Нет,2,Учеба
+branchId,Филиал,select,Нет,3,Условия
+studyFormat,Формат обучения,select (ONLINE_GROUP/ONLINE_INDIVIDUAL/OFFLINE_GROUP/OFFLINE_INDIVIDUAL),Да,3,Условия
+guarantee,Гарантия,select (NONE/FIFTY_PERCENT/EIGHTY_PERCENT/HUNDRED_PERCENT),Да,3,Условия
+studySchedule,Дни обучения,select (PSP/VCS/CUSTOM),Да,3,Условия
+customDays,Выбранные дни (если CUSTOM),multi-checkbox (array),Нет,3,Условия
+firstDiagnosticId,Первая диагностика,select,Нет,3,Условия
+careerOrientationResult,Результат профориентации,select,Нет,3,Условия
+standardMonths,Стандартных месяцев,number,Нет,4,Абонемент
+bonusMonths,Бонусных месяцев,number,Нет,4,Абонемент
+intensiveMonths,Интенсивных месяцев,number,Нет,4,Абонемент
+freezeDays,Дни заморозки,number,Нет,4,Абонемент
+startDate,Дата начала обучения,date,Да,4,Абонемент
+calculatedEndDate,Дата окончания,авто-расчет,Нет,4,Абонемент
+paymentPlan,План оплаты,radio (ONE_TRANCHE/TWO_TRANCHES/THREE_TRANCHES),Да,4,Оплата
+tranche1Amount,Сумма 1-го транша (₸),number,Да,4,Оплата
+tranche1Date,Дата 1-го транша,date,Да,4,Оплата
+tranche2Amount,Сумма 2-го транша (₸),number,Условно,4,Оплата
+tranche2Date,Дата 2-го транша,date,Условно,4,Оплата
+tranche3Amount,Сумма 3-го транша (₸),number,Условно,4,Оплата
+tranche3Date,Дата 3-го транша,date,Условно,4,Оплата
+totalAmount,Общая сумма (₸),авто-расчет,Нет,4,Оплата
+monthlyPayment,Стоимость месяца (₸),авто-расчет,Нет,4,Оплата

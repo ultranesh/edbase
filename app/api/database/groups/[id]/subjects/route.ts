@@ -9,7 +9,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const subjects = await prisma.groupSubject.findMany({
       where: { groupId },
       include: {
-        subject: { select: { id: true, name: true } },
+        subject: { select: { id: true, nameRu: true, nameKz: true } },
       },
     });
 
@@ -55,7 +55,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         totalHours: hoursPerWeek * 4 * 9,
       },
       include: {
-        subject: { select: { id: true, name: true } },
+        subject: { select: { id: true, nameRu: true, nameKz: true } },
       },
     });
 
@@ -97,7 +97,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       },
       data: { isScheduled },
       include: {
-        subject: { select: { id: true, name: true } },
+        subject: { select: { id: true, nameRu: true, nameKz: true } },
       },
     });
 

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(topics, {
       headers: {
-        'Cache-Control': 'private, max-age=3600',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
     });
   } catch (error) {

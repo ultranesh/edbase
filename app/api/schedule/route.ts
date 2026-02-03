@@ -130,7 +130,10 @@ export async function POST(request: Request) {
         where: {
           groupId: data.groupId,
           subject: {
-            name: data.subject,
+            OR: [
+              { nameRu: data.subject },
+              { nameKz: data.subject },
+            ],
           },
         },
         include: {
@@ -244,7 +247,10 @@ async function updateGroupSubjectScheduledStatus(groupId: string, subjectName: s
       where: {
         groupId: groupId,
         subject: {
-          name: subjectName,
+          OR: [
+            { nameRu: subjectName },
+            { nameKz: subjectName },
+          ],
         },
       },
       include: {

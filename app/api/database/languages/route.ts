@@ -26,6 +26,9 @@ export async function POST(request: Request) {
     const language = await prisma.refLanguage.create({
       data: {
         name: data.name,
+        nameKz: data.nameKz || null,
+        nameRu: data.nameRu || null,
+        nameEn: data.nameEn || null,
         code: data.code,
       },
     });

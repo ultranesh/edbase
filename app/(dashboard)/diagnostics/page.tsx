@@ -11,7 +11,7 @@ export default async function DiagnosticsPage() {
   }
 
   // Only coordinators and above can access
-  const canAccess = ['COORDINATOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.role);
+  const canAccess = ['COORDINATOR', 'COORDINATOR_MANAGER', 'ADMIN', 'SUPERADMIN'].includes(session.user.role);
   if (!canAccess) {
     redirect('/dashboard');
   }
@@ -21,10 +21,11 @@ export default async function DiagnosticsPage() {
       user={{
         firstName: session.user.firstName,
         lastName: session.user.lastName,
-        email: session.user.email,
+        iin: session.user.iin || undefined,
         role: session.user.role,
+        switchToken: (session.user as any).switchToken || undefined,
       }}
-      title="Диагностика знаний"
+      titleKey="diagnostics.title"
     >
       <MyTestsClient isDiagnostic={true} />
     </DashboardLayout>

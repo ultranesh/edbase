@@ -46,14 +46,9 @@ export async function POST(
     const freezeEndDate = new Date();
     freezeEndDate.setDate(freezeEndDate.getDate() + days);
 
-    // Extend studyEndDate by the number of freeze days
-    const newStudyEndDate = currentStudent.studyEndDate
-      ? new Date(currentStudent.studyEndDate)
-      : null;
-
-    if (newStudyEndDate) {
-      newStudyEndDate.setDate(newStudyEndDate.getDate() + days);
-    }
+    // Don't extend studyEndDate immediately - let the cron job handle it daily
+    // Don't decrement freezeDays immediately - let the cron job handle it daily
+    // This way freezeDays decreases by 1 each day and studyEndDate extends by 1 each day
 
     // Update student status and set freeze end date
     const student = await prisma.student.update({
@@ -61,7 +56,6 @@ export async function POST(
       data: {
         status: StudentStatus.FROZEN,
         freezeEndDate: freezeEndDate,
-        studyEndDate: newStudyEndDate,
       },
       include: {
         user: true,

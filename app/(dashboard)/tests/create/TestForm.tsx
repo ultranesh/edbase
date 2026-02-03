@@ -196,21 +196,21 @@ export default function TestForm({ courses }: TestFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
+    <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           Основная информация
         </h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-800 dark:text-red-400">{error}</p>
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-900 mb-1">
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
               Название теста
             </label>
             <input
@@ -218,30 +218,30 @@ export default function TestForm({ courses }: TestFormProps) {
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-900 mb-1">
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
               Описание
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
               Тип теста
             </label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as TestType })}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
             >
               <option value={TestType.QUIZ}>Опрос</option>
               <option value={TestType.MIDTERM}>Промежуточный</option>
@@ -251,14 +251,14 @@ export default function TestForm({ courses }: TestFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
               Урок
             </label>
             <select
               value={formData.lessonId}
               onChange={(e) => setFormData({ ...formData, lessonId: e.target.value })}
               required
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
             >
               <option value="">Выберите урок</option>
               {courses.map((course) => (
@@ -274,7 +274,7 @@ export default function TestForm({ courses }: TestFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
               Длительность (минуты)
             </label>
             <input
@@ -283,12 +283,12 @@ export default function TestForm({ courses }: TestFormProps) {
               onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
               min="1"
               required
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
               Проходной балл (%)
             </label>
             <input
@@ -298,12 +298,12 @@ export default function TestForm({ courses }: TestFormProps) {
               min="0"
               max="100"
               required
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
               Макс. попыток
             </label>
             <input
@@ -312,7 +312,7 @@ export default function TestForm({ courses }: TestFormProps) {
               onChange={(e) => setFormData({ ...formData, maxAttempts: parseInt(e.target.value) })}
               min="1"
               required
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
             />
           </div>
 
@@ -324,7 +324,7 @@ export default function TestForm({ courses }: TestFormProps) {
                 onChange={(e) => setFormData({ ...formData, shuffleQuestions: e.target.checked })}
                 className="rounded"
               />
-              <span className="text-sm text-gray-900">Перемешивать вопросы</span>
+              <span className="text-sm text-gray-900 dark:text-gray-300">Перемешивать вопросы</span>
             </label>
 
             <label className="flex items-center gap-2">
@@ -334,7 +334,7 @@ export default function TestForm({ courses }: TestFormProps) {
                 onChange={(e) => setFormData({ ...formData, showResults: e.target.checked })}
                 className="rounded"
               />
-              <span className="text-sm text-gray-900">Показывать результаты после прохождения</span>
+              <span className="text-sm text-gray-900 dark:text-gray-300">Показывать результаты после прохождения</span>
             </label>
 
             <label className="flex items-center gap-2">
@@ -344,34 +344,34 @@ export default function TestForm({ courses }: TestFormProps) {
                 onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
                 className="rounded"
               />
-              <span className="text-sm text-gray-900">Опубликовать тест</span>
+              <span className="text-sm text-gray-900 dark:text-gray-300">Опубликовать тест</span>
             </label>
           </div>
         </div>
       </div>
 
       {/* Question Builder */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           Добавить вопрос
         </h2>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
               Текст вопроса
             </label>
             <textarea
               value={currentQuestion.text}
               onChange={(e) => setCurrentQuestion({ ...currentQuestion, text: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">
+              <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
                 Тип вопроса
               </label>
               <select
@@ -384,7 +384,7 @@ export default function TestForm({ courses }: TestFormProps) {
                     : [],
                   correctAnswers: [],
                 })}
-                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+                className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
               >
                 <option value={QuestionType.SINGLE_CHOICE}>Один правильный</option>
                 <option value={QuestionType.MULTIPLE_CHOICE}>Несколько правильных</option>
@@ -395,7 +395,7 @@ export default function TestForm({ courses }: TestFormProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">
+              <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
                 Баллы
               </label>
               <input
@@ -403,7 +403,7 @@ export default function TestForm({ courses }: TestFormProps) {
                 value={currentQuestion.points}
                 onChange={(e) => setCurrentQuestion({ ...currentQuestion, points: parseInt(e.target.value) })}
                 min="1"
-                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+                className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
               />
             </div>
           </div>
@@ -411,7 +411,7 @@ export default function TestForm({ courses }: TestFormProps) {
           {(currentQuestion.type === QuestionType.SINGLE_CHOICE ||
             currentQuestion.type === QuestionType.MULTIPLE_CHOICE) && (
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+              <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
                 Варианты ответа
               </label>
               <div className="space-y-2">
@@ -428,13 +428,13 @@ export default function TestForm({ courses }: TestFormProps) {
                       value={option}
                       onChange={(e) => updateOption(index, e.target.value)}
                       placeholder={`Вариант ${index + 1}`}
-                      className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900"
+                      className="flex-1 px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white"
                     />
                     {currentQuestion.options.length > 2 && (
                       <button
                         type="button"
                         onClick={() => removeOption(index)}
-                        className="px-3 py-2 text-red-600 hover:text-red-800"
+                        className="px-3 py-2 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                       >
                         ✕
                       </button>
@@ -445,7 +445,7 @@ export default function TestForm({ courses }: TestFormProps) {
               <button
                 type="button"
                 onClick={addOption}
-                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
               >
                 + Добавить вариант
               </button>
@@ -454,7 +454,7 @@ export default function TestForm({ courses }: TestFormProps) {
 
           {currentQuestion.type === QuestionType.TRUE_FALSE && (
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+              <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
                 Правильный ответ
               </label>
               <div className="flex gap-4">
@@ -464,7 +464,7 @@ export default function TestForm({ courses }: TestFormProps) {
                     checked={currentQuestion.correctAnswers[0] === 0}
                     onChange={() => setCurrentQuestion({ ...currentQuestion, correctAnswers: [0] })}
                   />
-                  <span className="text-sm text-gray-900">Правда</span>
+                  <span className="text-sm text-gray-900 dark:text-gray-300">Правда</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -472,21 +472,21 @@ export default function TestForm({ courses }: TestFormProps) {
                     checked={currentQuestion.correctAnswers[0] === 1}
                     onChange={() => setCurrentQuestion({ ...currentQuestion, correctAnswers: [1] })}
                   />
-                  <span className="text-sm text-gray-900">Ложь</span>
+                  <span className="text-sm text-gray-900 dark:text-gray-300">Ложь</span>
                 </label>
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
               Объяснение (необязательно)
             </label>
             <textarea
               value={currentQuestion.explanation}
               onChange={(e) => setCurrentQuestion({ ...currentQuestion, explanation: e.target.value })}
               rows={2}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 placeholder:text-gray-600"
+              className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 transition-all hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
             />
           </div>
 
@@ -502,27 +502,27 @@ export default function TestForm({ courses }: TestFormProps) {
 
       {/* Questions List */}
       {questions.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
             Вопросы ({questions.length})
           </h2>
           <div className="space-y-4">
             {questions.map((question, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
+              <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                      <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded">
                         Вопрос {index + 1}
                       </span>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
+                      <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 text-xs rounded">
                         {question.type}
                       </span>
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs rounded">
                         {question.points} балл(ов)
                       </span>
                     </div>
-                    <p className="text-gray-900 font-medium">{question.text}</p>
+                    <p className="text-gray-900 dark:text-white font-medium">{question.text}</p>
                     {question.options.length > 0 && (
                       <ul className="mt-2 space-y-1">
                         {question.options.map((opt, i) => (
@@ -530,8 +530,8 @@ export default function TestForm({ courses }: TestFormProps) {
                             key={i}
                             className={`text-sm ${
                               question.correctAnswers.includes(i)
-                                ? 'text-green-700 font-medium'
-                                : 'text-gray-700'
+                                ? 'text-green-700 dark:text-green-400 font-medium'
+                                : 'text-gray-700 dark:text-gray-300'
                             }`}
                           >
                             {question.correctAnswers.includes(i) && '✓ '}
@@ -544,7 +544,7 @@ export default function TestForm({ courses }: TestFormProps) {
                   <button
                     type="button"
                     onClick={() => removeQuestion(index)}
-                    className="ml-4 px-3 py-1 text-red-600 hover:text-red-800 text-sm"
+                    className="ml-4 px-3 py-1 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm"
                   >
                     Удалить
                   </button>
@@ -558,7 +558,7 @@ export default function TestForm({ courses }: TestFormProps) {
       <div className="flex justify-end gap-3">
         <a
           href="/tests"
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
         >
           Отмена
         </a>

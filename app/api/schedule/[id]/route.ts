@@ -135,7 +135,10 @@ async function updateGroupSubjectScheduledStatus(groupId: string, subjectName: s
       where: {
         groupId: groupId,
         subject: {
-          name: subjectName,
+          OR: [
+            { nameRu: subjectName },
+            { nameKz: subjectName },
+          ],
         },
       },
       include: {

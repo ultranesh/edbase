@@ -39,7 +39,7 @@ export default async function GroupsPage() {
         },
         subjects: {
           include: {
-            subject: { select: { id: true, name: true } },
+            subject: { select: { id: true, nameRu: true, nameKz: true } },
           },
         },
         students: {
@@ -89,10 +89,11 @@ export default async function GroupsPage() {
       user={{
         firstName: session.user.firstName,
         lastName: session.user.lastName,
-        email: session.user.email,
+        iin: session.user.iin || undefined,
         role: session.user.role,
+        switchToken: (session.user as any).switchToken || undefined,
       }}
-      title="Группы"
+      titleKey="groups.title"
     >
       <GroupsClient
         initialGroups={groups}
@@ -101,7 +102,7 @@ export default async function GroupsPage() {
         studyDirections={studyDirections}
         groupIndexes={groupIndexes}
         branches={branches}
-        subjects={subjects}
+        subjects={subjects.map(s => ({ ...s, name: s.nameRu || s.nameKz || '' }))}
         teachers={teachers}
         students={students}
         userRole={session.user.role}

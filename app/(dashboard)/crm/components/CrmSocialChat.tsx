@@ -291,17 +291,17 @@ export default function CrmSocialChat({ platform, leadId, leadName, t }: CrmSoci
 
   if (conversations.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center">
-        <div className={`w-12 h-12 rounded-full ${theme.headerBg} text-white flex items-center justify-center mx-auto mb-3`}>
-          {theme.icon}
+      <div className="flex flex-col items-center justify-center py-12 px-6">
+        <div className={`w-16 h-16 rounded-full ${theme.headerBg} flex items-center justify-center mb-4 shadow-lg`}>
+          <div className="w-8 h-8 text-white flex items-center justify-center">
+            {theme.icon}
+          </div>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {t('crm.noConversation') || `Нет переписки в ${platformLabel}`}
+        <p className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {t('crm.noConversation')}
         </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-          {platform === 'INSTAGRAM'
-            ? 'Диалог появится, когда клиент напишет в Instagram Direct'
-            : 'Диалог появится, когда клиент напишет в Facebook Messenger'}
+        <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs">
+          {platform === 'INSTAGRAM' ? t('crm.instagramHint') : t('crm.messengerHint')}
         </p>
       </div>
     );

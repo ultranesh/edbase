@@ -1,14 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserRole } from '@prisma/client';
+import { useLanguage } from '../../../components/LanguageProvider';
 
 interface User {
   id: string;
-  email: string;
+  iin: string | null;
   firstName: string;
   lastName: string;
   role: UserRole;
+  isActive: boolean;
+}
+
+interface RefRole {
+  id: string;
+  code: string;
+  name: string;
+  nameKz: string | null;
+  nameRu: string | null;
+  nameEn: string | null;
+  orderIndex: number;
   isActive: boolean;
 }
 
@@ -20,8 +32,9 @@ interface UserModalProps {
 }
 
 export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModalProps) {
+  const { language } = useLanguage();
   const [formData, setFormData] = useState({
-    email: user?.email || '',
+    iin: user?.iin || '',
     password: '',
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -29,6 +42,28 @@ export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModa
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [roles, setRoles] = useState<RefRole[]>([]);
+
+  // Fetch active roles from the reference table (only valid enum values)
+  useEffect(() => {
+    if (!isOpen) return;
+    const validCodes = new Set<string>(Object.values(UserRole));
+    fetch('/api/database/user-roles')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: RefRole[]) => {
+        const active = Array.isArray(data)
+          ? data.filter((r) => r.isActive && validCodes.has(r.code))
+          : [];
+        setRoles(active);
+      })
+      .catch(() => setRoles([]));
+  }, [isOpen]);
+
+  const getRoleName = (role: RefRole): string => {
+    if (language === 'kk') return role.nameKz || role.name;
+    if (language === 'en') return role.nameEn || role.name;
+    return role.nameRu || role.name;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +78,7 @@ export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModa
       const method = user ? 'PATCH' : 'POST';
 
       const body = user
-        ? // For update, only send password if it's provided
-          formData.password
+        ? formData.password
           ? formData
           : { ...formData, password: undefined }
         : formData;
@@ -65,9 +99,8 @@ export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModa
       onSuccess();
       onClose();
 
-      // Reset form
       setFormData({
-        email: '',
+        iin: '',
         password: '',
         firstName: '',
         lastName: '',
@@ -82,67 +115,93 @@ export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModa
 
   if (!isOpen) return null;
 
+  const inputClass = 'w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors';
+  const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {user ? 'Редактировать пользователя' : 'Добавить пользователя'}
-          </h3>
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4" autoComplete="off">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+              <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
             </div>
           )}
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="firstName" className={labelClass}>
+                Имя
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                required
+                placeholder="Введите имя"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="lastName" className={labelClass}>
+                Фамилия
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                required
+                placeholder="Введите фамилию"
+                className={inputClass}
+              />
+            </div>
+          </div>
+
           <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-gray-900 mb-1">
-              Имя
+            <label htmlFor="iin" className={labelClass}>
+              ИИН
             </label>
             <input
               type="text"
-              id="firstName"
-              value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              required
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900"
+              id="iin"
+              inputMode="numeric"
+              maxLength={12}
+              value={formData.iin}
+              onChange={(e) => setFormData({ ...formData, iin: e.target.value.replace(/\D/g, '') })}
+              placeholder="000000000000"
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-gray-900 mb-1">
-              Фамилия
-            </label>
-            <input
-              type="text"
-              id="lastName"
-              value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              required
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-1">
-              Пароль {user && '(оставьте пустым, чтобы не менять)'}
+            <label htmlFor="password" className={labelClass}>
+              Пароль
+              {user && (
+                <span className="ml-1 text-xs text-gray-400 dark:text-gray-500 font-normal">
+                  (оставьте пустым, чтобы не менять)
+                </span>
+              )}
             </label>
             <input
               type="password"
@@ -150,12 +209,13 @@ export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModa
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required={!user}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900"
+              placeholder={user ? '••••••••' : 'Введите пароль'}
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-900 mb-1">
+            <label htmlFor="role" className={labelClass}>
               Роль
             </label>
             <select
@@ -163,37 +223,44 @@ export default function UserModal({ isOpen, onClose, onSuccess, user }: UserModa
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
               required
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all hover:border-gray-300 text-gray-900 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%228%22%20viewBox%3D%220%200%2012%208%22%3E%3Cpath%20fill%3D%22%236B7280%22%20d%3D%22M1.41%200L6%204.59%2010.59%200%2012%201.41l-6%206-6-6z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[position:right_1rem_center] bg-no-repeat pr-10"
+              className={inputClass}
             >
-              <option value={UserRole.TEACHER}>Преподаватель</option>
-              <option value={UserRole.ADMIN}>Администратор</option>
-              <option value={UserRole.SUPERADMIN}>Суперадминистратор</option>
-              <option value={UserRole.DEPARTMENT_HEAD}>Заведующий отделением</option>
-              <option value={UserRole.CURATOR}>Куратор</option>
-              <option value={UserRole.COORDINATOR}>Координатор</option>
-              <option value={UserRole.PARENT}>Родитель</option>
-              <option value={UserRole.ONLINE_MENTOR}>Онлайн-ментор</option>
+              {roles.length > 0 ? (
+                roles.map((role) => (
+                  <option key={role.code} value={role.code}>
+                    {getRoleName(role)}
+                  </option>
+                ))
+              ) : (
+                /* Fallback while loading */
+                <option value={formData.role}>{formData.role}</option>
+              )}
             </select>
           </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-            >
-              Отмена
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? 'Сохранение...' : user ? 'Сохранить' : 'Создать'}
-            </button>
-          </div>
         </form>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              const form = (e.target as HTMLElement).closest('.relative')?.querySelector('form');
+              if (form) form.requestSubmit();
+            }}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? 'Сохранение...' : user ? 'Сохранить' : 'Создать'}
+          </button>
+        </div>
       </div>
     </div>
   );

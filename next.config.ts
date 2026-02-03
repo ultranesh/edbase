@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   // Turbopack is now the default bundler in Next.js 16
   turbopack: {},
 

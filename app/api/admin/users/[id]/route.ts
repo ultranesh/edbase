@@ -4,6 +4,52 @@ import { NextResponse } from 'next/server';
 import { UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
+// GET - Get user details (including plainPassword for admin)
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    const { id } = await params;
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (session.user.role !== UserRole.ADMIN && session.user.role !== UserRole.SUPERADMIN) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        plainPassword: true,
+        pin: true,
+        avatar: true,
+        avatarLocked: true,
+        sipNumber: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      plainPassword: user.plainPassword,
+      hasPin: !!user.pin,
+      avatar: user.avatar,
+      avatarLocked: user.avatarLocked,
+      sipNumber: user.sipNumber,
+    });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 // PATCH - Update user
 export async function PATCH(
   request: Request,
@@ -22,7 +68,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { email, password, firstName, lastName, role, isActive } = body;
+    const { email, password, firstName, lastName, role, isActive, iin, avatarLocked, sipNumber } = body;
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -40,14 +86,27 @@ export async function PATCH(
     const updateData: any = {};
 
     if (email !== undefined) updateData.email = email;
+    if (iin !== undefined) updateData.iin = iin || null;
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
-    if (role !== undefined) updateData.role = role;
+    if (role !== undefined) {
+      const validRoles = Object.values(UserRole) as string[];
+      if (!validRoles.includes(role)) {
+        return NextResponse.json(
+          { error: `Invalid role: ${role}` },
+          { status: 400 }
+        );
+      }
+      updateData.role = role;
+    }
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (avatarLocked !== undefined) updateData.avatarLocked = avatarLocked;
+    if (sipNumber !== undefined) updateData.sipNumber = sipNumber || null;
 
     // Hash password if provided
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
+      updateData.plainPassword = password;
     }
 
     // Update user
@@ -57,6 +116,7 @@ export async function PATCH(
       select: {
         id: true,
         email: true,
+        iin: true,
         firstName: true,
         lastName: true,
         role: true,
@@ -76,7 +136,7 @@ export async function PATCH(
   }
 }
 
-// DELETE - Delete user (soft delete by setting isActive to false)
+// DELETE - Permanently delete user
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -93,7 +153,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Check if user exists
     const existingUser = await prisma.user.findUnique({
       where: { id: id },
     });
@@ -113,13 +172,20 @@ export async function DELETE(
       );
     }
 
-    // Soft delete user
-    await prisma.user.update({
+    // Prevent deleting SUPERADMIN
+    if (existingUser.role === UserRole.SUPERADMIN) {
+      return NextResponse.json(
+        { error: 'Cannot delete SUPERADMIN' },
+        { status: 403 }
+      );
+    }
+
+    // Permanently delete user and all related data (cascade)
+    await prisma.user.delete({
       where: { id: id },
-      data: { isActive: false },
     });
 
-    return NextResponse.json({ message: 'User deactivated successfully' });
+    return NextResponse.json({ message: 'User deleted permanently' });
   } catch (error) {
     console.error('Error deleting user:', error);
     return NextResponse.json(

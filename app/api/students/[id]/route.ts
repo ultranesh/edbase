@@ -54,30 +54,39 @@ export async function PATCH(
     const studentUpdateData: any = {
       parentName: data.parentName,
       parentPhone: data.parentPhone,
-      gradeLevel: data.gradeLevel,
-      school: data.school,
-      languageOfStudy: data.languageOfStudy,
-      studyGoal: data.studyGoal,
-      subjects: data.subjects,
-      guarantee: data.guarantee,
-      studyFormat: data.studyFormat,
+      // Reference table IDs
+      gradeLevelId: data.gradeLevelId || undefined,
+      schoolId: data.schoolId || undefined,
+      languageId: data.languageId || undefined,
+      studyDirectionId: data.studyDirectionId || undefined,
+      // Enum fields
+      guarantee: data.guarantee || undefined,
+      studyFormat: data.studyFormat || undefined,
+      paymentPlan: data.paymentPlan || undefined,
+      // Numeric fields
       standardMonths: data.standardMonths,
       bonusMonths: data.bonusMonths,
       intensiveMonths: data.intensiveMonths,
       freezeDays: data.freezeDays,
-      paymentPlan: data.paymentPlan,
       totalAmount: data.totalAmount,
       monthlyPayment: data.monthlyPayment,
     };
 
-    // Only superadmin can update dates and tranches
+    if (data.status) studentUpdateData.status = data.status;
+
+    // Admin and superadmin can update contract number
+    if (data.contractNumber !== undefined) studentUpdateData.contractNumber = data.contractNumber || null;
+
+    // Admin and superadmin can update tranches
+    if (data.tranche1Amount !== undefined) studentUpdateData.tranche1Amount = data.tranche1Amount;
+    if (data.tranche1Date !== undefined) studentUpdateData.tranche1Date = data.tranche1Date;
+    if (data.tranche2Amount !== undefined) studentUpdateData.tranche2Amount = data.tranche2Amount;
+    if (data.tranche2Date !== undefined) studentUpdateData.tranche2Date = data.tranche2Date;
+    if (data.tranche3Amount !== undefined) studentUpdateData.tranche3Amount = data.tranche3Amount;
+    if (data.tranche3Date !== undefined) studentUpdateData.tranche3Date = data.tranche3Date;
+
+    // Only superadmin can update study dates
     if (isSuperAdmin) {
-      if (data.tranche1Amount !== undefined) studentUpdateData.tranche1Amount = data.tranche1Amount;
-      if (data.tranche1Date !== undefined) studentUpdateData.tranche1Date = data.tranche1Date;
-      if (data.tranche2Amount !== undefined) studentUpdateData.tranche2Amount = data.tranche2Amount;
-      if (data.tranche2Date !== undefined) studentUpdateData.tranche2Date = data.tranche2Date;
-      if (data.tranche3Amount !== undefined) studentUpdateData.tranche3Amount = data.tranche3Amount;
-      if (data.tranche3Date !== undefined) studentUpdateData.tranche3Date = data.tranche3Date;
       if (data.studyStartDate !== undefined) studentUpdateData.studyStartDate = data.studyStartDate;
       if (data.studyEndDate !== undefined) studentUpdateData.studyEndDate = data.studyEndDate;
     }

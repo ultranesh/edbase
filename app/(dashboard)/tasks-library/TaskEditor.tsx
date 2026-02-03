@@ -708,7 +708,7 @@ export default function TaskEditor({
                         <option value="">Выберите предмет</option>
                         {subjects.map((subject) => (
                           <option key={subject.id} value={subject.id}>
-                            {subject.name}
+                            {subject.nameRu || subject.nameKz}
                           </option>
                         ))}
                       </select>

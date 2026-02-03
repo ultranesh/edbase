@@ -24,11 +24,14 @@ export async function GET() {
       select: {
         id: true,
         email: true,
+        iin: true,
         firstName: true,
         lastName: true,
         role: true,
+        avatar: true,
         isActive: true,
         lastLogin: true,
+        lastSeen: true,
         createdAt: true,
       },
     });
@@ -57,24 +60,47 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { email, password, firstName, lastName, role } = body;
+    const { email, password, firstName, lastName, role, iin } = body;
 
     // Validate required fields
-    if (!email || !password || !firstName || !lastName || !role) {
+    if (!password || !firstName || !lastName || !role) {
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { error: 'Все обязательные поля должны быть заполнены' },
         { status: 400 }
       );
     }
 
-    // Check if user already exists
+    if (!iin && !email) {
+      return NextResponse.json(
+        { error: 'Необходимо указать ИИН или email' },
+        { status: 400 }
+      );
+    }
+
+    // Check if IIN is already taken
+    if (iin) {
+      const existingIin = await prisma.user.findUnique({
+        where: { iin },
+      });
+      if (existingIin) {
+        return NextResponse.json(
+          { error: 'Пользователь с таким ИИН уже существует' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Use provided email or generate from IIN
+    const userEmail = email || `${iin}@ertis.local`;
+
+    // Check if email already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: userEmail },
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User with this email already exists' },
+        { error: 'Пользователь с таким email уже существует' },
         { status: 400 }
       );
     }
@@ -85,8 +111,10 @@ export async function POST(request: Request) {
     // Create user
     const user = await prisma.user.create({
       data: {
-        email,
+        email: userEmail,
+        iin: iin || null,
         password: hashedPassword,
+        plainPassword: password,
         firstName,
         lastName,
         role,
@@ -94,6 +122,7 @@ export async function POST(request: Request) {
       select: {
         id: true,
         email: true,
+        iin: true,
         firstName: true,
         lastName: true,
         role: true,

@@ -24,13 +24,16 @@ export default async function AdminUsersPage() {
     },
     select: {
       id: true,
-      email: true,
+      iin: true,
       firstName: true,
       lastName: true,
       role: true,
+      avatar: true,
       isActive: true,
       phone: true,
+      sipNumber: true,
       lastLogin: true,
+      lastSeen: true,
       createdAt: true,
     },
   });
@@ -40,12 +43,12 @@ export default async function AdminUsersPage() {
       user={{
         firstName: session.user.firstName,
         lastName: session.user.lastName,
-        email: session.user.email,
+        iin: session.user.iin || undefined,
         role: session.user.role,
+        switchToken: (session.user as any).switchToken || undefined,
       }}
-      title="Управление пользователями"
     >
-      <UsersClient initialUsers={users} />
+      <UsersClient initialUsers={users} currentUserRole={session.user.role} currentUserId={session.user.id} />
     </DashboardLayout>
   );
 }

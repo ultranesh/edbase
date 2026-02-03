@@ -1,8 +1,32 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { UserRole, StudentStatus, Gender, StudyFormat, Guarantee, PaymentPlan, ParentDocumentType, StudySchedule } from '@prisma/client';
+import { UserRole, StudentStatus, Gender, StudyFormat, Guarantee, PaymentPlan, ParentDocumentType, StudySchedule, Citizenship } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+
+function generateNextContractNumber(lastNumber: string | null): string {
+  if (!lastNumber) return 'AAA-001';
+
+  const [letters, digits] = lastNumber.split('-');
+  let num = parseInt(digits, 10) + 1;
+  let letterPart = letters;
+
+  if (num > 999) {
+    num = 1;
+    const chars = letterPart.split('');
+    for (let i = 2; i >= 0; i--) {
+      if (chars[i] < 'Z') {
+        chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1);
+        break;
+      } else {
+        chars[i] = 'A';
+      }
+    }
+    letterPart = chars.join('');
+  }
+
+  return `${letterPart}-${String(num).padStart(3, '0')}`;
+}
 
 export async function POST(request: Request) {
   try {
@@ -46,6 +70,7 @@ export async function POST(request: Request) {
     const gender = data.gender ? (data.gender as Gender) : null;
     const parentDocumentType = data.parentDocumentType ? (data.parentDocumentType as ParentDocumentType) : null;
     const studySchedule = data.studySchedule ? (data.studySchedule as StudySchedule) : null;
+    const citizenship = data.citizenship ? (data.citizenship as Citizenship) : Citizenship.KZ;
 
     // Create student profile with enrollment data
     const student = await prisma.student.create({
@@ -57,6 +82,7 @@ export async function POST(request: Request) {
 
         // Personal details
         studentIIN: data.studentIIN || null,
+        citizenship: citizenship,
         parentIIN: data.parentIIN || null,
         parentName: data.parentName || null,
         parentPhone: data.parentPhone || null,
@@ -103,6 +129,18 @@ export async function POST(request: Request) {
 
         coordinatorId: data.coordinatorId,
       },
+    });
+
+    // Generate and assign contract number
+    const lastStudent = await prisma.student.findFirst({
+      where: { contractNumber: { not: null } },
+      orderBy: { contractNumber: 'desc' },
+      select: { contractNumber: true },
+    });
+    const contractNumber = generateNextContractNumber(lastStudent?.contractNumber ?? null);
+    await prisma.student.update({
+      where: { id: student.id },
+      data: { contractNumber },
     });
 
     // Create subject connections (many-to-many)

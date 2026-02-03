@@ -2180,3 +2180,107 @@ model SocialMessage {
   @@index([platformMsgId])
   @@map("social_messages")
 }
+
+// ── CRM Settings ──
+
+// General CRM settings (key-value store)
+model CrmSettings {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("crm_settings")
+}
+
+// ── MarSIP (SIP Telephony Integration) ──
+// ACTIVATION NOTE: MarSIP is configured but NOT active until Tele2/Altel grants access (1-3 business days).
+// When user says "активируй marsip", set isActive=true in MarSipConfig.
+// Credentials: Server: almpbx.tele2.kz or astpbx.tele2.kz, Login: 7tiWgPpD, Password: dMptY92o
+
+model MarSipConfig {
+  id                String   @id @default(uuid())
+
+  // Connection
+  sipServer         String   @default("almpbx.tele2.kz")  // almpbx.tele2.kz (Almaty) or astpbx.tele2.kz (Astana)
+  sipLogin          String?
+  sipPassword       String?
+  sipPort           Int      @default(5060)
+
+  // Features
+  isActive          Boolean  @default(false)  // DO NOT activate until Tele2 grants access
+  recordCalls       Boolean  @default(true)
+  autoCreateLead    Boolean  @default(true)   // Auto-create lead on incoming call from unknown number
+  showLeadCard      Boolean  @default(true)   // Show lead card popup on incoming call
+  logCallsToLead    Boolean  @default(true)   // Log calls to lead history
+
+  // Call settings
+  ringTimeout       Int      @default(30)     // Seconds to wait before forwarding
+  forwardNumber     String?                   // Forward calls to this number if no answer
+  voicemailEnabled  Boolean  @default(false)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  extensions        MarSipExtension[]
+
+  @@map("marsip_config")
+}
+
+model MarSipExtension {
+  id              String   @id @default(uuid())
+  configId        String
+
+  extensionNumber String            // Internal number (201, 202, 207, etc.)
+  displayName     String?           // Display name for this extension
+  userId          String?  @unique  // Linked system user
+
+  // Status
+  isActive        Boolean  @default(true)
+  isOnline        Boolean  @default(false)
+
+  // Personal settings
+  forwardNumber   String?           // Personal forward number
+  voicemailEnabled Boolean @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  config          MarSipConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@unique([configId, extensionNumber])
+  @@index([userId])
+  @@map("marsip_extensions")
+}
+
+// Call history for MarSIP
+model MarSipCall {
+  id              String   @id @default(uuid())
+
+  direction       String   // INCOMING, OUTGOING
+  callerNumber    String
+  callerName      String?
+  receiverNumber  String
+  receiverName    String?
+  extensionNumber String?
+
+  status          String   // ANSWERED, MISSED, BUSY, FAILED
+  duration        Int      @default(0)  // Duration in seconds
+  recordingUrl    String?
+
+  leadId          String?  // Linked lead if any
+  userId          String?  // User who handled the call
+
+  startedAt       DateTime
+  answeredAt      DateTime?
+  endedAt         DateTime?
+
+  createdAt       DateTime @default(now())
+
+  @@index([leadId])
+  @@index([userId])
+  @@index([callerNumber])
+  @@index([startedAt])
+  @@map("marsip_calls")
+}

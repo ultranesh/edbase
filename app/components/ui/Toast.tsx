@@ -9,7 +9,7 @@ export interface ToastProps {
   duration?: number;
 }
 
-export default function Toast({ message, type, onClose, duration = 4000 }: ToastProps) {
+export default function Toast({ message, type, onClose, duration = 8000 }: ToastProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
@@ -49,40 +49,78 @@ export default function Toast({ message, type, onClose, duration = 4000 }: Toast
   };
 
   const styles = {
-    success: 'bg-green-50 border-green-200 text-green-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    info: 'bg-blue-50 border-blue-200 text-blue-800',
+    success: 'bg-white dark:bg-gray-800 border-green-200 dark:border-green-700',
+    error: 'bg-white dark:bg-gray-800 border-red-200 dark:border-red-700',
+    warning: 'bg-white dark:bg-gray-800 border-amber-200 dark:border-amber-700',
+    info: 'bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700',
   };
 
   const iconStyles = {
-    success: 'bg-green-100 text-green-600',
-    error: 'bg-red-100 text-red-600',
-    warning: 'bg-yellow-100 text-yellow-600',
-    info: 'bg-blue-100 text-blue-600',
+    success: 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400',
+    error: 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400',
+    warning: 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400',
+    info: 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400',
+  };
+
+  const textStyles = {
+    success: 'text-green-800 dark:text-green-300',
+    error: 'text-red-800 dark:text-red-300',
+    warning: 'text-amber-800 dark:text-amber-300',
+    info: 'text-blue-800 dark:text-blue-300',
+  };
+
+  // Parse message - split by comma for multi-line display
+  const formatMessage = (msg: string) => {
+    // Check if message has a prefix like "Внимание: " or "Ошибка: "
+    const prefixMatch = msg.match(/^([^:]+):\s*/);
+    let prefix = '';
+    let content = msg;
+
+    if (prefixMatch) {
+      prefix = prefixMatch[1];
+      content = msg.slice(prefixMatch[0].length);
+    }
+
+    // Split by comma
+    const parts = content.split(',').map(p => p.trim()).filter(Boolean);
+
+    if (parts.length <= 1 && !prefix) {
+      return <span>{msg}</span>;
+    }
+
+    return (
+      <div className="flex flex-col gap-1">
+        {prefix && <span className="font-semibold">{prefix}:</span>}
+        {parts.map((part, idx) => (
+          <span key={idx} className="block">• {part}</span>
+        ))}
+      </div>
+    );
   };
 
   return (
     <div
       className={`
-        fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl border shadow-lg
+        flex items-start gap-3 px-4 py-3 min-w-[320px] max-w-lg rounded-2xl border shadow-xl
         transition-all duration-300 ease-out
         ${styles[type]}
-        ${isVisible && !isLeaving ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}
+        ${isVisible && !isLeaving ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}
       `}
     >
-      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${iconStyles[type]}`}>
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${iconStyles[type]}`}>
         {icons[type]}
       </div>
-      <p className="text-sm font-medium pr-2">{message}</p>
+      <div className={`text-sm font-medium flex-1 ${textStyles[type]}`}>
+        {formatMessage(message)}
+      </div>
       <button
         onClick={() => {
           setIsLeaving(true);
           setTimeout(onClose, 300);
         }}
-        className="p-1 rounded-lg hover:bg-black/5 transition-colors"
+        className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shrink-0"
       >
-        <svg className="w-4 h-4 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
