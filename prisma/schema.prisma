@@ -2162,6 +2162,7 @@ enum WhatsAppMessageType {
   LOCATION
   CONTACT
   REACTION
+  TEMPLATE
   UNKNOWN
 }
 

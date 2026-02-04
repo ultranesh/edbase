@@ -60,8 +60,10 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
   // Mount check for portal
   useEffect(() => {
     setMounted(true);
-    const x = Math.max(100, window.innerWidth - 360);
-    const y = 80;
+    // Default position: centered horizontally, near top
+    const phoneWidth = 320;
+    const x = Math.max(100, Math.floor((window.innerWidth - phoneWidth) / 2));
+    const y = 100;
     setPosition({ x, y });
 
     const handleResize = () => {
@@ -522,7 +524,7 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && makeCall()}
-                placeholder="+7 777 123 4567"
+                placeholder={t('marsip.enterNumber')}
                 className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-0 rounded-xl text-base text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none"
               />
               <button
@@ -538,7 +540,7 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
 
             {recentCalls.length > 0 && (
               <div>
-                <p className="text-xs text-gray-400 mb-2 px-1">Недавние</p>
+                <p className="text-xs text-gray-400 mb-2 px-1">{t('marsip.recent')}</p>
                 <div className="space-y-1 max-h-40 overflow-y-auto">
                   {recentCalls.map((phone, i) => (
                     <button

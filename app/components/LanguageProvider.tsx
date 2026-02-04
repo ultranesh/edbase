@@ -714,6 +714,16 @@ const translations: Record<Language, Record<string, string>> = {
     'crm.noMessages': 'Хабарлама жоқ',
     'crm.startConversation': 'Хат жазу бастау',
     'crm.unlinked': 'Байланыссыз',
+    'crm.templateRequired': 'Диалогты бастау үшін шаблондық хабарлама қажет. Клиент жауап бергеннен кейін қарапайым хабарламалар жіберуге болады.',
+    'crm.selectTemplate': 'Шаблонды таңдаңыз:',
+    'crm.sendTemplate': 'Шаблонды жіберу',
+    'crm.loadingTemplates': 'Шаблондар жүктелуде...',
+    'crm.noTemplates': 'Қолжетімді шаблондар жоқ. Meta Business Suite-те шаблон жасаңыз.',
+    'crm.sessionExpired': 'Сессия мерзімі өтті (24 сағ). Жаңа хабарлама жіберу үшін шаблон қолданыңыз.',
+
+    // MarSIP Widget
+    'marsip.enterNumber': 'Нөмірді енгізіңіз',
+    'marsip.recent': 'Соңғылар',
 
     // CRM Settings
     'crm.settings.title': 'CRM баптаулары',
@@ -1741,6 +1751,16 @@ const translations: Record<Language, Record<string, string>> = {
     'crm.noMessages': 'Нет сообщений',
     'crm.startConversation': 'Начать переписку',
     'crm.unlinked': 'Не привязан',
+    'crm.templateRequired': 'Для начала диалога требуется шаблонное сообщение. После ответа клиента можно отправлять обычные сообщения.',
+    'crm.selectTemplate': 'Выберите шаблон:',
+    'crm.sendTemplate': 'Отправить шаблон',
+    'crm.loadingTemplates': 'Загрузка шаблонов...',
+    'crm.noTemplates': 'Нет доступных шаблонов. Создайте шаблон в Meta Business Suite.',
+    'crm.sessionExpired': 'Сессия истекла (24ч). Для отправки нового сообщения используйте шаблон.',
+
+    // MarSIP Widget
+    'marsip.enterNumber': 'Введите номер',
+    'marsip.recent': 'Недавние',
 
     // CRM Settings
     'crm.settings.title': 'Настройки CRM',
@@ -2768,6 +2788,16 @@ const translations: Record<Language, Record<string, string>> = {
     'crm.noMessages': 'No messages',
     'crm.startConversation': 'Start conversation',
     'crm.unlinked': 'Unlinked',
+    'crm.templateRequired': 'A template message is required to start a conversation. After the customer replies, you can send regular messages.',
+    'crm.selectTemplate': 'Select template:',
+    'crm.sendTemplate': 'Send template',
+    'crm.loadingTemplates': 'Loading templates...',
+    'crm.noTemplates': 'No templates available. Create a template in Meta Business Suite.',
+    'crm.sessionExpired': 'Session expired (24h). Use a template to send a new message.',
+
+    // MarSIP Widget
+    'marsip.enterNumber': 'Enter number',
+    'marsip.recent': 'Recent',
 
     // CRM Settings
     'crm.settings.title': 'CRM Settings',

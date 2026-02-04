@@ -155,6 +155,11 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [templates, setTemplates] = useState<{id: string; name: string; language: string; category: string; components: any[]}[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [showTemplateMode, setShowTemplateMode] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -204,8 +209,39 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
         if (hasNew || forceScroll) {
           setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
         }
+        // Check if session expired (last incoming message > 24h ago)
+        const lastIncoming = [...msgs].reverse().find(m => m.direction === 'INCOMING');
+        if (lastIncoming) {
+          const lastIncomingTime = new Date(lastIncoming.createdAt).getTime();
+          const now = Date.now();
+          const hoursSinceLastIncoming = (now - lastIncomingTime) / (1000 * 60 * 60);
+          setSessionExpired(hoursSinceLastIncoming > 24);
+        } else {
+          // No incoming messages at all - session is expired (we initiated but they never replied)
+          setSessionExpired(true);
+        }
       }
     } catch { /* ignore */ }
+  }, []);
+
+  // Load templates on mount
+  useEffect(() => {
+    const loadTemplates = async () => {
+      setTemplatesLoading(true);
+      try {
+        const res = await fetch('/api/whatsapp/templates', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          setTemplates(data);
+          // Auto-select first template if available
+          if (data.length > 0) {
+            setSelectedTemplate(data[0].name);
+          }
+        }
+      } catch { /* ignore */ }
+      setTemplatesLoading(false);
+    };
+    loadTemplates();
   }, []);
 
   useEffect(() => {
@@ -802,78 +838,76 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
             </div>
           )}
 
-          {/* Input bar for first message */}
+          {/* Template selection and send for first message */}
           {initPhone ? (
-            <div className="px-3 py-2 border-t border-gray-200 dark:border-[#222e35] flex items-center gap-2 bg-white dark:bg-[#202c33]">
-              <textarea
-                ref={inputRef}
-                value={text}
-                onChange={e => {
-                  setText(e.target.value);
-                  e.target.style.height = 'auto';
-                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-                }}
-                onKeyDown={async (e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && text.trim() && !sending) {
-                    e.preventDefault();
-                    const msg = text.trim();
-                    setText('');
-                    if (inputRef.current) inputRef.current.style.height = 'auto';
-                    setSending(true);
-                    setInitError(null);
-                    try {
-                      const res = await fetch('/api/whatsapp/conversations', {
-                        method: 'POST',
-                        cache: 'no-store',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          phone: initPhone,
-                          leadId,
-                          contactName: leadName,
-                          text: msg,
-                        }),
-                      });
-                      if (res.ok) {
-                        const data = await res.json();
-                        setConversations([data.conversation]);
-                        setActiveConversation(data.conversation);
-                        setMessages([data.message]);
-                        setInitPhone(null);
-                      } else {
-                        const err = await res.json();
-                        setInitError(err.error || 'Ошибка отправки');
-                        setText(msg);
-                      }
-                    } catch {
-                      setInitError('Ошибка сети');
-                      setText(msg);
-                    }
-                    setSending(false);
-                  }
-                }}
-                placeholder={t('crm.typeMessage')}
-                disabled={sending}
-                rows={1}
-                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-[#2a3942] border-0 rounded-2xl text-sm text-gray-900 dark:text-[#e9edef] placeholder-gray-400 dark:placeholder-[#8696a0] focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 resize-none overflow-y-auto"
-                style={{ maxHeight: '120px' }}
-              />
+            <div className="px-3 py-3 border-t border-gray-200 dark:border-[#222e35] bg-white dark:bg-[#202c33] space-y-3">
+              {/* Info about template requirement */}
+              <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  {t('crm.templateRequired') || 'Для начала диалога требуется шаблонное сообщение. После ответа клиента можно отправлять обычные сообщения.'}
+                </p>
+              </div>
+
+              {/* Template selector */}
+              {templatesLoading ? (
+                <div className="flex items-center justify-center py-2">
+                  <svg className="w-5 h-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span className="ml-2 text-xs text-gray-500">{t('crm.loadingTemplates') || 'Загрузка шаблонов...'}</span>
+                </div>
+              ) : templates.length > 0 ? (
+                <div className="space-y-2">
+                  <label className="block text-xs text-gray-500 dark:text-[#8696a0]">
+                    {t('crm.selectTemplate') || 'Выберите шаблон:'}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {templates.map(tmpl => (
+                      <button
+                        key={`${tmpl.name}-${tmpl.language}`}
+                        onClick={() => setSelectedTemplate(tmpl.name)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          selectedTemplate === tmpl.name
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 ring-1 ring-green-400'
+                            : 'bg-gray-100 dark:bg-[#2a3942] text-gray-600 dark:text-[#8696a0] hover:bg-gray-200 dark:hover:bg-[#374045]'
+                        }`}
+                      >
+                        {tmpl.name}
+                        <span className="ml-1 opacity-60">({tmpl.language})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-2">
+                  <p className="text-xs text-gray-500 dark:text-[#8696a0]">
+                    {t('crm.noTemplates') || 'Нет доступных шаблонов. Создайте шаблон в Meta Business Suite.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Send button */}
               <button
                 onClick={async () => {
-                  if (!text.trim() || sending) return;
-                  const msg = text.trim();
-                  setText('');
+                  if (!selectedTemplate || sending) return;
                   setSending(true);
                   setInitError(null);
+                  const template = templates.find(t => t.name === selectedTemplate);
                   try {
-                    const res = await fetch('/api/whatsapp/conversations', {
+                    const res = await fetch('/api/whatsapp/send-template', {
                       method: 'POST',
                       cache: 'no-store',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         phone: initPhone,
+                        templateName: selectedTemplate,
+                        languageCode: template?.language || (leadLanguage === 'RU' ? 'ru' : leadLanguage === 'EN' ? 'en' : 'kk'),
                         leadId,
                         contactName: leadName,
-                        text: msg,
                       }),
                     });
                     if (res.ok) {
@@ -885,26 +919,30 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                     } else {
                       const err = await res.json();
                       setInitError(err.error || 'Ошибка отправки');
-                      setText(msg);
                     }
                   } catch {
                     setInitError('Ошибка сети');
-                    setText(msg);
                   }
                   setSending(false);
                 }}
-                disabled={!text.trim() || sending}
-                className="p-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                disabled={!selectedTemplate || sending}
+                className="w-full py-2.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {sending ? (
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>{t('crm.sending') || 'Отправка...'}</span>
+                  </>
                 ) : (
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                  </svg>
+                  <>
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                    <span>{t('crm.sendTemplate') || 'Отправить шаблон'}</span>
+                  </>
                 )}
               </button>
             </div>
@@ -1025,8 +1063,113 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Session expired banner with template option */}
+          {sessionExpired && !showTemplateMode && (
+            <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border-t border-amber-200 dark:border-amber-800/30">
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-xs text-amber-700 dark:text-amber-300">{t('crm.sessionExpired')}</p>
+                  <button
+                    onClick={() => setShowTemplateMode(true)}
+                    className="mt-1.5 text-xs font-medium text-green-600 dark:text-green-400 hover:underline"
+                  >
+                    {t('crm.sendTemplate')} →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Template mode for expired session */}
+          {sessionExpired && showTemplateMode && (
+            <div className="px-3 py-3 border-t border-gray-200 dark:border-[#222e35] bg-white dark:bg-[#202c33] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500 dark:text-[#8696a0]">{t('crm.selectTemplate')}</span>
+                <button
+                  onClick={() => setShowTemplateMode(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              {templatesLoading ? (
+                <div className="flex items-center justify-center py-2">
+                  <svg className="w-5 h-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                </div>
+              ) : templates.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {templates.map(tmpl => (
+                    <button
+                      key={`${tmpl.name}-${tmpl.language}`}
+                      onClick={() => setSelectedTemplate(tmpl.name)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        selectedTemplate === tmpl.name
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 ring-1 ring-green-400'
+                          : 'bg-gray-100 dark:bg-[#2a3942] text-gray-600 dark:text-[#8696a0] hover:bg-gray-200 dark:hover:bg-[#374045]'
+                      }`}
+                    >
+                      {tmpl.name}
+                      <span className="ml-1 opacity-60">({tmpl.language})</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 dark:text-[#8696a0] text-center py-2">{t('crm.noTemplates')}</p>
+              )}
+              <button
+                onClick={async () => {
+                  if (!selectedTemplate || !activeConversation || sending) return;
+                  setSending(true);
+                  const template = templates.find(t => t.name === selectedTemplate);
+                  try {
+                    const res = await fetch('/api/whatsapp/send-template', {
+                      method: 'POST',
+                      cache: 'no-store',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        phone: activeConversation.contactPhone,
+                        templateName: selectedTemplate,
+                        languageCode: template?.language || (leadLanguage === 'RU' ? 'ru' : leadLanguage === 'EN' ? 'en' : 'kk'),
+                        leadId,
+                        contactName: leadName,
+                      }),
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setMessages(prev => [...prev, data.message]);
+                      setShowTemplateMode(false);
+                      setSessionExpired(false);
+                      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                    }
+                  } catch { /* ignore */ }
+                  setSending(false);
+                }}
+                disabled={!selectedTemplate || sending}
+                className="w-full py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {sending ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
+                )}
+                <span>{t('crm.sendTemplate')}</span>
+              </button>
+            </div>
+          )}
+
           {/* Pending files preview */}
-          {pendingFiles.length > 0 && (
+          {pendingFiles.length > 0 && !showTemplateMode && (
             <div className="px-3 py-2 bg-gray-50 dark:bg-[#1a2429] border-t border-gray-200 dark:border-[#222e35]">
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {pendingFiles.map((file, i) => {
@@ -1079,6 +1222,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
           )}
 
           {/* Input bar */}
+          {!showTemplateMode && (
           <div className="px-3 py-2 border-t border-gray-200 dark:border-[#222e35] flex items-center gap-2 bg-white dark:bg-[#202c33]">
             {recording ? (
               <>
@@ -1207,6 +1351,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
               </>
             )}
           </div>
+          )}
         </>
       )}
 
