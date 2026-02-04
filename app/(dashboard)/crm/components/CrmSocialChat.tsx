@@ -84,7 +84,7 @@ export default function CrmSocialChat({ platform, leadId, leadName, t }: CrmSoci
   const [isDragOver, setIsDragOver] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
 
@@ -165,6 +165,7 @@ export default function CrmSocialChat({ platform, leadId, leadName, t }: CrmSoci
     };
     setMessages(prev => [...prev, pendingMsg]);
     setText('');
+    if (inputRef.current) inputRef.current.style.height = 'auto';
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
 
     setSending(true);
@@ -506,15 +507,19 @@ export default function CrmSocialChat({ platform, leadId, leadName, t }: CrmSoci
           />
 
           {/* Text Input */}
-          <input
+          <textarea
             ref={inputRef}
-            type="text"
             value={text}
-            onChange={e => setText(e.target.value)}
+            onChange={e => {
+              setText(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            }}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder={t('crm.typeMessage') || 'Введите сообщение...'}
-            className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-opacity-50"
-            style={{ '--tw-ring-color': theme.accent } as React.CSSProperties}
+            rows={1}
+            className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-2xl px-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-opacity-50 resize-none overflow-y-auto"
+            style={{ '--tw-ring-color': theme.accent, maxHeight: '120px' } as React.CSSProperties}
             disabled={sending}
           />
 

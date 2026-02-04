@@ -9,7 +9,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const allowedRoles = ['SUPERADMIN', 'ADMIN', 'COORDINATOR_MANAGER'];
+  // Allow coordinators to get config for making calls
+  const allowedRoles = ['SUPERADMIN', 'ADMIN', 'CHIEF_COORDINATOR', 'COORDINATOR'];
   if (!allowedRoles.includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

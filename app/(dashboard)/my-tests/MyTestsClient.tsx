@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNotification } from '@/app/components/ui/NotificationProvider';
+import { useLanguage } from '@/app/components/LanguageProvider';
 import LatexRenderer from '@/components/LatexRenderer';
 import { scanBlank, createScanPreview, ScanResult, GridBoundsRatio } from '@/lib/blankScanner';
 import InteractiveOverlay from '@/app/components/InteractiveOverlay';
@@ -73,7 +74,8 @@ interface MyTestsClientProps {
 
 export default function MyTestsClient({ isDiagnostic = false }: MyTestsClientProps) {
   const { showToast, showConfirm } = useNotification();
-  const locale = 'ru' as 'ru' | 'kz' | 'en'; // Fixed to Russian for now
+  const { language } = useLanguage();
+  const locale = language as 'ru' | 'kz' | 'en';
 
   // Main tabs: my tests / shared with me
   const [activeTab, setActiveTab] = useState<'my' | 'shared'>('my');

@@ -32,35 +32,37 @@ export default function CrmKanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[280px] w-[280px] flex flex-col rounded-xl transition-colors shrink-0 border ${
+      className={`min-w-[260px] w-[260px] h-full flex flex-col rounded-xl transition-colors shrink-0 border ${
         isOver
           ? 'border-blue-400 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
           : isDragging
             ? `border-dashed ${stage.borderClass}`
             : stage.borderClass
       }`}
-      style={{ maxHeight: 'calc(100vh - 340px)' }}
     >
       {/* Column Header */}
-      <div className={`px-3 py-2.5 rounded-t-xl ${stage.headerBg} border-b ${stage.borderClass}`}>
+      <div className={`px-3 py-2 rounded-t-xl ${stage.headerBg} border-b ${stage.borderClass} shrink-0`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className={`w-2.5 h-2.5 rounded-full ${stage.dotClass}`} />
-            <span className={`text-sm font-semibold ${stage.textClass}`}>{t(stage.labelKey)}</span>
+            <span className={`text-sm font-semibold ${stage.textClass}`}>{stage.label || t(stage.labelKey)}</span>
           </div>
           <span className={`text-xs font-medium ${stage.textClass} bg-white/50 dark:bg-gray-800/50 px-2 py-0.5 rounded-full`}>
             {leads.length}
           </span>
         </div>
         {totalAmount > 0 && (
-          <div className={`mt-1 text-xs ${stage.textClass} font-medium opacity-80`}>
+          <div className={`mt-0.5 text-xs ${stage.textClass} font-medium opacity-80`}>
             {formatAmount(totalAmount)}
           </div>
         )}
       </div>
 
       {/* Cards */}
-      <div className={`flex-1 overflow-y-auto p-2 space-y-2 rounded-b-xl ${stage.bgClass}`}>
+      <div
+        className={`flex-1 overflow-y-auto p-1.5 space-y-1.5 rounded-b-xl ${stage.bgClass}`}
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
         {leads.length === 0 ? (
           <div className="text-center py-8 text-xs text-gray-400 dark:text-gray-500">
             {t('crm.noData')}

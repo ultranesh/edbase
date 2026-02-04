@@ -11,7 +11,7 @@ export default async function DiagnosticsPage() {
   }
 
   // Only coordinators and above can access
-  const canAccess = ['COORDINATOR', 'COORDINATOR_MANAGER', 'ADMIN', 'SUPERADMIN'].includes(session.user.role);
+  const canAccess = ['COORDINATOR', 'CHIEF_COORDINATOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.role);
   if (!canAccess) {
     redirect('/dashboard');
   }

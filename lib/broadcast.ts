@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 
 export const BROADCAST_CHAT_ID = 'ertis-academy-broadcast';
 
-export const BROADCAST_SENDER_ROLES = ['ADMIN', 'SUPERADMIN', 'COORDINATOR', 'COORDINATOR_MANAGER'];
+export const BROADCAST_SENDER_ROLES = ['ADMIN', 'SUPERADMIN', 'COORDINATOR', 'CHIEF_COORDINATOR'];
 
 export interface BroadcastFilters {
   recipientType: 'PARENT' | 'STUDENT';

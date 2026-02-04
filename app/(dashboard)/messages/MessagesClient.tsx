@@ -8,7 +8,7 @@ import BroadcastFilterDialog from './BroadcastFilterDialog';
 import type { BroadcastFilters } from './BroadcastFilterDialog';
 
 const BROADCAST_CHAT_ID = 'ertis-academy-broadcast';
-const BROADCAST_SENDER_ROLES = ['ADMIN', 'SUPERADMIN', 'COORDINATOR', 'COORDINATOR_MANAGER'];
+const BROADCAST_SENDER_ROLES = ['ADMIN', 'SUPERADMIN', 'COORDINATOR', 'CHIEF_COORDINATOR'];
 
 const MAX_RECORDING_SEC = 60;
 
@@ -874,7 +874,11 @@ export default function MessagesClient({ currentUserId, currentUserName, current
                   <textarea
                     ref={inputRef}
                     value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
+                    onChange={(e) => {
+                      setMessageText(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -883,8 +887,8 @@ export default function MessagesClient({ currentUserId, currentUserName, current
                     }}
                     placeholder={t('messages.typePlaceholder')}
                     rows={1}
-                    className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 max-h-32"
-                    style={{ minHeight: '42px' }}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none overflow-y-auto focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    style={{ minHeight: '42px', maxHeight: '120px' }}
                   />
                   <button
                     onClick={() => { if (messageText.trim()) setShowBroadcastFilter(true); }}
@@ -977,12 +981,16 @@ export default function MessagesClient({ currentUserId, currentUserName, current
                     <textarea
                       ref={inputRef}
                       value={editingMessage ? editText : messageText}
-                      onChange={(e) => editingMessage ? setEditText(e.target.value) : setMessageText(e.target.value)}
+                      onChange={(e) => {
+                        editingMessage ? setEditText(e.target.value) : setMessageText(e.target.value);
+                        e.target.style.height = 'auto';
+                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                      }}
                       onKeyDown={handleKeyDown}
                       placeholder={editingMessage ? 'Редактировать сообщение...' : t('messages.typePlaceholder')}
                       rows={1}
-                      className={`flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 max-h-32 ${editingMessage ? 'rounded-b-xl rounded-t-none' : 'rounded-xl'}`}
-                      style={{ minHeight: '42px' }}
+                      className={`flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none overflow-y-auto focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${editingMessage ? 'rounded-b-xl rounded-t-none' : 'rounded-2xl'}`}
+                      style={{ minHeight: '42px', maxHeight: '120px' }}
                     />
                     {editingMessage ? (
                       /* Confirm edit button */

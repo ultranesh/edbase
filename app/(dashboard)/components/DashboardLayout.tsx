@@ -18,6 +18,7 @@ interface DashboardLayoutProps {
   };
   title?: string;
   titleKey?: string;
+  titleActions?: React.ReactNode;
   rightActions?: React.ReactNode;
 }
 
@@ -26,6 +27,7 @@ export default function DashboardLayout({
   user,
   title,
   titleKey,
+  titleActions,
   rightActions,
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -65,10 +67,13 @@ export default function DashboardLayout({
             </svg>
           </button>
 
-          {/* Title - shown on desktop */}
-          {displayTitle && (
-            <h1 className="hidden lg:block text-xl font-semibold text-gray-900 dark:text-white">{displayTitle}</h1>
-          )}
+          {/* Title and title actions - shown on desktop */}
+          <div className="hidden lg:flex items-center gap-4">
+            {displayTitle && (
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">{displayTitle}</h1>
+            )}
+            {titleActions}
+          </div>
 
           {/* Right side */}
           <div className="flex items-center gap-3 ml-auto">

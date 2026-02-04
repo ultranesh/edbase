@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-const ALLOWED_ROLES = ['COORDINATOR', 'COORDINATOR_MANAGER', 'ADMIN', 'SUPERADMIN'];
+const ALLOWED_ROLES = ['COORDINATOR', 'CHIEF_COORDINATOR', 'ADMIN', 'SUPERADMIN'];
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -21,7 +21,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.parentName !== undefined) data.parentName = body.parentName || null;
   if (body.parentPhone !== undefined) data.parentPhone = body.parentPhone || null;
   if (body.source !== undefined) data.source = body.source || null;
-  if (body.stage !== undefined) data.stage = body.stage;
+  // Handle stage - if it's a UUID (36 chars), use stageId; otherwise use legacy stage enum
+  if (body.stage !== undefined) {
+    if (body.stage && body.stage.length === 36 && body.stage.includes('-')) {
+      data.stageId = body.stage;
+    } else {
+      data.stage = body.stage;
+    }
+  }
+  if (body.stageId !== undefined) data.stageId = body.stageId || null;
+  if (body.funnelId !== undefined) data.funnelId = body.funnelId || null;
   if (body.amount !== undefined) data.amount = body.amount ? parseFloat(body.amount) : null;
   if (body.description !== undefined) data.description = body.description || null;
   if (body.lostReason !== undefined) data.lostReason = body.lostReason || null;
@@ -33,6 +42,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     data,
     include: {
       coordinator: { select: { firstName: true, lastName: true } },
+      stage_rel: true,
+      funnel: true,
     },
   });
 

@@ -32,10 +32,14 @@ export default function CrmTableView({ leads, stages, onCardClick, formatAmount,
     return m;
   }, [stages]);
 
-  const stageOrder: Record<string, number> = {
-    NEW_APPLICATION: 0, INITIAL_CONTACT: 1, DIAGNOSTIC: 2, NEGOTIATION: 3,
-    CONTRACT: 4, PAYMENT: 5, WON: 6, LOST: 7,
-  };
+  // Dynamic stage order based on stages array
+  const stageOrder = useMemo(() => {
+    const order: Record<string, number> = {};
+    stages.forEach((s, idx) => {
+      order[s.status] = idx;
+    });
+    return order;
+  }, [stages]);
 
   const sorted = useMemo(() => {
     return [...leads].sort((a, b) => {
@@ -44,9 +48,12 @@ export default function CrmTableView({ leads, stages, onCardClick, formatAmount,
         case 'name':
           cmp = `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'ru');
           break;
-        case 'stage':
-          cmp = (stageOrder[a.stage] ?? 99) - (stageOrder[b.stage] ?? 99);
+        case 'stage': {
+          const aStageKey = a.stageId || a.stage;
+          const bStageKey = b.stageId || b.stage;
+          cmp = (stageOrder[aStageKey] ?? 99) - (stageOrder[bStageKey] ?? 99);
           break;
+        }
         case 'amount':
           cmp = (a.amount || 0) - (b.amount || 0);
           break;
@@ -106,7 +113,8 @@ export default function CrmTableView({ leads, stages, onCardClick, formatAmount,
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {sorted.map(lead => {
-                const stage = stageMap[lead.stage];
+                // Support both stage (status string) and stageId (for dynamic stages)
+                const stage = stageMap[lead.stage] || (lead.stageId ? stageMap[lead.stageId] : undefined);
                 const initials = `${lead.firstName[0] || ''}${lead.lastName[0] || ''}`;
                 return (
                   <tr
@@ -142,7 +150,7 @@ export default function CrmTableView({ leads, stages, onCardClick, formatAmount,
                       {stage && (
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${stage.headerBg} ${stage.textClass}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${stage.dotClass}`} />
-                          {t(stage.labelKey)}
+                          {stage.label || t(stage.labelKey)}
                         </span>
                       )}
                     </td>

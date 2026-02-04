@@ -68,7 +68,7 @@ export default function PaymentsList({ userRole, userId }: PaymentsListProps) {
   const { showToast, showConfirm } = useNotification();
   const { t, language } = useLanguage();
 
-  const canConfirm = ['COORDINATOR_MANAGER', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+  const canConfirm = ['CHIEF_COORDINATOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

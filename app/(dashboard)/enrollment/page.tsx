@@ -12,7 +12,7 @@ export default async function EnrollmentPage() {
   }
 
   // Only coordinators, admins and superadmins can access
-  const allowedRoles: string[] = ['COORDINATOR', 'COORDINATOR_MANAGER', 'ADMIN', 'SUPERADMIN'];
+  const allowedRoles: string[] = ['COORDINATOR', 'CHIEF_COORDINATOR', 'ADMIN', 'SUPERADMIN'];
   if (!allowedRoles.includes(session.user.role)) {
     redirect('/dashboard');
   }

@@ -42,34 +42,34 @@ export interface PipelineStage {
   color?: string; // Hex color for inline styles
 }
 
-// Color mapping from hex to Tailwind classes
+// Color mapping from hex to Tailwind classes (muted colors for better dark mode experience)
 const COLOR_MAP: Record<string, { dot: string; header: string; text: string; border: string; bg: string }> = {
-  '#FCD34D': { dot: 'bg-amber-400', header: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-700', bg: 'bg-amber-50 dark:bg-amber-900/10' },
-  '#F59E0B': { dot: 'bg-amber-500', header: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-700', bg: 'bg-amber-50 dark:bg-amber-900/10' },
-  '#60A5FA': { dot: 'bg-blue-400', header: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-700', bg: 'bg-blue-50 dark:bg-blue-900/10' },
-  '#3B82F6': { dot: 'bg-blue-500', header: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-700', bg: 'bg-blue-50 dark:bg-blue-900/10' },
-  '#818CF8': { dot: 'bg-indigo-400', header: 'bg-indigo-100 dark:bg-indigo-900/30', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-700', bg: 'bg-indigo-50 dark:bg-indigo-900/10' },
-  '#6366F1': { dot: 'bg-indigo-500', header: 'bg-indigo-100 dark:bg-indigo-900/30', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-700', bg: 'bg-indigo-50 dark:bg-indigo-900/10' },
-  '#A78BFA': { dot: 'bg-violet-400', header: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-300', border: 'border-violet-200 dark:border-violet-700', bg: 'bg-violet-50 dark:bg-violet-900/10' },
-  '#8B5CF6': { dot: 'bg-violet-500', header: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-300', border: 'border-violet-200 dark:border-violet-700', bg: 'bg-violet-50 dark:bg-violet-900/10' },
-  '#F472B6': { dot: 'bg-pink-400', header: 'bg-pink-100 dark:bg-pink-900/30', text: 'text-pink-700 dark:text-pink-300', border: 'border-pink-200 dark:border-pink-700', bg: 'bg-pink-50 dark:bg-pink-900/10' },
-  '#EC4899': { dot: 'bg-pink-500', header: 'bg-pink-100 dark:bg-pink-900/30', text: 'text-pink-700 dark:text-pink-300', border: 'border-pink-200 dark:border-pink-700', bg: 'bg-pink-50 dark:bg-pink-900/10' },
-  '#34D399': { dot: 'bg-emerald-400', header: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-700', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
-  '#10B981': { dot: 'bg-emerald-500', header: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-700', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
-  '#22C55E': { dot: 'bg-green-500', header: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', border: 'border-green-200 dark:border-green-700', bg: 'bg-green-50 dark:bg-green-900/10' },
-  '#F87171': { dot: 'bg-red-400', header: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', border: 'border-red-200 dark:border-red-700', bg: 'bg-red-50 dark:bg-red-900/10' },
-  '#EF4444': { dot: 'bg-red-500', header: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', border: 'border-red-200 dark:border-red-700', bg: 'bg-red-50 dark:bg-red-900/10' },
-  '#FB923C': { dot: 'bg-orange-400', header: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-700', bg: 'bg-orange-50 dark:bg-orange-900/10' },
-  '#F97316': { dot: 'bg-orange-500', header: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-700', bg: 'bg-orange-50 dark:bg-orange-900/10' },
-  '#A3E635': { dot: 'bg-lime-400', header: 'bg-lime-100 dark:bg-lime-900/30', text: 'text-lime-700 dark:text-lime-300', border: 'border-lime-200 dark:border-lime-700', bg: 'bg-lime-50 dark:bg-lime-900/10' },
-  '#22D3EE': { dot: 'bg-cyan-400', header: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-cyan-200 dark:border-cyan-700', bg: 'bg-cyan-50 dark:bg-cyan-900/10' },
-  '#FACC15': { dot: 'bg-yellow-400', header: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-200 dark:border-yellow-700', bg: 'bg-yellow-50 dark:bg-yellow-900/10' },
-  '#EAB308': { dot: 'bg-yellow-500', header: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-200 dark:border-yellow-700', bg: 'bg-yellow-50 dark:bg-yellow-900/10' },
-  '#6B7280': { dot: 'bg-gray-500', header: 'bg-gray-100 dark:bg-gray-800/50', text: 'text-gray-700 dark:text-gray-300', border: 'border-gray-200 dark:border-gray-700', bg: 'bg-gray-50 dark:bg-gray-800/30' },
+  '#FCD34D': { dot: 'bg-amber-400', header: 'bg-amber-50/80 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-400/90', border: 'border-amber-200/60 dark:border-amber-800/40', bg: 'bg-amber-50/50 dark:bg-amber-950/20' },
+  '#F59E0B': { dot: 'bg-amber-500', header: 'bg-amber-50/80 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-400/90', border: 'border-amber-200/60 dark:border-amber-800/40', bg: 'bg-amber-50/50 dark:bg-amber-950/20' },
+  '#60A5FA': { dot: 'bg-blue-400', header: 'bg-blue-50/80 dark:bg-blue-950/40', text: 'text-blue-700 dark:text-blue-400/90', border: 'border-blue-200/60 dark:border-blue-800/40', bg: 'bg-blue-50/50 dark:bg-blue-950/20' },
+  '#3B82F6': { dot: 'bg-blue-500', header: 'bg-blue-50/80 dark:bg-blue-950/40', text: 'text-blue-700 dark:text-blue-400/90', border: 'border-blue-200/60 dark:border-blue-800/40', bg: 'bg-blue-50/50 dark:bg-blue-950/20' },
+  '#818CF8': { dot: 'bg-indigo-400', header: 'bg-indigo-50/80 dark:bg-indigo-950/40', text: 'text-indigo-700 dark:text-indigo-400/90', border: 'border-indigo-200/60 dark:border-indigo-800/40', bg: 'bg-indigo-50/50 dark:bg-indigo-950/20' },
+  '#6366F1': { dot: 'bg-indigo-500', header: 'bg-indigo-50/80 dark:bg-indigo-950/40', text: 'text-indigo-700 dark:text-indigo-400/90', border: 'border-indigo-200/60 dark:border-indigo-800/40', bg: 'bg-indigo-50/50 dark:bg-indigo-950/20' },
+  '#A78BFA': { dot: 'bg-violet-400', header: 'bg-violet-50/80 dark:bg-violet-950/40', text: 'text-violet-700 dark:text-violet-400/90', border: 'border-violet-200/60 dark:border-violet-800/40', bg: 'bg-violet-50/50 dark:bg-violet-950/20' },
+  '#8B5CF6': { dot: 'bg-violet-500', header: 'bg-violet-50/80 dark:bg-violet-950/40', text: 'text-violet-700 dark:text-violet-400/90', border: 'border-violet-200/60 dark:border-violet-800/40', bg: 'bg-violet-50/50 dark:bg-violet-950/20' },
+  '#F472B6': { dot: 'bg-pink-400', header: 'bg-pink-50/80 dark:bg-pink-950/40', text: 'text-pink-700 dark:text-pink-400/90', border: 'border-pink-200/60 dark:border-pink-800/40', bg: 'bg-pink-50/50 dark:bg-pink-950/20' },
+  '#EC4899': { dot: 'bg-pink-500', header: 'bg-pink-50/80 dark:bg-pink-950/40', text: 'text-pink-700 dark:text-pink-400/90', border: 'border-pink-200/60 dark:border-pink-800/40', bg: 'bg-pink-50/50 dark:bg-pink-950/20' },
+  '#34D399': { dot: 'bg-emerald-400', header: 'bg-emerald-50/80 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-400/90', border: 'border-emerald-200/60 dark:border-emerald-800/40', bg: 'bg-emerald-50/50 dark:bg-emerald-950/20' },
+  '#10B981': { dot: 'bg-emerald-500', header: 'bg-emerald-50/80 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-400/90', border: 'border-emerald-200/60 dark:border-emerald-800/40', bg: 'bg-emerald-50/50 dark:bg-emerald-950/20' },
+  '#22C55E': { dot: 'bg-green-500', header: 'bg-green-50/80 dark:bg-green-950/40', text: 'text-green-700 dark:text-green-400/90', border: 'border-green-200/60 dark:border-green-800/40', bg: 'bg-green-50/50 dark:bg-green-950/20' },
+  '#F87171': { dot: 'bg-red-400', header: 'bg-red-50/80 dark:bg-red-950/40', text: 'text-red-700 dark:text-red-400/90', border: 'border-red-200/60 dark:border-red-800/40', bg: 'bg-red-50/50 dark:bg-red-950/20' },
+  '#EF4444': { dot: 'bg-red-500', header: 'bg-red-50/80 dark:bg-red-950/40', text: 'text-red-700 dark:text-red-400/90', border: 'border-red-200/60 dark:border-red-800/40', bg: 'bg-red-50/50 dark:bg-red-950/20' },
+  '#FB923C': { dot: 'bg-orange-400', header: 'bg-orange-50/80 dark:bg-orange-950/40', text: 'text-orange-700 dark:text-orange-400/90', border: 'border-orange-200/60 dark:border-orange-800/40', bg: 'bg-orange-50/50 dark:bg-orange-950/20' },
+  '#F97316': { dot: 'bg-orange-500', header: 'bg-orange-50/80 dark:bg-orange-950/40', text: 'text-orange-700 dark:text-orange-400/90', border: 'border-orange-200/60 dark:border-orange-800/40', bg: 'bg-orange-50/50 dark:bg-orange-950/20' },
+  '#A3E635': { dot: 'bg-lime-400', header: 'bg-lime-50/80 dark:bg-lime-950/40', text: 'text-lime-700 dark:text-lime-400/90', border: 'border-lime-200/60 dark:border-lime-800/40', bg: 'bg-lime-50/50 dark:bg-lime-950/20' },
+  '#22D3EE': { dot: 'bg-cyan-400', header: 'bg-cyan-50/80 dark:bg-cyan-950/40', text: 'text-cyan-700 dark:text-cyan-400/90', border: 'border-cyan-200/60 dark:border-cyan-800/40', bg: 'bg-cyan-50/50 dark:bg-cyan-950/20' },
+  '#FACC15': { dot: 'bg-yellow-400', header: 'bg-yellow-50/80 dark:bg-yellow-950/40', text: 'text-yellow-700 dark:text-yellow-400/90', border: 'border-yellow-200/60 dark:border-yellow-800/40', bg: 'bg-yellow-50/50 dark:bg-yellow-950/20' },
+  '#EAB308': { dot: 'bg-yellow-500', header: 'bg-yellow-50/80 dark:bg-yellow-950/40', text: 'text-yellow-700 dark:text-yellow-400/90', border: 'border-yellow-200/60 dark:border-yellow-800/40', bg: 'bg-yellow-50/50 dark:bg-yellow-950/20' },
+  '#6B7280': { dot: 'bg-gray-500', header: 'bg-gray-100/80 dark:bg-gray-800/40', text: 'text-gray-700 dark:text-gray-400', border: 'border-gray-200/60 dark:border-gray-700/40', bg: 'bg-gray-50/50 dark:bg-gray-800/20' },
 };
 
 // Default colors for fallback
-const DEFAULT_COLORS = { dot: 'bg-gray-500', header: 'bg-gray-100 dark:bg-gray-800/50', text: 'text-gray-700 dark:text-gray-300', border: 'border-gray-200 dark:border-gray-700', bg: 'bg-gray-50 dark:bg-gray-800/30' };
+const DEFAULT_COLORS = { dot: 'bg-gray-500', header: 'bg-gray-100/80 dark:bg-gray-800/40', text: 'text-gray-700 dark:text-gray-400', border: 'border-gray-200/60 dark:border-gray-700/40', bg: 'bg-gray-50/50 dark:bg-gray-800/20' };
 
 // Get color classes from hex color
 function getColorClasses(hexColor: string) {
@@ -77,16 +77,16 @@ function getColorClasses(hexColor: string) {
   return COLOR_MAP[upperHex] || DEFAULT_COLORS;
 }
 
-// Fallback static stages (used when no funnels exist)
+// Fallback static stages (used when no funnels exist) - muted colors for better dark mode
 export const PIPELINE_STAGES: PipelineStage[] = [
-  { status: 'NEW_APPLICATION', labelKey: 'crm.stageNewApplication', dotClass: 'bg-amber-500', headerBg: 'bg-amber-100 dark:bg-amber-900/30', textClass: 'text-amber-700 dark:text-amber-300', borderClass: 'border-amber-200 dark:border-amber-700', bgClass: 'bg-amber-50 dark:bg-amber-900/10' },
-  { status: 'INITIAL_CONTACT', labelKey: 'crm.stageInitialContact', dotClass: 'bg-blue-500', headerBg: 'bg-blue-100 dark:bg-blue-900/30', textClass: 'text-blue-700 dark:text-blue-300', borderClass: 'border-blue-200 dark:border-blue-700', bgClass: 'bg-blue-50 dark:bg-blue-900/10' },
-  { status: 'DIAGNOSTIC', labelKey: 'crm.stageDiagnostic', dotClass: 'bg-indigo-500', headerBg: 'bg-indigo-100 dark:bg-indigo-900/30', textClass: 'text-indigo-700 dark:text-indigo-300', borderClass: 'border-indigo-200 dark:border-indigo-700', bgClass: 'bg-indigo-50 dark:bg-indigo-900/10' },
-  { status: 'NEGOTIATION', labelKey: 'crm.stageNegotiation', dotClass: 'bg-violet-500', headerBg: 'bg-violet-100 dark:bg-violet-900/30', textClass: 'text-violet-700 dark:text-violet-300', borderClass: 'border-violet-200 dark:border-violet-700', bgClass: 'bg-violet-50 dark:bg-violet-900/10' },
-  { status: 'CONTRACT', labelKey: 'crm.stageContract', dotClass: 'bg-orange-500', headerBg: 'bg-orange-100 dark:bg-orange-900/30', textClass: 'text-orange-700 dark:text-orange-300', borderClass: 'border-orange-200 dark:border-orange-700', bgClass: 'bg-orange-50 dark:bg-orange-900/10' },
-  { status: 'PAYMENT', labelKey: 'crm.stagePayment', dotClass: 'bg-yellow-500', headerBg: 'bg-yellow-100 dark:bg-yellow-900/30', textClass: 'text-yellow-700 dark:text-yellow-300', borderClass: 'border-yellow-200 dark:border-yellow-700', bgClass: 'bg-yellow-50 dark:bg-yellow-900/10' },
-  { status: 'WON', labelKey: 'crm.stageWon', dotClass: 'bg-green-500', headerBg: 'bg-green-100 dark:bg-green-900/30', textClass: 'text-green-700 dark:text-green-300', borderClass: 'border-green-200 dark:border-green-700', bgClass: 'bg-green-50 dark:bg-green-900/10' },
-  { status: 'LOST', labelKey: 'crm.stageLost', dotClass: 'bg-red-500', headerBg: 'bg-red-100 dark:bg-red-900/30', textClass: 'text-red-700 dark:text-red-300', borderClass: 'border-red-200 dark:border-red-700', bgClass: 'bg-red-50 dark:bg-red-900/10' },
+  { status: 'NEW_APPLICATION', labelKey: 'crm.stageNewApplication', dotClass: 'bg-amber-500', headerBg: 'bg-amber-50/80 dark:bg-amber-950/40', textClass: 'text-amber-700 dark:text-amber-400/90', borderClass: 'border-amber-200/60 dark:border-amber-800/40', bgClass: 'bg-amber-50/50 dark:bg-amber-950/20' },
+  { status: 'INITIAL_CONTACT', labelKey: 'crm.stageInitialContact', dotClass: 'bg-blue-500', headerBg: 'bg-blue-50/80 dark:bg-blue-950/40', textClass: 'text-blue-700 dark:text-blue-400/90', borderClass: 'border-blue-200/60 dark:border-blue-800/40', bgClass: 'bg-blue-50/50 dark:bg-blue-950/20' },
+  { status: 'DIAGNOSTIC', labelKey: 'crm.stageDiagnostic', dotClass: 'bg-indigo-500', headerBg: 'bg-indigo-50/80 dark:bg-indigo-950/40', textClass: 'text-indigo-700 dark:text-indigo-400/90', borderClass: 'border-indigo-200/60 dark:border-indigo-800/40', bgClass: 'bg-indigo-50/50 dark:bg-indigo-950/20' },
+  { status: 'NEGOTIATION', labelKey: 'crm.stageNegotiation', dotClass: 'bg-violet-500', headerBg: 'bg-violet-50/80 dark:bg-violet-950/40', textClass: 'text-violet-700 dark:text-violet-400/90', borderClass: 'border-violet-200/60 dark:border-violet-800/40', bgClass: 'bg-violet-50/50 dark:bg-violet-950/20' },
+  { status: 'CONTRACT', labelKey: 'crm.stageContract', dotClass: 'bg-orange-500', headerBg: 'bg-orange-50/80 dark:bg-orange-950/40', textClass: 'text-orange-700 dark:text-orange-400/90', borderClass: 'border-orange-200/60 dark:border-orange-800/40', bgClass: 'bg-orange-50/50 dark:bg-orange-950/20' },
+  { status: 'PAYMENT', labelKey: 'crm.stagePayment', dotClass: 'bg-yellow-500', headerBg: 'bg-yellow-50/80 dark:bg-yellow-950/40', textClass: 'text-yellow-700 dark:text-yellow-400/90', borderClass: 'border-yellow-200/60 dark:border-yellow-800/40', bgClass: 'bg-yellow-50/50 dark:bg-yellow-950/20' },
+  { status: 'WON', labelKey: 'crm.stageWon', dotClass: 'bg-green-500', headerBg: 'bg-green-50/80 dark:bg-green-950/40', textClass: 'text-green-700 dark:text-green-400/90', borderClass: 'border-green-200/60 dark:border-green-800/40', bgClass: 'bg-green-50/50 dark:bg-green-950/20' },
+  { status: 'LOST', labelKey: 'crm.stageLost', dotClass: 'bg-red-500', headerBg: 'bg-red-50/80 dark:bg-red-950/40', textClass: 'text-red-700 dark:text-red-400/90', borderClass: 'border-red-200/60 dark:border-red-800/40', bgClass: 'bg-red-50/50 dark:bg-red-950/20' },
 ];
 
 interface CrmClientProps {
@@ -113,6 +113,14 @@ interface Funnel {
 
 export default function CrmClient({ initialLeads, userRole, userId, coordinators }: CrmClientProps) {
   const { t } = useLanguage();
+
+  // Lock body scroll on mount
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
   const [leads, setLeads] = useState<CrmLead[]>(initialLeads);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [searchQuery, setSearchQuery] = useState('');
@@ -364,9 +372,9 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
   const hasFilters = searchQuery || coordinatorFilter;
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden -mt-4 -mx-6">
       {/* ── FILTERS BAR ── */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 shrink-0 px-6 pt-4">
         {/* Funnel selector */}
         <div className="relative" ref={funnelDropdownRef}>
           <button
@@ -564,7 +572,7 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
               </div>
 
       {/* ── STAGE SUMMARY ── */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex gap-1.5 mt-3 mb-3 shrink-0 overflow-x-auto px-6" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {stageTotals.map(stage => (
           <div key={stage.status} className={`${stage.bgClass} border ${stage.borderClass} rounded-lg px-2.5 py-1.5 flex items-center gap-2`}>
             <div className={`w-1.5 h-1.5 rounded-full ${stage.dotClass}`} />
@@ -580,6 +588,7 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
       </div>
 
       {/* ── MAIN VIEW ── */}
+      <div className="flex-1 min-h-0 px-6 pb-4">
       {viewMode === 'kanban' ? (
         <CrmKanbanBoard
           leadsByStage={leadsByStage}
@@ -600,6 +609,7 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
           t={t}
         />
       )}
+      </div>
 
       {/* ── LEAD SLIDE-OVER ── */}
       {selectedLead && (

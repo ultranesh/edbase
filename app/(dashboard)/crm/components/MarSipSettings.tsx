@@ -1,9 +1,86 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface MarSipSettingsProps {
   t: (key: string) => string;
+}
+
+// Custom Select Component
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(o => o.value === value);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-left hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+      >
+        <span className={selectedOption ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}>
+          {selectedOption?.label || placeholder}
+        </span>
+        <svg
+          className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg max-h-60 overflow-y-auto">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                option.value === value
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                  : 'text-gray-900 dark:text-white'
+              }`}
+            >
+              {option.value === value && (
+                <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              <span className={option.value === value ? '' : 'ml-6'}>{option.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface Extension {
@@ -71,7 +148,7 @@ export default function MarSipSettings({ t }: MarSipSettingsProps) {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await fetch('/api/users/search?roles=ADMIN,COORDINATOR,COORDINATOR_MANAGER&limit=100');
+      const res = await fetch('/api/users/search?roles=SUPERADMIN,ADMIN,COORDINATOR,CHIEF_COORDINATOR&limit=100');
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
@@ -367,18 +444,18 @@ export default function MarSipSettings({ t }: MarSipSettingsProps) {
                 placeholder={t('crm.settings.displayName')}
                 className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
               />
-              <select
+              <CustomSelect
                 value={newExtUserId}
-                onChange={(e) => setNewExtUserId(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-              >
-                <option value="">{t('crm.settings.selectUser')}</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.lastName} {user.firstName}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setNewExtUserId(val)}
+                placeholder={t('crm.settings.selectUser')}
+                options={[
+                  { value: '', label: t('crm.settings.selectUser') },
+                  ...users.map((user) => ({
+                    value: user.id,
+                    label: `${user.lastName} ${user.firstName}`,
+                  })),
+                ]}
+              />
               <button
                 onClick={addExtension}
                 disabled={addingExt || !newExtNumber.trim()}
@@ -425,18 +502,20 @@ export default function MarSipSettings({ t }: MarSipSettingsProps) {
                   </div>
 
                   {/* User select */}
-                  <select
-                    value={ext.userId || ''}
-                    onChange={(e) => updateExtension(ext.id, { userId: e.target.value || null })}
-                    className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-                  >
-                    <option value="">{t('crm.settings.selectUser')}</option>
-                    {users.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.lastName} {user.firstName}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-48">
+                    <CustomSelect
+                      value={ext.userId || ''}
+                      onChange={(val) => updateExtension(ext.id, { userId: val || null })}
+                      placeholder={t('crm.settings.selectUser')}
+                      options={[
+                        { value: '', label: t('crm.settings.selectUser') },
+                        ...users.map((user) => ({
+                          value: user.id,
+                          label: `${user.lastName} ${user.firstName}`,
+                        })),
+                      ]}
+                    />
+                  </div>
 
                   {/* Toggle active */}
                   <button

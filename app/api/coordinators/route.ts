@@ -12,7 +12,7 @@ export async function GET() {
 
     const coordinators = await prisma.user.findMany({
       where: {
-        role: { in: ['COORDINATOR', 'COORDINATOR_MANAGER'] },
+        role: { in: ['COORDINATOR', 'CHIEF_COORDINATOR'] },
         isActive: true,
       },
       select: {

@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   // Only admins can view settings
-  const allowedRoles = ['SUPERADMIN', 'ADMIN', 'COORDINATOR_MANAGER'];
+  const allowedRoles = ['SUPERADMIN', 'ADMIN', 'CHIEF_COORDINATOR'];
   if (!allowedRoles.includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

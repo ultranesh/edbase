@@ -167,7 +167,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const { language: uiLang } = useLanguage();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
   const pendingAudioRef = useRef<Map<string, { blob: Blob; blobUrl: string }>>(new Map());
@@ -255,6 +255,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
     const caption = text.trim();
     const filesToSend = [...pendingFiles];
     setText('');
+    if (inputRef.current) inputRef.current.style.height = 'auto';
     setPendingFiles([]);
     setSending(true);
 
@@ -804,16 +805,20 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
           {/* Input bar for first message */}
           {initPhone ? (
             <div className="px-3 py-2 border-t border-gray-200 dark:border-[#222e35] flex items-center gap-2 bg-white dark:bg-[#202c33]">
-              <input
+              <textarea
                 ref={inputRef}
-                type="text"
                 value={text}
-                onChange={e => setText(e.target.value)}
+                onChange={e => {
+                  setText(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                }}
                 onKeyDown={async (e) => {
                   if (e.key === 'Enter' && !e.shiftKey && text.trim() && !sending) {
                     e.preventDefault();
                     const msg = text.trim();
                     setText('');
+                    if (inputRef.current) inputRef.current.style.height = 'auto';
                     setSending(true);
                     setInitError(null);
                     try {
@@ -848,7 +853,9 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                 }}
                 placeholder={t('crm.typeMessage')}
                 disabled={sending}
-                className="flex-1 px-3 py-2 bg-gray-100 dark:bg-[#2a3942] border-0 rounded-full text-sm text-gray-900 dark:text-[#e9edef] placeholder-gray-400 dark:placeholder-[#8696a0] focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                rows={1}
+                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-[#2a3942] border-0 rounded-2xl text-sm text-gray-900 dark:text-[#e9edef] placeholder-gray-400 dark:placeholder-[#8696a0] focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 resize-none overflow-y-auto"
+                style={{ maxHeight: '120px' }}
               />
               <button
                 onClick={async () => {
@@ -1152,15 +1159,20 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                 </button>
 
                 {/* Text input */}
-                <input
+                <textarea
                   ref={inputRef}
-                  type="text"
                   value={text}
-                  onChange={e => setText(e.target.value)}
+                  onChange={e => {
+                    setText(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                  }}
                   onKeyDown={handleKeyDown}
                   placeholder={pendingFiles.length > 0 ? 'Добавить подпись...' : t('crm.typeMessage')}
                   disabled={sending}
-                  className="flex-1 px-3 py-2 bg-gray-100 dark:bg-[#2a3942] border-0 rounded-full text-sm text-gray-900 dark:text-[#e9edef] placeholder-gray-400 dark:placeholder-[#8696a0] focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                  rows={1}
+                  className="flex-1 px-4 py-2 bg-gray-100 dark:bg-[#2a3942] border-0 rounded-2xl text-sm text-gray-900 dark:text-[#e9edef] placeholder-gray-400 dark:placeholder-[#8696a0] focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 resize-none overflow-y-auto"
+                  style={{ maxHeight: '120px' }}
                 />
 
                 {/* Send or Mic button */}

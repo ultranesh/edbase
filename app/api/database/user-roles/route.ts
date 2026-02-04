@@ -9,13 +9,14 @@ const DEFAULT_ROLES: Record<string, { name: string; nameKz: string; nameRu: stri
   [UserRole.SUPERADMIN]:          { name: 'Суперадминистратор',      nameKz: 'Суперәкімші',               nameRu: 'Суперадминистратор',      nameEn: 'Super Admin',          orderIndex: 0 },
   [UserRole.ADMIN]:               { name: 'Администратор',           nameKz: 'Әкімші',                   nameRu: 'Администратор',           nameEn: 'Admin',                orderIndex: 1 },
   [UserRole.DEPARTMENT_HEAD]:     { name: 'Заведующий отделением',   nameKz: 'Бөлім меңгерушісі',        nameRu: 'Заведующий отделением',   nameEn: 'Department Head',      orderIndex: 2 },
-  [UserRole.CURATOR]:             { name: 'Куратор',                 nameKz: 'Куратор',                  nameRu: 'Куратор',                 nameEn: 'Curator',              orderIndex: 3 },
-  [UserRole.COORDINATOR]:         { name: 'Координатор',             nameKz: 'Үйлестіруші',              nameRu: 'Координатор',             nameEn: 'Coordinator',          orderIndex: 4 },
-  [UserRole.COORDINATOR_MANAGER]: { name: 'Координатор-менеджер',    nameKz: 'Үйлестіруші-менеджер',     nameRu: 'Координатор-менеджер',    nameEn: 'Coordinator Manager',  orderIndex: 5 },
-  [UserRole.TEACHER]:             { name: 'Преподаватель',           nameKz: 'Оқытушы',                  nameRu: 'Преподаватель',           nameEn: 'Teacher',              orderIndex: 6 },
-  [UserRole.PARENT]:              { name: 'Родитель',                nameKz: 'Ата-ана',                  nameRu: 'Родитель',                nameEn: 'Parent',               orderIndex: 7 },
-  [UserRole.ONLINE_MENTOR]:       { name: 'Онлайн-ментор',          nameKz: 'Онлайн-тәлімгер',          nameRu: 'Онлайн-ментор',           nameEn: 'Online Mentor',        orderIndex: 8 },
-  [UserRole.STUDENT]:             { name: 'Ученик',                 nameKz: 'Оқушы',                   nameRu: 'Ученик',                  nameEn: 'Student',              orderIndex: 9 },
+  [UserRole.CHIEF_COORDINATOR]:   { name: 'Главный координатор',     nameKz: 'Бас үйлестіруші',          nameRu: 'Главный координатор',     nameEn: 'Chief Coordinator',    orderIndex: 3 },
+  [UserRole.CHIEF_CURATOR]:       { name: 'Главный куратор',         nameKz: 'Бас куратор',              nameRu: 'Главный куратор',         nameEn: 'Chief Curator',        orderIndex: 4 },
+  [UserRole.CURATOR]:             { name: 'Куратор',                 nameKz: 'Куратор',                  nameRu: 'Куратор',                 nameEn: 'Curator',              orderIndex: 5 },
+  [UserRole.COORDINATOR]:         { name: 'Координатор',             nameKz: 'Үйлестіруші',              nameRu: 'Координатор',             nameEn: 'Coordinator',          orderIndex: 6 },
+  [UserRole.TEACHER]:             { name: 'Преподаватель',           nameKz: 'Оқытушы',                  nameRu: 'Преподаватель',           nameEn: 'Teacher',              orderIndex: 7 },
+  [UserRole.PARENT]:              { name: 'Родитель',                nameKz: 'Ата-ана',                  nameRu: 'Родитель',                nameEn: 'Parent',               orderIndex: 8 },
+  [UserRole.ONLINE_MENTOR]:       { name: 'Онлайн-ментор',          nameKz: 'Онлайн-тәлімгер',          nameRu: 'Онлайн-ментор',           nameEn: 'Online Mentor',        orderIndex: 9 },
+  [UserRole.STUDENT]:             { name: 'Ученик',                 nameKz: 'Оқушы',                   nameRu: 'Ученик',                  nameEn: 'Student',              orderIndex: 10 },
 };
 
 export async function GET() {

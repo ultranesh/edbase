@@ -13,7 +13,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const allowedRoles: string[] = ['COORDINATOR_MANAGER', 'ADMIN', 'SUPERADMIN'];
+    const allowedRoles: string[] = ['CHIEF_COORDINATOR', 'ADMIN', 'SUPERADMIN'];
     if (!allowedRoles.includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

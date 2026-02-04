@@ -11,9 +11,10 @@ enum UserRole {
   SUPERADMIN
   ADMIN
   DEPARTMENT_HEAD
+  CHIEF_COORDINATOR    // Главный координатор (бывший COORDINATOR_MANAGER)
+  CHIEF_CURATOR        // Главный куратор
   CURATOR
   COORDINATOR
-  COORDINATOR_MANAGER
   TEACHER
   PARENT
   ONLINE_MENTOR
@@ -2003,6 +2004,7 @@ model GeneratedTestShare {
 
 // ── CRM ──
 
+// Legacy enum - kept for backwards compatibility during migration
 enum CrmLeadStage {
   NEW_APPLICATION
   INITIAL_CONTACT
@@ -2014,6 +2016,45 @@ enum CrmLeadStage {
   LOST
 }
 
+model CrmFunnel {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  color       String     @default("#3B82F6") // blue-500
+  isDefault   Boolean    @default(false)
+  isActive    Boolean    @default(true)
+  order       Int        @default(0)
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  stages      CrmStage[]
+  leads       CrmLead[]
+
+  @@map("crm_funnels")
+}
+
+model CrmStage {
+  id          String     @id @default(uuid())
+  funnelId    String
+  funnel      CrmFunnel  @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  name        String
+  color       String     @default("#6B7280") // gray-500
+  order       Int        @default(0)
+  isWon       Boolean    @default(false)  // Final positive stage
+  isLost      Boolean    @default(false)  // Final negative stage
+  isSystem    Boolean    @default(false)  // System stage (cannot be deleted)
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  leads       CrmLead[]
+
+  @@index([funnelId])
+  @@map("crm_stages")
+}
+
 model CrmLead {
   id            String        @id @default(uuid())
   firstName     String
@@ -2023,7 +2064,16 @@ model CrmLead {
   parentName    String?
   parentPhone   String?
   source        String?
+
+  // New funnel-based stage system
+  funnelId      String?
+  funnel        CrmFunnel?    @relation(fields: [funnelId], references: [id])
+  stageId       String?
+  stage_rel     CrmStage?     @relation(fields: [stageId], references: [id])
+
+  // Legacy stage - for backwards compatibility
   stage         CrmLeadStage  @default(NEW_APPLICATION)
+
   amount        Float?
   description   String?
   lostReason    String?
@@ -2039,6 +2089,8 @@ model CrmLead {
   socialConversations  SocialConversation[]
 
   @@index([stage])
+  @@index([funnelId])
+  @@index([stageId])
   @@index([coordinatorId])
   @@map("crm_leads")
 }
@@ -2233,6 +2285,7 @@ model MarSipExtension {
   configId        String
 
   extensionNumber String            // Internal number (201, 202, 207, etc.)
+  sipPassword     String?           // SIP password for this extension
   displayName     String?           // Display name for this extension
   userId          String?  @unique  // Linked system user
 

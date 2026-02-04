@@ -81,7 +81,7 @@ export default function CrmKanbanBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto scrollbar-hide" style={{ minHeight: 'calc(100vh - 340px)' }}>
+      <div className="flex gap-3 overflow-x-auto overflow-y-hidden pb-2 h-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {stages.map(stage => (
           <CrmKanbanColumn
             key={stage.status}

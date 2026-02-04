@@ -114,7 +114,7 @@ export default function StatisticsClient({ userRole }: StatisticsClientProps) {
   const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
   const [coordinatorFilter, setCoordinatorFilter] = useState<string | null>(null);
 
-  const canEditPlan = ['ADMIN', 'SUPERADMIN', 'COORDINATOR_MANAGER'].includes(userRole);
+  const canEditPlan = ['ADMIN', 'SUPERADMIN', 'CHIEF_COORDINATOR'].includes(userRole);
 
   // Load plan from localStorage
   useEffect(() => {

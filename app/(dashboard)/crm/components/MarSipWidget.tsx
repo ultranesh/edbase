@@ -96,6 +96,27 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
     };
   }, []);
 
+  // Prevent page refresh/navigation during active call
+  useEffect(() => {
+    const isInCall = ['calling', 'ringing', 'connected'].includes(callState.status);
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isInCall) {
+        e.preventDefault();
+        e.returnValue = 'Звонок активен. Вы уверены что хотите покинуть страницу?';
+        return e.returnValue;
+      }
+    };
+
+    if (isInCall) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [callState.status]);
+
   // Load config
   useEffect(() => {
     const loadConfig = async () => {
@@ -116,11 +137,13 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
               const janusWsUrl = typeof window !== 'undefined'
                 ? `wss://${window.location.host}/janus-ws`
                 : 'wss://classroom.ertis.academy/janus-ws';
+              // Use Tele2 trunk credentials (sipLogin/sipPassword) for SIP registration
+              // Extension number is only for internal display
               setSipConfig({
                 server: config.sipServer,
                 sipServer: config.sipServer,
-                username: userExt.extensionNumber,
-                password: userExt.sipPassword || config.sipPassword || '',
+                username: config.sipLogin || userExt.extensionNumber,
+                password: config.sipPassword || '',
                 janusWs: janusWsUrl,
               });
               setCallState({ status: 'idle' });

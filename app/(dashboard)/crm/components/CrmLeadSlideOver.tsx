@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SlideOver from '../../components/SlideOver';
 import CrmWhatsAppChat from './CrmWhatsAppChat';
 import CrmSocialChat from './CrmSocialChat';
@@ -17,6 +17,11 @@ interface CrmLeadSlideOverProps {
   t: (key: string) => string;
 }
 
+interface MarSipStatus {
+  hasExtension: boolean;
+  marsipActive: boolean;
+}
+
 export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated, onLeadDeleted, formatAmount, t }: CrmLeadSlideOverProps) {
   const stage = PIPELINE_STAGES.find(s => s.status === lead.stage);
   const initials = `${lead.firstName[0] || ''}${lead.lastName[0] || ''}`;
@@ -25,6 +30,15 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
   const [callResult, setCallResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [msgTab, setMsgTab] = useState<'whatsapp' | 'messenger' | 'instagram'>('whatsapp');
+  const [marsipStatus, setMarsipStatus] = useState<MarSipStatus | null>(null);
+
+  // Check if user has MarSIP extension
+  useEffect(() => {
+    fetch('/api/crm/settings/marsip/my-extension')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => data && setMarsipStatus(data))
+      .catch(() => {});
+  }, []);
 
   const formatDate = (d: string | null) => {
     if (!d) return '—';
@@ -47,6 +61,13 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
   };
 
   const handleCall = (phone: string) => {
+    // Check if user has MarSIP extension
+    if (marsipStatus && !marsipStatus.hasExtension) {
+      setCallResult({ type: 'error', message: 'У вас нет аккаунта в MarSIP' });
+      setTimeout(() => setCallResult(null), 3000);
+      return;
+    }
+
     // Dispatch custom event to open MarSIP widget and initiate call
     const event = new CustomEvent('marsip:call', {
       detail: { phone, leadId: lead.id }

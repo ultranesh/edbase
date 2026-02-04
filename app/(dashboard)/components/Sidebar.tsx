@@ -36,7 +36,7 @@ export default function Sidebar({ userRole, isOpen, onClose }: SidebarProps) {
   }, [fetchUnreadCount]);
 
   const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
-  const isCoordinator = userRole === 'COORDINATOR' || userRole === 'COORDINATOR_MANAGER' || userRole === 'ADMIN' || userRole === 'SUPERADMIN';
+  const isCoordinator = userRole === 'COORDINATOR' || userRole === 'CHIEF_COORDINATOR' || userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';

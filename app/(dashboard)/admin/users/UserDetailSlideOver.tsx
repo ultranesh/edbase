@@ -481,7 +481,7 @@ export default function UserDetailSlideOver({
       DEPARTMENT_HEAD: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300',
       CURATOR: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300',
       COORDINATOR: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
-      COORDINATOR_MANAGER: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
+      CHIEF_COORDINATOR: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
       TEACHER: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
       PARENT: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
       ONLINE_MENTOR: 'bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300',
