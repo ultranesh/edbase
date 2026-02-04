@@ -447,7 +447,8 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
         <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <button
             onClick={() => setViewMode('kanban')}
-            className={`px-3 py-2 text-sm font-medium flex items-center gap-1.5 transition-colors ${
+            title={t('crm.viewKanban')}
+            className={`px-2.5 py-2 text-sm font-medium flex items-center transition-colors ${
               viewMode === 'kanban'
                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                 : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -456,11 +457,11 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" />
             </svg>
-            {t('crm.viewKanban')}
           </button>
           <button
             onClick={() => setViewMode('table')}
-            className={`px-3 py-2 text-sm font-medium flex items-center gap-1.5 transition-colors ${
+            title={t('crm.viewTable')}
+            className={`px-2.5 py-2 text-sm font-medium flex items-center transition-colors ${
               viewMode === 'table'
                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                 : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -469,7 +470,6 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            {t('crm.viewTable')}
           </button>
         </div>
 
