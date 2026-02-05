@@ -329,8 +329,8 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
       )}
 
       {/* Content */}
-      <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 overflow-hidden">
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 h-full overflow-y-auto lg:overflow-hidden">
+      <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 pt-2 overflow-hidden">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3 h-full overflow-y-auto lg:overflow-hidden">
           {/* Left column - Info (own scroll) */}
           <div className="relative shrink-0 lg:shrink lg:h-[calc(100vh-140px)]">
             <div ref={leftColumnRef} className="left-scroll space-y-3 lg:overflow-y-auto lg:h-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
