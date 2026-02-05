@@ -59,9 +59,9 @@ export default function CrmKanbanColumn({
       </div>
 
       {/* Cards */}
-      <div className={`flex-1 min-h-0 relative ${stage.bgClass}`}>
+      <div className={`flex-1 min-h-0 ${stage.bgClass}`}>
         <div
-          className="kanban-scroll overflow-y-auto h-full p-1.5 space-y-1.5 pb-8"
+          className="kanban-scroll overflow-y-auto h-full p-1.5 space-y-1.5"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           <style>{`.kanban-scroll::-webkit-scrollbar { display: none; }`}</style>
@@ -82,10 +82,6 @@ export default function CrmKanbanColumn({
             ))
           )}
         </div>
-        {/* Bottom fade gradient */}
-        {leads.length > 3 && (
-          <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-gray-100/90 dark:from-gray-800/90 to-transparent pointer-events-none" />
-        )}
       </div>
     </div>
   );
