@@ -302,7 +302,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 h-full overflow-y-auto lg:overflow-hidden">
           {/* Left column - Info (own scroll) */}
           <div className="relative shrink-0 lg:shrink lg:h-[calc(100vh-180px)]">
-            <div ref={leftColumnRef} className="left-scroll space-y-3 lg:overflow-y-auto lg:h-full pb-8" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div ref={leftColumnRef} className="left-scroll space-y-3 lg:overflow-y-auto lg:h-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style>{`.left-scroll::-webkit-scrollbar { display: none; }`}</style>
               {/* Contact Info */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -404,8 +404,6 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
                 )}
               </div>
             </div>
-            {/* Bottom fade gradient */}
-            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50 dark:from-gray-900 to-transparent pointer-events-none" />
           </div>
 
           {/* Right column - Chat */}
