@@ -278,7 +278,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
       )}
 
       {/* Content */}
-      <div key={lead.id} className="flex-1 min-h-0 p-4">
+      <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 pt-2">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
           {/* Left column - Info (own scroll) */}
           <div className="space-y-3 overflow-y-auto lg:h-[calc(100vh-180px)] pr-2" style={{ scrollbarWidth: 'thin' }}>
