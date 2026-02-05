@@ -299,10 +299,10 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
 
       {/* Content */}
       <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 pt-2 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full overflow-hidden">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 h-full overflow-y-auto lg:overflow-hidden">
           {/* Left column - Info (own scroll) */}
-          <div className="relative lg:h-[calc(100vh-180px)]">
-            <div ref={leftColumnRef} className="left-scroll space-y-3 overflow-y-auto h-full pb-8" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="relative shrink-0 lg:shrink lg:h-[calc(100vh-180px)]">
+            <div ref={leftColumnRef} className="left-scroll space-y-3 lg:overflow-y-auto lg:h-full pb-8" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style>{`.left-scroll::-webkit-scrollbar { display: none; }`}</style>
               {/* Contact Info */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -409,7 +409,8 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
           </div>
 
           {/* Right column - Chat */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden min-h-[500px] lg:h-[calc(100vh-180px)] flex flex-col">
+          <div className="shrink-0 lg:shrink h-[60vh] lg:h-[calc(100vh-180px)]">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden h-full flex flex-col">
               <div className="flex border-b border-gray-200 dark:border-gray-700 shrink-0">
                 <button
                   onClick={() => setMsgTab('whatsapp')}
@@ -483,6 +484,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
             </div>
           </div>
         </div>
+      </div>
     </div>
   );
 }
