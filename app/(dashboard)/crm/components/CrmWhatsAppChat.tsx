@@ -1117,7 +1117,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                     </span>
                   </div>
                   {group.messages.map(msg => (
-                    <div key={msg.id} id={`msg-${msg.id}`} className={`transition-colors duration-500 ${highlightedMsgId === msg.id ? 'bg-yellow-200/50 dark:bg-yellow-500/20 rounded-lg' : ''}`}>
+                    <div key={msg.id} id={`msg-${msg.id}`}>
                       {/* New messages separator */}
                       {msg.id === firstUnreadMsgId && (
                         <div className="flex items-center gap-3 my-3">
@@ -1142,7 +1142,9 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                         </button>
                       )}
                       <div
-                        className={`max-w-[75%] rounded-2xl text-sm relative ${
+                        className={`max-w-[75%] rounded-2xl text-sm relative transition-all duration-500 ${
+                          highlightedMsgId === msg.id ? 'ring-2 ring-yellow-400 ring-offset-2 ring-offset-transparent' : ''
+                        } ${
                           isSticker(msg) || isReaction(msg)
                             ? ''
                             : msg.direction === 'OUTGOING'
