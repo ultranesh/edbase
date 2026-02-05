@@ -116,11 +116,19 @@ interface Funnel {
 export default function CrmClient({ initialLeads, initialFunnels, userRole, userId, coordinators }: CrmClientProps) {
   const { t } = useLanguage();
 
-  // Lock body scroll on mount
+  // Lock body and main scroll on mount
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+    // Also lock the main element (from DashboardLayout)
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      (mainEl as HTMLElement).style.overflow = 'hidden';
+    }
     return () => {
       document.body.style.overflow = '';
+      if (mainEl) {
+        (mainEl as HTMLElement).style.overflow = '';
+      }
     };
   }, []);
   const [leads, setLeads] = useState<CrmLead[]>(initialLeads);
