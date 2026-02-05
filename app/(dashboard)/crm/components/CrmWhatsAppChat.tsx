@@ -148,6 +148,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   const [sending, setSending] = useState(false);
   const [text, setText] = useState('');
   const [uploading] = useState(false);
+  const [initialUnreadCount, setInitialUnreadCount] = useState(0);
   const [initPhone, setInitPhone] = useState<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
@@ -224,7 +225,8 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
           return [...msgs, ...pending];
         });
         if (hasNew || forceScroll) {
-          setTimeout(() => scrollToBottom(), 100);
+          // Use instant scroll on initial load, smooth for updates
+          setTimeout(() => scrollToBottom(!forceScroll), forceScroll ? 50 : 100);
         }
         // Check if session expired (last incoming message > 24h ago)
         const lastIncoming = [...msgs].reverse().find(m => m.direction === 'INCOMING');
@@ -311,6 +313,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
             setActiveConversation(prev => {
               const selected = prev || relevant[0];
               setIsBlocked(!!selected.isBlocked);
+              setInitialUnreadCount(selected.unreadCount || 0);
               return selected;
             });
           } else {
@@ -795,6 +798,15 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
     }
   }
 
+  // Find first unread message ID (last N incoming messages where N = unreadCount)
+  const firstUnreadMsgId = (() => {
+    if (initialUnreadCount <= 0) return null;
+    const incomingMsgs = messages.filter(m => m.direction === 'INCOMING');
+    if (incomingMsgs.length === 0) return null;
+    const firstUnreadIndex = Math.max(0, incomingMsgs.length - initialUnreadCount);
+    return incomingMsgs[firstUnreadIndex]?.id || null;
+  })();
+
   const isSticker = (msg: WAMessage) => msg.type === 'STICKER';
   const isReaction = (msg: WAMessage) => msg.type === 'REACTION';
   const hasMediaContent = (msg: WAMessage) => ['IMAGE', 'STICKER', 'VIDEO', 'AUDIO', 'DOCUMENT'].includes(msg.type) && msg.mediaUrl;
@@ -1052,10 +1064,18 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                     </span>
                   </div>
                   {group.messages.map(msg => (
-                    <div
-                      key={msg.id}
-                      className={`flex mb-1 ${msg.direction === 'OUTGOING' ? 'justify-end' : 'justify-start'}`}
-                    >
+                    <div key={msg.id}>
+                      {/* New messages separator */}
+                      {msg.id === firstUnreadMsgId && (
+                        <div className="flex items-center gap-3 my-3">
+                          <div className="flex-1 h-px bg-blue-400/50" />
+                          <span className="text-[10px] text-blue-500 dark:text-blue-400 font-medium px-2">
+                            Новые сообщения
+                          </span>
+                          <div className="flex-1 h-px bg-blue-400/50" />
+                        </div>
+                      )}
+                      <div className={`flex mb-1 ${msg.direction === 'OUTGOING' ? 'justify-end' : 'justify-start'}`}>
                       <div
                         className={`max-w-[75%] rounded-2xl text-sm relative ${
                           isSticker(msg) || isReaction(msg)
@@ -1119,6 +1139,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                           </div>
                         )}
                       </div>
+                    </div>
                     </div>
                   ))}
                 </div>
