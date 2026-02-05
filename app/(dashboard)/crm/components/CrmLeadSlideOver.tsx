@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import CrmWhatsAppChat from './CrmWhatsAppChat';
 import CrmSocialChat from './CrmSocialChat';
 import type { CrmLead } from '../CrmClient';
@@ -47,6 +47,7 @@ interface LeadFull extends CrmLead {
 
 export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated, onLeadDeleted, formatAmount, t }: CrmLeadSlideOverProps) {
   const initials = `${lead.firstName[0] || ''}${lead.lastName[0] || ''}`;
+  const leftColumnRef = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [callResult, setCallResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -88,6 +89,13 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
   const handleFieldChange = useCallback((field: keyof typeof form, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
   }, []);
+
+  // Scroll to top when lead changes
+  useEffect(() => {
+    if (isOpen && leftColumnRef.current) {
+      leftColumnRef.current.scrollTop = 0;
+    }
+  }, [isOpen, lead.id]);
 
   // Load full lead data and reference data
   useEffect(() => {
@@ -281,7 +289,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
       <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 pt-2">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
           {/* Left column - Info (own scroll) */}
-          <div className="space-y-3 overflow-y-auto lg:h-[calc(100vh-180px)] pr-2" style={{ scrollbarWidth: 'thin' }}>
+          <div ref={leftColumnRef} className="space-y-3 overflow-y-auto lg:h-[calc(100vh-180px)] pr-2" style={{ scrollbarWidth: 'thin' }}>
               {/* Contact Info */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Контактная информация</h4>
