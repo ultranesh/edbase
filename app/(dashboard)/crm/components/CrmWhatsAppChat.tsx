@@ -178,6 +178,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   const [branches, setBranches] = useState<{id: string; name: string; nameKz: string | null; nameRu: string | null; nameEn: string | null; address: string | null; latitude: number | null; longitude: number | null}[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<WAMessage | null>(null);
+  const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
   const { language: uiLang } = useLanguage();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -196,6 +197,17 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   }, []);
 
   const normalizePhone = (phone: string) => phone.replace(/\D/g, '');
+
+  // Scroll to quoted message and highlight it
+  const scrollToMessage = useCallback((msgId: string | null) => {
+    if (!msgId) return;
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMsgId(msgId);
+      setTimeout(() => setHighlightedMsgId(null), 1500);
+    }
+  }, []);
 
   const getBranchLabel = useCallback((branch: typeof branches[number]) => {
     const lang = leadLanguage || (uiLang === 'kk' ? 'KZ' : uiLang === 'en' ? 'EN' : 'RU');
@@ -1105,7 +1117,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                     </span>
                   </div>
                   {group.messages.map(msg => (
-                    <div key={msg.id}>
+                    <div key={msg.id} id={`msg-${msg.id}`} className={`transition-colors duration-500 ${highlightedMsgId === msg.id ? 'bg-yellow-200/50 dark:bg-yellow-500/20 rounded-lg' : ''}`}>
                       {/* New messages separator */}
                       {msg.id === firstUnreadMsgId && (
                         <div className="flex items-center gap-3 my-3">
@@ -1140,7 +1152,9 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                       >
                         {/* Quoted message (reply context) */}
                         {msg.quotedBody && !isSticker(msg) && !isReaction(msg) && (
-                          <div className={`mb-1.5 px-2 py-1 rounded-lg border-l-4 text-xs ${
+                          <div
+                            onClick={() => scrollToMessage(msg.quotedMsgId)}
+                            className={`mb-1.5 px-2 py-1 rounded-lg border-l-4 text-xs cursor-pointer hover:opacity-80 transition-opacity ${
                             msg.direction === 'OUTGOING'
                               ? 'bg-[#c5f0c8] dark:bg-[#025144] border-green-600 dark:border-[#06cf9c]'
                               : 'bg-gray-100 dark:bg-[#1a2428] border-gray-400 dark:border-[#8696a0]'
