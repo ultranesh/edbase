@@ -251,22 +251,20 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
               <span className="text-sm font-semibold text-white">{initials}</span>
             </div>
-            <div>
-              <h1 className="text-base font-semibold text-gray-900 dark:text-white leading-tight">
+            <div className="flex items-center gap-3">
+              <h1 className="text-base font-semibold text-gray-900 dark:text-white">
                 {fullLead.lastName} {fullLead.firstName}
               </h1>
-              <div className="flex items-center gap-2">
-                {fullLead.stage_rel && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
-                    {fullLead.stage_rel.name}
-                  </span>
-                )}
-                {fullLead.amount && (
-                  <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                    {formatAmount(fullLead.amount)}
-                  </span>
-                )}
-              </div>
+              {fullLead.stage_rel && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
+                  {fullLead.stage_rel.name}
+                </span>
+              )}
+              {fullLead.amount && (
+                <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                  {formatAmount(fullLead.amount)}
+                </span>
+              )}
             </div>
           </div>
 
