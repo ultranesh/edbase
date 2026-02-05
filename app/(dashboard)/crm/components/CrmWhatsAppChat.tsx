@@ -243,8 +243,20 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
     } catch { /* ignore */ }
   }, [scrollToBottom]);
 
+  const scrollRestoreRef = useRef<{ height: number; top: number } | null>(null);
+
   const loadMoreMessages = useCallback(async () => {
     if (!activeConversation || !nextCursorRef.current || loadingMore) return;
+
+    // Save scroll position BEFORE loading
+    const container = messagesContainerRef.current;
+    if (container) {
+      scrollRestoreRef.current = {
+        height: container.scrollHeight,
+        top: container.scrollTop,
+      };
+    }
+
     setLoadingMore(true);
     try {
       const res = await fetch(`/api/whatsapp/conversations/${activeConversation.id}/messages?limit=100&cursor=${nextCursorRef.current}`, { cache: 'no-store' });
@@ -259,6 +271,20 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
     setLoadingMore(false);
   }, [activeConversation, loadingMore]);
 
+  // Restore scroll position after messages update
+  useEffect(() => {
+    if (scrollRestoreRef.current && messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      const { height: prevHeight } = scrollRestoreRef.current;
+      const newHeight = container.scrollHeight;
+      const diff = newHeight - prevHeight;
+      if (diff > 0) {
+        container.scrollTop = diff;
+      }
+      scrollRestoreRef.current = null;
+    }
+  }, [messages]);
+
   // Infinite scroll - load more when scrolling to top
   const handleMessagesScroll = useCallback(() => {
     const container = messagesContainerRef.current;
@@ -266,16 +292,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
 
     // If scrolled near top (within 50px), load more
     if (container.scrollTop < 50) {
-      const prevScrollHeight = container.scrollHeight;
-      loadMoreMessages().then(() => {
-        // Maintain scroll position after loading older messages
-        requestAnimationFrame(() => {
-          if (messagesContainerRef.current) {
-            const newScrollHeight = messagesContainerRef.current.scrollHeight;
-            messagesContainerRef.current.scrollTop = newScrollHeight - prevScrollHeight;
-          }
-        });
-      });
+      loadMoreMessages();
     }
   }, [loadingMore, hasMore, loadMoreMessages]);
 
