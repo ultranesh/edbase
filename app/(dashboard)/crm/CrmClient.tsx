@@ -667,7 +667,7 @@ export default function CrmClient({ initialLeads, initialFunnels, userRole, user
       )}
 
       {/* ── MAIN VIEW ── */}
-      <div className={`flex-1 min-h-0 ${slideOverOpen ? '' : 'px-6 pb-4'}`}>
+      <div className={`flex-1 min-h-0 overflow-hidden ${slideOverOpen ? '' : 'px-6 pb-4'}`}>
       {slideOverOpen && selectedLead ? (
         <CrmLeadSlideOver
           lead={selectedLead}
