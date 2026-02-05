@@ -44,7 +44,7 @@ export async function GET(
     return NextResponse.json({
       messages: messages.reverse(), // oldest first
       hasMore,
-      nextCursor: hasMore ? messages[messages.length - 1]?.id : null,
+      nextCursor: hasMore ? messages[0]?.id : null, // oldest message for loading earlier ones
     });
   } catch (error) {
     console.error('[WhatsApp Messages] Error:', error);
