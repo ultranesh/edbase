@@ -175,6 +175,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const { language: uiLang } = useLanguage();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
@@ -244,6 +245,26 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
     } catch { /* ignore */ }
     setLoadingMore(false);
   }, [activeConversation, loadingMore]);
+
+  // Infinite scroll - load more when scrolling to top
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container || loadingMore || !hasMore) return;
+
+    // If scrolled near top (within 50px), load more
+    if (container.scrollTop < 50) {
+      const prevScrollHeight = container.scrollHeight;
+      loadMoreMessages().then(() => {
+        // Maintain scroll position after loading older messages
+        requestAnimationFrame(() => {
+          if (messagesContainerRef.current) {
+            const newScrollHeight = messagesContainerRef.current.scrollHeight;
+            messagesContainerRef.current.scrollTop = newScrollHeight - prevScrollHeight;
+          }
+        });
+      });
+    }
+  }, [loadingMore, hasMore, loadMoreMessages]);
 
   // Load templates on mount
   useEffect(() => {
@@ -980,7 +1001,9 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
         <>
           {/* Chat messages */}
           <div
+            ref={messagesContainerRef}
             className="h-80 overflow-y-auto px-3 py-2 space-y-1 bg-[#efeae2] dark:bg-[#0b141a] relative"
+            onScroll={handleMessagesScroll}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -1002,15 +1025,12 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
               </div>
             ) : (
               <>
-                {hasMore && (
+                {loadingMore && (
                   <div className="flex justify-center py-3">
-                    <button
-                      onClick={loadMoreMessages}
-                      disabled={loadingMore}
-                      className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-50"
-                    >
-                      {loadingMore ? 'Загрузка...' : 'Загрузить предыдущие сообщения'}
-                    </button>
+                    <svg className="w-5 h-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
                   </div>
                 )}
                 {groupedMessages.map((group, gi) => (
