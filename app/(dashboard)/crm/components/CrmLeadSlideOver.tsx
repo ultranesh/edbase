@@ -92,8 +92,20 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
 
   // Scroll to top when lead changes
   useEffect(() => {
-    if (isOpen && leftColumnRef.current) {
-      leftColumnRef.current.scrollTop = 0;
+    if (isOpen) {
+      // Use multiple attempts to ensure scroll resets
+      const scrollToTop = () => {
+        if (leftColumnRef.current) {
+          leftColumnRef.current.scrollTop = 0;
+        }
+      };
+      // Immediate
+      scrollToTop();
+      // After DOM update
+      requestAnimationFrame(scrollToTop);
+      // After a short delay (for any animations)
+      const timeout = setTimeout(scrollToTop, 50);
+      return () => clearTimeout(timeout);
     }
   }, [isOpen, lead.id]);
 
