@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { emitNewLead, emitNewMessage } from '@/lib/socket/emit';
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'ertis_whatsapp_verify_2024';
 const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN!;
@@ -240,13 +241,24 @@ async function handleIncomingMessage(
 
     // If no linked lead, auto-create one from WhatsApp
     if (!conversation.leadId) {
+      // Find default funnel and its first stage
+      const defaultFunnel = await prisma.crmFunnel.findFirst({
+        where: { isActive: true },
+        orderBy: [{ isDefault: 'desc' }, { order: 'asc' }],
+        include: { stages: { orderBy: { order: 'asc' }, take: 1 } },
+      });
+
+      const firstStageId = defaultFunnel?.stages[0]?.id || null;
+
       const newLead = await prisma.crmLead.create({
         data: {
           firstName: contactName || contactPhone,
           lastName: '',
           phone: contactPhone,
           source: 'WhatsApp',
-          stage: 'NEW_APPLICATION',
+          // stage uses default NEW_APPLICATION from schema
+          funnelId: defaultFunnel?.id || null,
+          stageId: firstStageId || null,
           description: `Автоматически создан из входящего сообщения WhatsApp`,
         },
       });
@@ -254,6 +266,37 @@ async function handleIncomingMessage(
       await prisma.whatsAppConversation.update({
         where: { id: conversation.id },
         data: { leadId: newLead.id },
+      });
+
+      // Emit new lead event for real-time updates
+      emitNewLead({
+        id: newLead.id,
+        firstName: newLead.firstName,
+        lastName: newLead.lastName,
+        phone: newLead.phone,
+        source: newLead.source,
+        stageId: newLead.stageId,
+        funnelId: newLead.funnelId,
+      });
+    }
+
+    // Emit new message event for real-time updates
+    const updatedConversation = await prisma.whatsAppConversation.findUnique({
+      where: { id: conversation.id },
+      select: { leadId: true, unreadCount: true },
+    });
+
+    if (updatedConversation?.leadId) {
+      emitNewMessage({
+        leadId: updatedConversation.leadId,
+        conversationId: conversation.id,
+        message: {
+          id: message.id,
+          body,
+          type: msgType,
+          direction: 'INCOMING',
+        },
+        unreadCount: updatedConversation.unreadCount,
       });
     }
 

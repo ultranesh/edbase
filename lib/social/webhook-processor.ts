@@ -5,6 +5,7 @@ import {
   getUserProfile,
   markSeen,
 } from './meta-send';
+import { emitNewLead, emitNewMessage } from '../socket/emit';
 
 type Platform = 'MESSENGER' | 'INSTAGRAM';
 
@@ -48,12 +49,24 @@ export async function processIncomingMessage(
 
     // Auto-create CRM lead
     const leadSource = platform === 'MESSENGER' ? 'Facebook' : 'Instagram';
+
+    // Find default funnel and its first stage
+    const defaultFunnel = await prisma.crmFunnel.findFirst({
+      where: { isActive: true },
+      orderBy: [{ isDefault: 'desc' }, { order: 'asc' }],
+      include: { stages: { orderBy: { order: 'asc' }, take: 1 } },
+    });
+
+    const firstStageId = defaultFunnel?.stages[0]?.id || null;
+
     const lead = await prisma.crmLead.create({
       data: {
         firstName: profile.name?.split(' ')[0] || leadSource,
         lastName: profile.name?.split(' ').slice(1).join(' ') || 'User',
         source: leadSource,
-        stage: 'NEW_APPLICATION',
+        // stage uses default NEW_APPLICATION from schema
+        funnelId: defaultFunnel?.id || null,
+        stageId: firstStageId || null,
       },
     });
 
@@ -61,6 +74,17 @@ export async function processIncomingMessage(
     conversation = await prisma.socialConversation.update({
       where: { id: conversation.id },
       data: { leadId: lead.id },
+    });
+
+    // Emit new lead event for real-time updates
+    emitNewLead({
+      id: lead.id,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      phone: null,
+      source: lead.source,
+      stageId: lead.stageId,
+      funnelId: lead.funnelId,
     });
   } else {
     // Update conversation metadata
@@ -87,7 +111,7 @@ export async function processIncomingMessage(
   }
 
   // 3. Create message record
-  await prisma.socialMessage.create({
+  const newMessage = await prisma.socialMessage.create({
     data: {
       conversationId: conversation.id,
       platformMsgId: msg.mid,
@@ -100,7 +124,27 @@ export async function processIncomingMessage(
     },
   });
 
-  // 4. Mark as seen on Meta
+  // 4. Emit new message event for real-time updates
+  if (conversation.leadId) {
+    const updatedConv = await prisma.socialConversation.findUnique({
+      where: { id: conversation.id },
+      select: { unreadCount: true },
+    });
+
+    emitNewMessage({
+      leadId: conversation.leadId,
+      conversationId: conversation.id,
+      message: {
+        id: newMessage.id,
+        body,
+        type,
+        direction: 'INCOMING',
+      },
+      unreadCount: updatedConv?.unreadCount || 1,
+    });
+  }
+
+  // 5. Mark as seen on Meta
   try {
     await markSeen(platform, senderId);
   } catch {

@@ -7,6 +7,7 @@ import CrmTableView from './components/CrmTableView';
 import CrmLeadSlideOver from './components/CrmLeadSlideOver';
 import CrmLeadFormModal from './components/CrmLeadFormModal';
 import CrmSettingsModal from './components/CrmSettingsModal';
+import { useCrmSocket, type NewLeadEvent } from '@/lib/socket/useSocket';
 
 export interface CrmLead {
   id: string;
@@ -91,6 +92,7 @@ export const PIPELINE_STAGES: PipelineStage[] = [
 
 interface CrmClientProps {
   initialLeads: CrmLead[];
+  initialFunnels?: Funnel[];
   userRole: string;
   userId: string;
   coordinators: { id: string; name: string }[];
@@ -111,7 +113,7 @@ interface Funnel {
   }[];
 }
 
-export default function CrmClient({ initialLeads, userRole, userId, coordinators }: CrmClientProps) {
+export default function CrmClient({ initialLeads, initialFunnels, userRole, userId, coordinators }: CrmClientProps) {
   const { t } = useLanguage();
 
   // Lock body scroll on mount
@@ -134,14 +136,17 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
   const [waUnreadMap, setWaUnreadMap] = useState<Record<string, number>>({});
   const [socialUnreadMap, setSocialUnreadMap] = useState<Record<string, number>>({});
 
-  // Funnels
-  const [funnels, setFunnels] = useState<Funnel[]>([]);
-  const [selectedFunnelId, setSelectedFunnelId] = useState<string | null>(null);
+  // Funnels - use initialFunnels to avoid flash
+  const [funnels, setFunnels] = useState<Funnel[]>(initialFunnels || []);
+  const defaultFunnel = initialFunnels?.find(f => f.isDefault) || initialFunnels?.[0];
+  const [selectedFunnelId, setSelectedFunnelId] = useState<string | null>(defaultFunnel?.id || null);
   const [funnelDropdownOpen, setFunnelDropdownOpen] = useState(false);
   const funnelDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load funnels
+  // Load funnels (skip if already have initialFunnels)
   useEffect(() => {
+    if (initialFunnels && initialFunnels.length > 0) return;
+
     const loadFunnels = async () => {
       try {
         const res = await fetch('/api/crm/funnels');
@@ -149,9 +154,9 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
           const data = await res.json();
           setFunnels(data);
           // Select default funnel or first one
-          const defaultFunnel = data.find((f: Funnel) => f.isDefault) || data[0];
-          if (defaultFunnel && !selectedFunnelId) {
-            setSelectedFunnelId(defaultFunnel.id);
+          const defaultF = data.find((f: Funnel) => f.isDefault) || data[0];
+          if (defaultF && !selectedFunnelId) {
+            setSelectedFunnelId(defaultF.id);
           }
         }
       } catch (error) {
@@ -159,7 +164,7 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
       }
     };
     loadFunnels();
-  }, []);
+  }, [initialFunnels]);
 
   // Close funnel dropdown on outside click
   useEffect(() => {
@@ -225,14 +230,80 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
     return () => window.removeEventListener('marsip:open-lead', handleOpenLead as EventListener);
   }, [leads]);
 
-  // Poll leads + WhatsApp + Social unread counts
+  // Socket.io real-time updates
+  const { onNewLead, onNewMessage, onLeadUpdated } = useCrmSocket();
+
+  // Listen for new leads via Socket.io
+  useEffect(() => {
+    const unsubscribe = onNewLead((lead: NewLeadEvent) => {
+      // Check if lead already exists
+      setLeads(prev => {
+        if (prev.some(l => l.id === lead.id)) return prev;
+        // Add new lead at the beginning
+        const newLead: CrmLead = {
+          id: lead.id,
+          firstName: lead.firstName,
+          lastName: lead.lastName,
+          phone: lead.phone,
+          email: null,
+          parentName: null,
+          parentPhone: null,
+          source: lead.source,
+          stage: lead.stageId || 'NEW_APPLICATION',
+          funnelId: lead.funnelId,
+          stageId: lead.stageId,
+          amount: null,
+          description: null,
+          lostReason: null,
+          language: null,
+          coordinatorId: null,
+          coordinator: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        return [newLead, ...prev];
+      });
+    });
+    return unsubscribe;
+  }, [onNewLead]);
+
+  // Listen for new messages (update unread badge)
+  useEffect(() => {
+    const unsubscribe = onNewMessage((data: { leadId: string; unreadCount: number }) => {
+      setWaUnreadMap(prev => ({
+        ...prev,
+        [data.leadId]: data.unreadCount,
+      }));
+    });
+    return unsubscribe;
+  }, [onNewMessage]);
+
+  // Listen for lead updates
+  useEffect(() => {
+    const unsubscribe = onLeadUpdated((data) => {
+      setLeads(prev => prev.map(l =>
+        l.id === data.id
+          ? { ...l, stageId: data.stageId, funnelId: data.funnelId, stage: data.stageId || l.stage }
+          : l
+      ));
+    });
+    return unsubscribe;
+  }, [onLeadUpdated]);
+
+  // Poll leads + WhatsApp + Social unread counts (every 30 seconds as backup)
   useEffect(() => {
     const poll = async () => {
       try {
+        const ts = Date.now(); // Cache buster
+        const fetchOptions = {
+          cache: 'no-store' as const,
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+        };
+
         const [leadsRes, waRes, socialRes] = await Promise.all([
-          fetch('/api/crm/leads', { cache: 'no-store' }),
-          fetch('/api/whatsapp/conversations', { cache: 'no-store' }),
-          fetch('/api/social/conversations', { cache: 'no-store' }),
+          fetch(`/api/crm/leads?_t=${ts}`, fetchOptions),
+          fetch(`/api/whatsapp/conversations?_t=${ts}`, fetchOptions),
+          fetch(`/api/social/conversations?_t=${ts}`, fetchOptions),
         ]);
 
         if (leadsRes.ok) {
@@ -263,7 +334,11 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
         }
       } catch { /* ignore */ }
     };
-    const interval = setInterval(poll, 5000);
+
+    // Initial poll immediately
+    poll();
+
+    const interval = setInterval(poll, 30000); // Poll every 30 seconds (backup for Socket.io)
     return () => clearInterval(interval);
   }, []);
 
@@ -374,6 +449,7 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden -mt-4 -mx-6">
       {/* ── FILTERS BAR ── */}
+      {!slideOverOpen && (
       <div className="flex flex-wrap items-center gap-3 shrink-0 px-6 pt-4">
         {/* Funnel selector */}
         <div className="relative" ref={funnelDropdownRef}>
@@ -570,8 +646,10 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
         )}
 
               </div>
+      )}
 
       {/* ── STAGE SUMMARY ── */}
+      {!slideOverOpen && (
       <div className="flex gap-1.5 mt-3 mb-3 shrink-0 overflow-x-auto px-6" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {stageTotals.map(stage => (
           <div key={stage.status} className={`${stage.bgClass} border ${stage.borderClass} rounded-lg px-2.5 py-1.5 flex items-center gap-2`}>
@@ -586,10 +664,21 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
           </div>
         ))}
       </div>
+      )}
 
       {/* ── MAIN VIEW ── */}
-      <div className="flex-1 min-h-0 px-6 pb-4">
-      {viewMode === 'kanban' ? (
+      <div className={`flex-1 min-h-0 ${slideOverOpen ? '' : 'px-6 pb-4'}`}>
+      {slideOverOpen && selectedLead ? (
+        <CrmLeadSlideOver
+          lead={selectedLead}
+          isOpen={slideOverOpen}
+          onClose={() => { setSlideOverOpen(false); setSelectedLead(null); }}
+          onLeadUpdated={handleLeadUpdated}
+          onLeadDeleted={handleLeadDeleted}
+          formatAmount={formatAmount}
+          t={t}
+        />
+      ) : viewMode === 'kanban' ? (
         <CrmKanbanBoard
           leadsByStage={leadsByStage}
           stages={dynamicStages}
@@ -610,19 +699,6 @@ export default function CrmClient({ initialLeads, userRole, userId, coordinators
         />
       )}
       </div>
-
-      {/* ── LEAD SLIDE-OVER ── */}
-      {selectedLead && (
-        <CrmLeadSlideOver
-          lead={selectedLead}
-          isOpen={slideOverOpen}
-          onClose={() => { setSlideOverOpen(false); setSelectedLead(null); }}
-          onLeadUpdated={handleLeadUpdated}
-          onLeadDeleted={handleLeadDeleted}
-          formatAmount={formatAmount}
-          t={t}
-        />
-      )}
 
       {/* ── ADD LEAD MODAL ── */}
       {formModalOpen && (

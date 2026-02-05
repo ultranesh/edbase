@@ -141,6 +141,9 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   const [conversations, setConversations] = useState<WAConversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<WAConversation | null>(null);
   const [messages, setMessages] = useState<WAMessage[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const nextCursorRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [text, setText] = useState('');
@@ -195,10 +198,12 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
 
   const loadMessages = useCallback(async (conversationId: string, forceScroll = false) => {
     try {
-      const res = await fetch(`/api/whatsapp/conversations/${conversationId}/messages`, { cache: 'no-store' });
+      const res = await fetch(`/api/whatsapp/conversations/${conversationId}/messages?limit=100`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         const msgs: WAMessage[] = data.messages || [];
+        setHasMore(data.hasMore || false);
+        nextCursorRef.current = data.nextCursor || null;
         const newLastId = msgs.length > 0 ? msgs[msgs.length - 1].id : null;
         const hasNew = newLastId !== lastMessageIdRef.current;
         lastMessageIdRef.current = newLastId;
@@ -223,6 +228,22 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
       }
     } catch { /* ignore */ }
   }, []);
+
+  const loadMoreMessages = useCallback(async () => {
+    if (!activeConversation || !nextCursorRef.current || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/whatsapp/conversations/${activeConversation.id}/messages?limit=100&cursor=${nextCursorRef.current}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        const olderMsgs: WAMessage[] = data.messages || [];
+        setHasMore(data.hasMore || false);
+        nextCursorRef.current = data.nextCursor || null;
+        setMessages(prev => [...olderMsgs, ...prev]);
+      }
+    } catch { /* ignore */ }
+    setLoadingMore(false);
+  }, [activeConversation, loadingMore]);
 
   // Load templates on mount
   useEffect(() => {
@@ -980,7 +1001,19 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                 {t('crm.noMessages')}
               </div>
             ) : (
-              groupedMessages.map((group, gi) => (
+              <>
+                {hasMore && (
+                  <div className="flex justify-center py-3">
+                    <button
+                      onClick={loadMoreMessages}
+                      disabled={loadingMore}
+                      className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-50"
+                    >
+                      {loadingMore ? 'Загрузка...' : 'Загрузить предыдущие сообщения'}
+                    </button>
+                  </div>
+                )}
+                {groupedMessages.map((group, gi) => (
                 <div key={gi}>
                   <div className="flex justify-center my-2">
                     <span className="text-[10px] bg-white/90 dark:bg-[#182229]/90 text-gray-500 dark:text-[#8696a0] px-3 py-0.5 rounded-lg shadow-sm">
@@ -1058,7 +1091,8 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                     </div>
                   ))}
                 </div>
-              ))
+              ))}
+              </>
             )}
             <div ref={messagesEndRef} />
           </div>

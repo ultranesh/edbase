@@ -4,6 +4,36 @@ import { prisma } from '@/lib/prisma';
 
 const ALLOWED_ROLES = ['COORDINATOR', 'CHIEF_COORDINATOR', 'ADMIN', 'SUPERADMIN'];
 
+// GET single lead with all relations
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session || !ALLOWED_ROLES.includes(session.user.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  const lead = await prisma.crmLead.findUnique({
+    where: { id },
+    include: {
+      coordinator: { select: { firstName: true, lastName: true } },
+      stage_rel: true,
+      funnel: true,
+      gradeLevel: true,
+      studyLanguage: true,
+      region: true,
+      city: true,
+      school: true,
+    },
+  });
+
+  if (!lead) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  return NextResponse.json(lead);
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session || !ALLOWED_ROLES.includes(session.user.role)) {
@@ -37,6 +67,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.coordinatorId !== undefined) data.coordinatorId = body.coordinatorId || null;
   if (body.language !== undefined) data.language = body.language || null;
 
+  // Student profile fields
+  if (body.studentName !== undefined) data.studentName = body.studentName || null;
+  if (body.studentPhone !== undefined) data.studentPhone = body.studentPhone || null;
+  if (body.gradeLevelId !== undefined) data.gradeLevelId = body.gradeLevelId || null;
+  if (body.studyLanguageId !== undefined) data.studyLanguageId = body.studyLanguageId || null;
+  if (body.goal !== undefined) data.goal = body.goal || null;
+  if (body.regionId !== undefined) data.regionId = body.regionId || null;
+  if (body.cityId !== undefined) data.cityId = body.cityId || null;
+  if (body.schoolId !== undefined) data.schoolId = body.schoolId || null;
+
+  // Pre-consultation notes
+  if (body.meetingAt !== undefined) data.meetingAt = body.meetingAt ? new Date(body.meetingAt) : null;
+  if (body.bonus !== undefined) data.bonus = body.bonus || null;
+
   const lead = await prisma.crmLead.update({
     where: { id },
     data,
@@ -44,6 +88,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       coordinator: { select: { firstName: true, lastName: true } },
       stage_rel: true,
       funnel: true,
+      gradeLevel: true,
+      studyLanguage: true,
+      region: true,
+      city: true,
+      school: true,
     },
   });
 

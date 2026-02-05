@@ -222,6 +222,7 @@ model RefLanguage {
 
   students  Student[]
   groups    Group[]
+  crmLeads  CrmLead[] @relation("CrmLeadStudyLanguage")
 
   @@map("ref_languages")
 }
@@ -241,6 +242,7 @@ model RefGradeLevel {
 
   students  Student[]
   groups    Group[]
+  crmLeads  CrmLead[]
 
   @@map("ref_grade_levels")
 }
@@ -338,6 +340,7 @@ model RefRegion {
   updatedAt  DateTime @updatedAt
 
   cities    RefCity[]
+  crmLeads  CrmLead[]
 
   @@map("ref_regions")
 }
@@ -359,6 +362,7 @@ model RefCity {
   region    RefRegion? @relation(fields: [regionId], references: [id])
   schools   RefSchool[]
   students  Student[]
+  crmLeads  CrmLead[]
 
   @@index([regionId])
   @@map("ref_cities")
@@ -379,6 +383,7 @@ model RefSchool {
 
   city      RefCity   @relation(fields: [cityId], references: [id], onDelete: Cascade)
   students  Student[]
+  crmLeads  CrmLead[]
 
   @@index([cityId])
   @@map("ref_schools")
@@ -2079,6 +2084,25 @@ model CrmLead {
   lostReason    String?
   language      String?
 
+  // Student profile (Анкетные данные ученика)
+  studentName     String?       // ФИО ученика
+  studentPhone    String?       // Номер ученика
+  gradeLevelId    String?       // Класс
+  gradeLevel      RefGradeLevel? @relation(fields: [gradeLevelId], references: [id])
+  studyLanguageId String?       // Язык обучения
+  studyLanguage   RefLanguage?  @relation("CrmLeadStudyLanguage", fields: [studyLanguageId], references: [id])
+  goal            String?       // Цель
+  regionId        String?       // Область
+  region          RefRegion?    @relation(fields: [regionId], references: [id])
+  cityId          String?       // Город
+  city            RefCity?      @relation(fields: [cityId], references: [id])
+  schoolId        String?       // Школа
+  school          RefSchool?    @relation(fields: [schoolId], references: [id])
+
+  // Pre-consultation notes (Заметки до консультации)
+  meetingAt       DateTime?     // Встреча (дата и время)
+  bonus           String?       // Бонус (read-only from API)
+
   coordinatorId String?
   coordinator   User?         @relation("CrmLeads", fields: [coordinatorId], references: [id])
 
@@ -2092,6 +2116,11 @@ model CrmLead {
   @@index([funnelId])
   @@index([stageId])
   @@index([coordinatorId])
+  @@index([gradeLevelId])
+  @@index([studyLanguageId])
+  @@index([regionId])
+  @@index([cityId])
+  @@index([schoolId])
   @@map("crm_leads")
 }
 

@@ -33,6 +33,17 @@ export default async function CrmPage() {
     orderBy: { lastName: 'asc' },
   });
 
+  // Load funnels on server to avoid flash of unstyled content
+  const funnels = await prisma.crmFunnel.findMany({
+    where: { isActive: true },
+    include: {
+      stages: {
+        orderBy: { order: 'asc' },
+      },
+    },
+    orderBy: [{ isDefault: 'desc' }, { order: 'asc' }],
+  });
+
   return (
     <DashboardLayout
       user={{
@@ -47,6 +58,7 @@ export default async function CrmPage() {
     >
       <CrmClient
         initialLeads={JSON.parse(JSON.stringify(leads))}
+        initialFunnels={JSON.parse(JSON.stringify(funnels))}
         userRole={session.user.role}
         userId={session.user.id}
         coordinators={coordinators.map(c => ({ id: c.id, name: `${c.lastName} ${c.firstName}` }))}
