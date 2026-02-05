@@ -197,6 +197,17 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
     return lang === 'KZ' ? (branch.nameKz || branch.name) : lang === 'EN' ? (branch.nameEn || branch.name) : (branch.nameRu || branch.name);
   }, [leadLanguage, uiLang]);
 
+  // Scroll to bottom within container only (prevents parent scroll)
+  const scrollToBottom = useCallback((smooth = true) => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: smooth ? 'smooth' : 'instant',
+      });
+    }
+  }, []);
+
   const loadMessages = useCallback(async (conversationId: string, forceScroll = false) => {
     try {
       const res = await fetch(`/api/whatsapp/conversations/${conversationId}/messages?limit=100`, { cache: 'no-store' });
@@ -213,7 +224,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
           return [...msgs, ...pending];
         });
         if (hasNew || forceScroll) {
-          setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+          setTimeout(() => scrollToBottom(), 100);
         }
         // Check if session expired (last incoming message > 24h ago)
         const lastIncoming = [...msgs].reverse().find(m => m.direction === 'INCOMING');
@@ -228,7 +239,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
         }
       }
     } catch { /* ignore */ }
-  }, []);
+  }, [scrollToBottom]);
 
   const loadMoreMessages = useCallback(async () => {
     if (!activeConversation || !nextCursorRef.current || loadingMore) return;
@@ -372,7 +383,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
       } catch { /* ignore */ }
     }
 
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    setTimeout(() => scrollToBottom(), 100);
     setSending(false);
     inputRef.current?.focus();
   }, [text, activeConversation, sending, pendingFiles]);
@@ -434,7 +445,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
         setLocationLat('');
         setLocationLng('');
         setLocationName('');
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        setTimeout(() => scrollToBottom(), 100);
       }
     } catch { /* ignore */ }
     setSendingLocation(false);
@@ -533,7 +544,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
           _pending: true,
         };
         setMessages(prev => [...prev, optimisticMsg]);
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        setTimeout(() => scrollToBottom(), 100);
 
         // Upload in background
         const file = new File([blob], `voice.${ext}`, { type: mimeType });
@@ -1199,7 +1210,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                       setMessages(prev => [...prev, data.message]);
                       setShowTemplateMode(false);
                       setSessionExpired(false);
-                      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                      setTimeout(() => scrollToBottom(), 100);
                     }
                   } catch { /* ignore */ }
                   setSending(false);
