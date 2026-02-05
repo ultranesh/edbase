@@ -66,6 +66,7 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File;
     const conversationId = formData.get('conversationId') as string;
     const caption = formData.get('caption') as string | null;
+    const replyToMsgId = formData.get('replyToMsgId') as string | null;
 
     if (!file || !conversationId) {
       return NextResponse.json({ error: 'file and conversationId are required' }, { status: 400 });
@@ -77,6 +78,23 @@ export async function POST(request: Request) {
 
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    // Handle reply context
+    let quotedMsgId: string | null = null;
+    let quotedWaId: string | null = null;
+    let quotedBody: string | null = null;
+
+    if (replyToMsgId) {
+      const quotedMsg = await prisma.whatsAppMessage.findUnique({
+        where: { id: replyToMsgId },
+        select: { id: true, waMessageId: true, body: true, mediaCaption: true, type: true },
+      });
+      if (quotedMsg?.waMessageId) {
+        quotedMsgId = quotedMsg.id;
+        quotedWaId = quotedMsg.waMessageId;
+        quotedBody = quotedMsg.body || quotedMsg.mediaCaption || (quotedMsg.type !== 'TEXT' ? `[${quotedMsg.type}]` : null);
+      }
     }
 
     // Step 1: Prepare file for WhatsApp upload
@@ -160,6 +178,11 @@ export async function POST(request: Request) {
       type: msgType,
     };
 
+    // Add reply context if replying to a message
+    if (quotedWaId) {
+      messageBody.context = { message_id: quotedWaId };
+    }
+
     if (msgType === 'image') {
       messageBody.image = { id: mediaId, ...(caption ? { caption } : {}) };
     } else if (msgType === 'video') {
@@ -205,6 +228,9 @@ export async function POST(request: Request) {
         mediaFileName: file.name,
         status: 'SENT',
         sentById: session.user.id,
+        quotedMsgId,
+        quotedWaId,
+        quotedBody,
       },
       include: {
         sentBy: {

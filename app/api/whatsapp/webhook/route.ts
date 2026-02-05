@@ -103,6 +103,7 @@ async function handleIncomingMessage(
     location?: { latitude: number; longitude: number; name?: string; address?: string };
     contacts?: Array<{ name: { formatted_name: string }; phones: Array<{ phone: string }> }>;
     reaction?: { message_id: string; emoji: string };
+    context?: { id: string; from?: string }; // Reply/quote context
   },
   contact?: { wa_id: string; profile?: { name?: string } }
 ) {
@@ -223,6 +224,24 @@ async function handleIncomingMessage(
       }
     }
 
+    // Handle reply/quote context
+    let quotedMsgId: string | null = null;
+    let quotedWaId: string | null = null;
+    let quotedBody: string | null = null;
+
+    if (message.context?.id) {
+      quotedWaId = message.context.id;
+      // Try to find the quoted message in our DB
+      const quotedMsg = await prisma.whatsAppMessage.findFirst({
+        where: { waMessageId: message.context.id },
+        select: { id: true, body: true, mediaCaption: true, type: true },
+      });
+      if (quotedMsg) {
+        quotedMsgId = quotedMsg.id;
+        quotedBody = quotedMsg.body || quotedMsg.mediaCaption || (quotedMsg.type !== 'TEXT' ? `[${quotedMsg.type}]` : null);
+      }
+    }
+
     // Save message
     await prisma.whatsAppMessage.create({
       data: {
@@ -235,6 +254,9 @@ async function handleIncomingMessage(
         mediaCaption,
         mediaMimeType,
         mediaFileName,
+        quotedMsgId,
+        quotedWaId,
+        quotedBody,
         status: 'DELIVERED',
       },
     });

@@ -2163,6 +2163,11 @@ model WhatsAppMessage {
 
   status          WhatsAppMessageStatus @default(SENT)
 
+  // Reply/Quote context
+  quotedMsgId     String?           // Our internal message ID that was quoted
+  quotedWaId      String?           // WhatsApp message ID that was quoted (for incoming)
+  quotedBody      String?           // Text preview of quoted message
+
   sentById        String?           // User who sent outgoing message
   sentBy          User?   @relation("WhatsAppSentBy", fields: [sentById], references: [id])
 

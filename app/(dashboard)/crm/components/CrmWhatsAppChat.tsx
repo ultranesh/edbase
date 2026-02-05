@@ -102,6 +102,8 @@ interface WAMessage {
   status: string;
   sentBy: { id: string; firstName: string; lastName: string } | null;
   createdAt: string;
+  quotedMsgId: string | null;
+  quotedBody: string | null;
   _pending?: boolean;
   _failed?: boolean;
 }
@@ -144,6 +146,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const nextCursorRef = useRef<string | null>(null);
+  const hasLoadedOlderRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [text, setText] = useState('');
@@ -174,6 +177,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   const [geoLoading, setGeoLoading] = useState(false);
   const [branches, setBranches] = useState<{id: string; name: string; nameKz: string | null; nameRu: string | null; nameEn: string | null; address: string | null; latitude: number | null; longitude: number | null}[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<WAMessage | null>(null);
   const { language: uiLang } = useLanguage();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -215,13 +219,22 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
       if (res.ok) {
         const data = await res.json();
         const msgs: WAMessage[] = data.messages || [];
-        setHasMore(data.hasMore || false);
-        nextCursorRef.current = data.nextCursor || null;
+        // Only update hasMore/cursor on initial load (not polling when we've loaded older)
+        if (!hasLoadedOlderRef.current) {
+          setHasMore(data.hasMore || false);
+          nextCursorRef.current = data.nextCursor || null;
+        }
         const newLastId = msgs.length > 0 ? msgs[msgs.length - 1].id : null;
         const hasNew = newLastId !== lastMessageIdRef.current;
         lastMessageIdRef.current = newLastId;
         setMessages(prev => {
           const pending = prev.filter(m => m._pending || m._failed);
+          // If we've loaded older messages, preserve them and only merge new ones
+          if (hasLoadedOlderRef.current && prev.length > 0) {
+            const newMsgIds = new Set(msgs.map(m => m.id));
+            const oldMsgsToKeep = prev.filter(m => !m._pending && !m._failed && !newMsgIds.has(m.id));
+            return [...oldMsgsToKeep, ...msgs, ...pending];
+          }
           return [...msgs, ...pending];
         });
         if (hasNew || forceScroll) {
@@ -265,6 +278,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
         const olderMsgs: WAMessage[] = data.messages || [];
         setHasMore(data.hasMore || false);
         nextCursorRef.current = data.nextCursor || null;
+        hasLoadedOlderRef.current = true;
         setMessages(prev => [...olderMsgs, ...prev]);
       }
     } catch { /* ignore */ }
@@ -351,6 +365,8 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   useEffect(() => {
     if (activeConversation) {
       lastMessageIdRef.current = null;
+      hasLoadedOlderRef.current = false;
+      setReplyTo(null);
       loadMessages(activeConversation.id, true);
     }
   }, [activeConversation?.id, loadMessages]);
@@ -363,9 +379,11 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
 
     const caption = text.trim();
     const filesToSend = [...pendingFiles];
+    const replyToMsgId = replyTo?.id || null;
     setText('');
     if (inputRef.current) inputRef.current.style.height = 'auto';
     setPendingFiles([]);
+    setReplyTo(null);
     setSending(true);
 
     // Upload files one by one
@@ -377,6 +395,10 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
       // Attach caption to the last file only (WhatsApp style)
       if (caption && i === filesToSend.length - 1) {
         formData.append('caption', caption);
+      }
+      // Add reply context to first file
+      if (replyToMsgId && i === 0) {
+        formData.append('replyToMsgId', replyToMsgId);
       }
       try {
         const res = await fetch('/api/whatsapp/upload', { method: 'POST', cache: 'no-store', body: formData });
@@ -394,7 +416,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
           method: 'POST',
           cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId: activeConversation.id, text: caption }),
+          body: JSON.stringify({ conversationId: activeConversation.id, text: caption, replyToMsgId }),
         });
         if (res.ok) {
           const newMsg = await res.json();
@@ -406,7 +428,7 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
     setTimeout(() => scrollToBottom(), 100);
     setSending(false);
     inputRef.current?.focus();
-  }, [text, activeConversation, sending, pendingFiles]);
+  }, [text, activeConversation, sending, pendingFiles, replyTo]);
 
   const detectMyLocation = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -561,6 +583,8 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
           status: 'PENDING',
           sentBy: null,
           createdAt: new Date().toISOString(),
+          quotedMsgId: null,
+          quotedBody: null,
           _pending: true,
         };
         setMessages(prev => [...prev, optimisticMsg]);
@@ -1092,7 +1116,19 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                           <div className="flex-1 h-px bg-blue-400/50" />
                         </div>
                       )}
-                      <div className={`flex mb-1 ${msg.direction === 'OUTGOING' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`flex mb-1 group ${msg.direction === 'OUTGOING' ? 'justify-end' : 'justify-start'}`}>
+                      {/* Reply button (left of outgoing messages) */}
+                      {msg.direction === 'OUTGOING' && !isSticker(msg) && !isReaction(msg) && (
+                        <button
+                          onClick={() => setReplyTo(msg)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 mr-1 self-center text-gray-400 hover:text-gray-600 dark:text-[#8696a0] dark:hover:text-white"
+                          title="Ответить"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                          </svg>
+                        </button>
+                      )}
                       <div
                         className={`max-w-[75%] rounded-2xl text-sm relative ${
                           isSticker(msg) || isReaction(msg)
@@ -1102,6 +1138,24 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                               : 'bg-white dark:bg-[#202c33] text-gray-900 dark:text-[#e9edef] rounded-bl-md shadow-sm'
                         } ${isSticker(msg) || isReaction(msg) ? '' : 'px-3 py-1.5'}`}
                       >
+                        {/* Quoted message (reply context) */}
+                        {msg.quotedBody && !isSticker(msg) && !isReaction(msg) && (
+                          <div className={`mb-1.5 px-2 py-1 rounded-lg border-l-4 text-xs ${
+                            msg.direction === 'OUTGOING'
+                              ? 'bg-[#c5f0c8] dark:bg-[#025144] border-green-600 dark:border-[#06cf9c]'
+                              : 'bg-gray-100 dark:bg-[#1a2428] border-gray-400 dark:border-[#8696a0]'
+                          }`}>
+                            <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mb-0.5">
+                              {(() => {
+                                const quoted = messages.find(m => m.id === msg.quotedMsgId);
+                                if (quoted?.direction === 'INCOMING') return activeConversation?.contactName || 'Клиент';
+                                if (quoted?.sentBy) return `${quoted.sentBy.lastName} ${quoted.sentBy.firstName}`;
+                                return 'Вы';
+                              })()}
+                            </div>
+                            <div className="text-gray-600 dark:text-[#8696a0] line-clamp-2">{msg.quotedBody}</div>
+                          </div>
+                        )}
                         {/* Sender name for outgoing */}
                         {msg.direction === 'OUTGOING' && msg.sentBy && !isSticker(msg) && !isReaction(msg) && (
                           <div className="text-[11px] font-bold text-green-700 dark:text-[#06cf9c] mb-0.5">
@@ -1156,6 +1210,18 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                           </div>
                         )}
                       </div>
+                      {/* Reply button (right of incoming messages) */}
+                      {msg.direction === 'INCOMING' && !isSticker(msg) && !isReaction(msg) && (
+                        <button
+                          onClick={() => setReplyTo(msg)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 ml-1 self-center text-gray-400 hover:text-gray-600 dark:text-[#8696a0] dark:hover:text-white"
+                          title="Ответить"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                     </div>
                   ))}
@@ -1321,6 +1387,33 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
                   Очистить все
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Reply preview bar */}
+          {replyTo && !showTemplateMode && (
+            <div className="px-3 py-2 bg-gray-50 dark:bg-[#1a2429] border-t border-gray-200 dark:border-[#222e35] flex items-center gap-2">
+              <div className="flex-1 min-w-0 px-3 py-1.5 bg-white dark:bg-[#202c33] rounded-lg border-l-4 border-green-500">
+                <div className="text-[10px] font-bold text-green-600 dark:text-[#06cf9c] mb-0.5">
+                  {replyTo.direction === 'INCOMING'
+                    ? (activeConversation?.contactName || 'Клиент')
+                    : replyTo.sentBy
+                      ? `${replyTo.sentBy.lastName} ${replyTo.sentBy.firstName}`
+                      : 'Вы'
+                  }
+                </div>
+                <div className="text-xs text-gray-600 dark:text-[#8696a0] line-clamp-1">
+                  {replyTo.body || replyTo.mediaCaption || (replyTo.type !== 'TEXT' ? `[${replyTo.type}]` : '')}
+                </div>
+              </div>
+              <button
+                onClick={() => setReplyTo(null)}
+                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:text-[#8696a0] dark:hover:text-white hover:bg-gray-200 dark:hover:bg-[#374045] transition-colors shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           )}
 

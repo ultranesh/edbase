@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { conversationId, text, location } = body;
+    const { conversationId, text, location, replyToMsgId } = body;
 
     if (!conversationId || (!text && !location)) {
       return NextResponse.json({ error: 'conversationId and (text or location) are required' }, { status: 400 });
@@ -25,6 +25,23 @@ export async function POST(request: Request) {
 
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    // Handle reply context
+    let quotedMsgId: string | null = null;
+    let quotedWaId: string | null = null;
+    let quotedBody: string | null = null;
+
+    if (replyToMsgId) {
+      const quotedMsg = await prisma.whatsAppMessage.findUnique({
+        where: { id: replyToMsgId },
+        select: { id: true, waMessageId: true, body: true, mediaCaption: true, type: true },
+      });
+      if (quotedMsg?.waMessageId) {
+        quotedMsgId = quotedMsg.id;
+        quotedWaId = quotedMsg.waMessageId;
+        quotedBody = quotedMsg.body || quotedMsg.mediaCaption || (quotedMsg.type !== 'TEXT' ? `[${quotedMsg.type}]` : null);
+      }
     }
 
     // Build message payload based on type
@@ -59,6 +76,11 @@ export async function POST(request: Request) {
       msgBody = text;
     }
 
+    // Add reply context if replying to a message
+    if (quotedWaId) {
+      waPayload.context = { message_id: quotedWaId };
+    }
+
     // Send via Meta Cloud API
     const res = await fetch(`https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`, {
       method: 'POST',
@@ -91,6 +113,9 @@ export async function POST(request: Request) {
         body: msgBody,
         status: 'SENT',
         sentById: session.user.id,
+        quotedMsgId,
+        quotedWaId,
+        quotedBody,
       },
       include: {
         sentBy: {
