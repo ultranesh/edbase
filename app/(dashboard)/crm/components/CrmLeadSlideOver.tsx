@@ -239,30 +239,30 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="px-4 py-2 shrink-0">
         <div className="flex items-center justify-between">
           {/* Left side - back button, avatar and info */}
-          <div className="flex items-center gap-4">
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+          <div className="flex items-center gap-3">
+            <button onClick={onClose} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors">
               <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </button>
-            <div className="h-11 w-11 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
-              <span className="text-base font-semibold text-white">{initials}</span>
+            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+              <span className="text-sm font-semibold text-white">{initials}</span>
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h1 className="text-base font-semibold text-gray-900 dark:text-white leading-tight">
                 {fullLead.lastName} {fullLead.firstName}
               </h1>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex items-center gap-2">
                 {fullLead.stage_rel && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
                     {fullLead.stage_rel.name}
                   </span>
                 )}
                 {fullLead.amount && (
-                  <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                  <span className="text-xs font-medium text-green-600 dark:text-green-400">
                     {formatAmount(fullLead.amount)}
                   </span>
                 )}
@@ -271,15 +271,15 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
           </div>
 
           {/* Right side - actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {/* Call button */}
             {marsipStatus?.configured && fullLead.phone && (
               <button
                 onClick={handleCall}
-                className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                 title="Позвонить"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
               </button>
@@ -290,14 +290,14 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
               <>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                 >
                   Отмена
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+                  className="px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors disabled:opacity-50"
                 >
                   {saving ? '...' : 'Сохранить'}
                 </button>
@@ -305,12 +305,12 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
             ) : (
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-1.5"
+                className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Редактировать"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                Редактировать
               </button>
             )}
           </div>
@@ -319,7 +319,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
 
       {/* Call result notification */}
       {callResult && (
-        <div className={`absolute top-16 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg text-sm font-medium z-50 ${
+        <div className={`absolute top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg text-xs font-medium z-50 ${
           callResult.type === 'success'
             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
             : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
@@ -329,10 +329,10 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
       )}
 
       {/* Content */}
-      <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 pt-2 overflow-hidden">
+      <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 overflow-hidden">
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 h-full overflow-y-auto lg:overflow-hidden">
           {/* Left column - Info (own scroll) */}
-          <div className="relative shrink-0 lg:shrink lg:h-[calc(100vh-180px)]">
+          <div className="relative shrink-0 lg:shrink lg:h-[calc(100vh-140px)]">
             <div ref={leftColumnRef} className="left-scroll space-y-3 lg:overflow-y-auto lg:h-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style>{`.left-scroll::-webkit-scrollbar { display: none; }`}</style>
               {/* Contact Info */}
@@ -438,7 +438,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
           </div>
 
           {/* Right column - Chat */}
-          <div className="shrink-0 lg:shrink h-[60vh] lg:h-[calc(100vh-180px)]">
+          <div className="shrink-0 lg:shrink h-[60vh] lg:h-[calc(100vh-140px)]">
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden h-full flex flex-col">
               <div className="flex border-b border-gray-200 dark:border-gray-700 shrink-0">
                 <button
