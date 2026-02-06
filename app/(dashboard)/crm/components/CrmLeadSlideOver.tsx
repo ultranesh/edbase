@@ -359,7 +359,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
       <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 pt-2 overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-[28%_1fr_28%] gap-3 h-full">
           {/* Left column - Info (own scroll) */}
-          <div ref={leftColumnRef} className="lg:max-h-[calc(100vh-140px)] overflow-y-auto space-y-3 pb-8" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div ref={leftColumnRef} className="lg:max-h-[calc(100vh-160px)] overflow-y-auto space-y-3 pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
               {/* Contact Info */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -477,7 +477,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
           </div>
 
           {/* Middle column - Chat */}
-          <div className="flex flex-col lg:max-h-[calc(100vh-140px)]">
+          <div className="flex flex-col lg:max-h-[calc(100vh-160px)]">
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden h-full flex flex-col">
               <div className="flex border-b border-gray-200 dark:border-gray-700 shrink-0">
                 <button
@@ -553,7 +553,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
           </div>
 
           {/* Right column - Notes & Activities */}
-          <div className="lg:max-h-[calc(100vh-140px)] overflow-y-auto pb-8" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          <div className="lg:max-h-[calc(100vh-160px)] overflow-y-auto pb-4" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
             <CrmActivityTimeline
               leadId={lead.id}
               onMeetingChange={(date) => handleFieldChange("meetingAt", date)}
