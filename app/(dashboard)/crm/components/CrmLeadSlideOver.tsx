@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import CrmWhatsAppChat from './CrmWhatsAppChat';
 import CrmSocialChat from './CrmSocialChat';
 import type { CrmLead } from '../CrmClient';
@@ -45,6 +45,27 @@ interface LeadFull extends CrmLead {
   bonus?: string | null;
 }
 
+interface FormState {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  parentName: string;
+  parentPhone: string;
+  studentName: string;
+  studentPhone: string;
+  gradeLevelId: string;
+  studyLanguageId: string;
+  goal: string;
+  regionId: string;
+  cityId: string;
+  schoolId: string;
+  meetingAt: string;
+  amount: string;
+  description: string;
+  notes: string;
+  language: string;
+}
+
 export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated, onLeadDeleted, formatAmount, t }: CrmLeadSlideOverProps) {
   const initials = `${lead.firstName[0] || ''}${lead.lastName[0] || ''}`;
   const leftColumnRef = useRef<HTMLDivElement>(null);
@@ -53,7 +74,6 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
   const [callResult, setCallResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [msgTab, setMsgTab] = useState<'whatsapp' | 'messenger' | 'instagram'>('whatsapp');
   const [marsipStatus, setMarsipStatus] = useState<MarSipStatus | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fullLead, setFullLead] = useState<LeadFull>(lead as LeadFull);
 
@@ -65,11 +85,10 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
   const [schools, setSchools] = useState<RefOption[]>([]);
 
   // Form state
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     firstName: lead.firstName,
     lastName: lead.lastName,
     phone: lead.phone || '',
-    email: lead.email || '',
     parentName: lead.parentName || '',
     parentPhone: lead.parentPhone || '',
     studentName: '',
@@ -83,10 +102,20 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
     meetingAt: '',
     amount: lead.amount?.toString() || '',
     description: lead.description || '',
+    notes: '',
+    language: lead.language || '',
   });
 
+  // Track initial form state to detect changes
+  const [initialForm, setInitialForm] = useState<FormState>(form);
+
+  // Check if form has changes
+  const hasChanges = useMemo(() => {
+    return Object.keys(form).some(key => form[key as keyof FormState] !== initialForm[key as keyof FormState]);
+  }, [form, initialForm]);
+
   // Handle form field change without losing scroll position
-  const handleFieldChange = useCallback((field: keyof typeof form, value: string) => {
+  const handleFieldChange = useCallback((field: keyof FormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
   }, []);
 
@@ -119,11 +148,10 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
       .then(data => {
         if (data) {
           setFullLead(data);
-          setForm({
+          const newForm: FormState = {
             firstName: data.firstName || '',
             lastName: data.lastName || '',
             phone: data.phone || '',
-            email: data.email || '',
             parentName: data.parentName || '',
             parentPhone: data.parentPhone || '',
             studentName: data.studentName || '',
@@ -137,7 +165,11 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
             meetingAt: data.meetingAt ? new Date(data.meetingAt).toISOString().slice(0, 16) : '',
             amount: data.amount?.toString() || '',
             description: data.description || '',
-          });
+            notes: data.notes || '',
+            language: data.language || '',
+          };
+          setForm(newForm);
+          setInitialForm(newForm);
         }
       });
 
@@ -228,10 +260,16 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
         const updated = await res.json();
         setFullLead(updated);
         onLeadUpdated(updated);
-        setIsEditing(false);
+        // Update initial form to reflect saved state
+        setInitialForm(form);
       }
     } catch { /* ignore */ }
     setSaving(false);
+  };
+
+  // Discard changes
+  const handleDiscard = () => {
+    setForm(initialForm);
   };
 
   if (!isOpen) return null;
@@ -269,11 +307,11 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
           </div>
 
           {/* Right side - actions */}
-          <div className="flex items-center gap-1">
-            {/* Call button */}
+          <div className="flex items-center gap-2">
+            {/* Call button in header */}
             {marsipStatus?.configured && fullLead.phone && (
               <button
-                onClick={handleCall}
+                onClick={() => handleCall(fullLead.phone!)}
                 className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                 title="Позвонить"
               >
@@ -283,33 +321,23 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
               </button>
             )}
 
-            {/* Edit/Save buttons */}
-            {isEditing ? (
+            {/* Save changes button - only shown when form has changes */}
+            {hasChanges && (
               <>
                 <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                  onClick={handleDiscard}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
                   Отмена
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors disabled:opacity-50"
+                  className="px-4 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
                 >
-                  {saving ? '...' : 'Сохранить'}
+                  {saving ? 'Сохранение...' : 'Сохранить изменения'}
                 </button>
               </>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                title="Редактировать"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
             )}
           </div>
         </div>
@@ -328,31 +356,37 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
 
       {/* Content */}
       <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 pt-2 overflow-hidden">
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3 h-full overflow-y-auto lg:overflow-hidden">
+        <div className="flex flex-col lg:flex-row gap-3 h-full">
           {/* Left column - Info (own scroll) */}
-          <div className="relative shrink-0 lg:shrink lg:h-[calc(100vh-140px)]">
+          <div className="lg:w-[30%] lg:max-h-[calc(100vh-100px)] overflow-y-auto left-scroll space-y-3">
             <div ref={leftColumnRef} className="left-scroll space-y-3 lg:overflow-y-auto lg:h-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style>{`.left-scroll::-webkit-scrollbar { display: none; }`}</style>
               {/* Contact Info */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Контактная информация</h4>
                 <div className="space-y-2">
-                  <FormRow label="Телефон" value={form.phone} field="phone" isEditing={isEditing} onChange={handleFieldChange}
-                    displayValue={fullLead.phone ? (
-                      <span className="flex items-center gap-2">
-                        <span>{fullLead.phone}</span>
-                        <button onClick={() => handleCall(fullLead.phone!)} className="text-xs text-green-600 hover:text-green-700">Позвонить</button>
-                      </span>
-                    ) : '—'} />
-                  <FormRow label="Email" value={form.email} field="email" isEditing={isEditing} onChange={handleFieldChange} displayValue={fullLead.email || '—'} />
-                  <FormRow label="ФИО родителя" value={form.parentName} field="parentName" isEditing={isEditing} onChange={handleFieldChange} displayValue={fullLead.parentName || '—'} />
-                  <FormRow label="Телефон родителя" value={form.parentPhone} field="parentPhone" isEditing={isEditing} onChange={handleFieldChange}
-                    displayValue={fullLead.parentPhone ? (
-                      <span className="flex items-center gap-2">
-                        <span>{fullLead.parentPhone}</span>
-                        <button onClick={() => handleCall(fullLead.parentPhone!)} className="text-xs text-green-600 hover:text-green-700">Позвонить</button>
-                      </span>
-                    ) : '—'} />
+                  <FormRowEditable
+                    label="Основной контакт"
+                    value={form.phone}
+                    field="phone"
+                    onChange={handleFieldChange}
+                    onCall={handleCall}
+                  />
+                  <FormRowEditable label="ФИО родителя" value={form.parentName} field="parentName" onChange={handleFieldChange} />
+                  <FormRowEditable
+                    label="Телефон родителя"
+                    value={form.parentPhone}
+                    field="parentPhone"
+                    onChange={handleFieldChange}
+                    onCall={handleCall}
+                  />
+                  <FormSelectEditable
+                    label="Язык общения"
+                    value={form.language}
+                    field="language"
+                    onChange={handleFieldChange}
+                    options={[{ id: "RU", name: "Русский" }, { id: "KZ", name: "Қазақша" }, { id: "EN", name: "English" }]}
+                  />
                 </div>
               </div>
 
@@ -360,14 +394,22 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Анкетные данные ученика</h4>
                 <div className="space-y-2">
-                  <FormRow label="ФИО ученика" value={form.studentName} field="studentName" isEditing={isEditing} onChange={handleFieldChange} displayValue={fullLead.studentName || '—'} />
-                  <FormRow label="Номер ученика" value={form.studentPhone} field="studentPhone" isEditing={isEditing} onChange={handleFieldChange} displayValue={fullLead.studentPhone || '—'} />
-                  <FormSelect label="Класс" value={form.gradeLevelId} field="gradeLevelId" isEditing={isEditing} onChange={handleFieldChange} options={gradeLevels} displayValue={fullLead.gradeLevel?.nameRu || fullLead.gradeLevel?.name || '—'} />
-                  <FormSelect label="Язык обучения" value={form.studyLanguageId} field="studyLanguageId" isEditing={isEditing} onChange={handleFieldChange} options={languages} displayValue={fullLead.studyLanguage?.nameRu || fullLead.studyLanguage?.name || '—'} />
-                  <FormTextarea label="Цель" value={form.goal} field="goal" isEditing={isEditing} onChange={handleFieldChange} displayValue={fullLead.goal || '—'} />
-                  <FormSelect label="Область" value={form.regionId} field="regionId" isEditing={isEditing} onChange={handleFieldChange} options={regions} displayValue={fullLead.region?.nameRu || fullLead.region?.name || '—'} />
-                  <FormSelect label="Город" value={form.cityId} field="cityId" isEditing={isEditing} onChange={handleFieldChange} options={cities} displayValue={fullLead.city?.nameRu || fullLead.city?.name || '—'} />
-                  <FormSelect label="Школа" value={form.schoolId} field="schoolId" isEditing={isEditing} onChange={handleFieldChange} options={schools} displayValue={fullLead.school?.nameRu || fullLead.school?.name || '—'} />
+                  <FormRowEditable label="ФИО ученика" value={form.studentName} field="studentName" onChange={handleFieldChange} />
+                  <FormRowEditable label="Номер ученика" value={form.studentPhone} field="studentPhone" onChange={handleFieldChange} onCall={handleCall} />
+                  <FormSelectEditable label="Класс" value={form.gradeLevelId} field="gradeLevelId" onChange={handleFieldChange} options={gradeLevels} />
+                  <FormSelectEditable label="Язык обучения" value={form.studyLanguageId} field="studyLanguageId" onChange={handleFieldChange} options={languages} />
+                  <FormSelectEditable label="Цель" value={form.goal} field="goal" onChange={handleFieldChange} options={[
+                    { id: "Подтянуть знания", name: "Подтянуть знания" },
+                    { id: "Диагностика знаний", name: "Диагностика знаний" },
+                    { id: "Подготовка к спецшколам", name: "Подготовка к спецшколам" },
+                    { id: "Подготовка к ЕНТ", name: "Подготовка к ЕНТ" },
+                    { id: "Продленка", name: "Продленка" },
+                    { id: "Олимпиада", name: "Олимпиада" },
+                    { id: "Другое", name: "Другое" },
+                  ]} />
+                  <FormSelectEditable label="Область" value={form.regionId} field="regionId" onChange={handleFieldChange} options={regions} />
+                  <FormSelectEditable label="Город" value={form.cityId} field="cityId" onChange={handleFieldChange} options={cities} />
+                  <FormSelectEditable label="Школа" value={form.schoolId} field="schoolId" onChange={handleFieldChange} options={schools} />
                 </div>
               </div>
 
@@ -375,10 +417,10 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Заметки до консультации</h4>
                 <div className="space-y-2">
-                  <FormRow label="Встреча" value={form.meetingAt} field="meetingAt" type="datetime-local" isEditing={isEditing} onChange={handleFieldChange} displayValue={fullLead.meetingAt ? formatDate(fullLead.meetingAt) : '—'} />
+                  <FormRowEditable label="Встреча" value={form.meetingAt} field="meetingAt" type="datetime-local" onChange={handleFieldChange} />
                   <div className="flex items-start justify-between py-1.5">
                     <span className="text-sm text-gray-500 dark:text-gray-400">Бонус</span>
-                    <span className="text-sm text-gray-900 dark:text-white">{fullLead.bonus || '—'}</span>
+                    <span className={`text-sm ${fullLead.bonus ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>{fullLead.bonus || 'Бонусов не имеется'}</span>
                   </div>
                 </div>
               </div>
@@ -387,7 +429,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Сумма сделки</h4>
                 <div className="space-y-2">
-                  <FormRow label="Сумма" value={form.amount} field="amount" isEditing={isEditing} onChange={handleFieldChange} displayValue={fullLead.amount ? formatAmount(fullLead.amount) : '—'} />
+                  <FormRowEditable label="Сумма" value={form.amount} field="amount" onChange={handleFieldChange} />
                   {fullLead.coordinator && (
                     <div className="flex items-start justify-between py-1.5">
                       <span className="text-sm text-gray-500 dark:text-gray-400">Координатор</span>
@@ -436,7 +478,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
           </div>
 
           {/* Right column - Chat */}
-          <div className="shrink-0 lg:shrink h-[60vh] lg:h-[calc(100vh-140px)]">
+          <div className="lg:flex-1 flex flex-col lg:max-h-[calc(100vh-100px)]">
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden h-full flex flex-col">
               <div className="flex border-b border-gray-200 dark:border-gray-700 shrink-0">
                 <button
@@ -480,7 +522,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
                 </button>
               </div>
 
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden h-full">
                 {msgTab === 'whatsapp' && (
                   <CrmWhatsAppChat
                     leadPhone={fullLead.phone}
@@ -510,92 +552,311 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
               </div>
             </div>
           </div>
+
+          {/* Right column - Notes & Activities */}
+          <div className="lg:w-[30%] lg:max-h-[calc(100vh-100px)] overflow-y-auto space-y-3" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+            {/* Notes */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Примечания</h4>
+              <textarea
+                value={form.notes || ""}
+                onChange={(e) => handleFieldChange("notes", e.target.value)}
+                placeholder="Добавить примечание..."
+                className="w-full h-24 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Activities Timeline */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Активности</h4>
+              <div className="space-y-3 text-sm">
+                {fullLead.updatedAt !== fullLead.createdAt && (
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500 shrink-0" />
+                    <div>
+                      <div className="text-gray-900 dark:text-white">Заявка обновлена</div>
+                      <div className="text-xs text-gray-500">{formatDate(fullLead.updatedAt)}</div>
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <div className="w-2 h-2 mt-1.5 rounded-full bg-green-500 shrink-0" />
+                  <div>
+                    <div className="text-gray-900 dark:text-white">Заявка создана</div>
+                    <div className="text-xs text-gray-500">{formatDate(fullLead.createdAt)}</div>
+                  </div>
+                </div>
+                {fullLead.source && (
+                  <div className="flex gap-3">
+                    <div className="w-2 h-2 mt-1.5 rounded-full bg-purple-500 shrink-0" />
+                    <div>
+                      <div className="text-gray-900 dark:text-white">Источник: {fullLead.source}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Separate components to prevent re-render issues
-function FormRow({ label, value, field, type = 'text', isEditing, onChange, displayValue, hideLabel }: {
+// Always-editable form row with inline input
+function FormRowEditable({ label, value, field, type = 'text', placeholder, onChange, onCall }: {
   label: string;
   value: string;
   field: string;
   type?: string;
-  isEditing: boolean;
+  placeholder?: string;
   onChange: (field: string, value: string) => void;
-  displayValue: React.ReactNode;
-  hideLabel?: boolean;
+  onCall?: (phone: string) => void;
 }) {
+  const isPhone = field === 'phone' || field === 'parentPhone' || field === 'studentPhone';
+  const isAmount = field === 'amount';
+  const isDateTime = type === 'datetime-local';
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Format number with spaces as thousand separators
+  const formatAmount = (val: string) => {
+    const num = val.replace(/\s/g, '').replace(/[^\d]/g, '');
+    if (!num) return '';
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  };
+
+  // Format phone: just digits with spaces
+  const formatPhone = (val: string) => {
+    let digits = (val || "").replace(/[^\d]/g, "");
+    if (digits.length === 11 && (digits[0] === "8" || digits[0] === "7")) {
+      digits = digits.slice(1);
+    }
+    if (digits.length === 0) return "";
+    // Format: XXX XXX XX XX
+    let result = "";
+    if (digits.length > 0) result += digits.slice(0, 3);
+    if (digits.length > 3) result += " " + digits.slice(3, 6);
+    if (digits.length > 6) result += " " + digits.slice(6, 8);
+    if (digits.length > 8) result += " " + digits.slice(8, 10);
+    return result;
+  };
+
+  // Handle phone input
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let digits = e.target.value.replace(/[^\d]/g, "");
+    // Handle paste with country code
+    if (digits.length === 11 && (digits[0] === "8" || digits[0] === "7")) {
+      digits = digits.slice(1);
+    }
+    onChange(field, digits.slice(0, 10));
+  };
+  // Handle amount input - strip spaces for storage
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\s/g, '');
+    onChange(field, rawValue);
+  };
+
+  // Default placeholders based on field type
+  const getPlaceholder = () => {
+    if (placeholder) return placeholder;
+    if (isPhone) return '000 000 00 00';
+    if (field === 'parentName' || field === 'studentName') return 'Введите ФИО';
+    if (isAmount) return '0 ₸';
+    return 'Не указано';
+  };
+
+  // Format datetime for display
+  const formatDateTimeDisplay = (val: string) => {
+    if (!val) return '';
+    try {
+      const date = new Date(val);
+      return date.toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return val;
+    }
+  };
+
+  if (isDateTime) {
+    return (
+      <div className="flex items-center justify-between py-1.5 gap-2">
+        <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[100px] shrink-0">{label}</span>
+        <div className="flex items-center gap-1.5 flex-1 justify-end">
+          <input
+            ref={inputRef}
+            type="datetime-local"
+            value={value}
+            onChange={e => onChange(field, e.target.value)}
+            className="sr-only"
+          />
+          <span
+            onClick={() => inputRef.current?.showPicker()}
+            className={`text-sm cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 ${value ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}
+          >
+            {value ? formatDateTimeDisplay(value) : 'Выбрать дату'}
+          </span>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.showPicker()}
+            className="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Get display value
+  const getDisplayValue = () => {
+    if (isAmount) return formatAmount(value);
+    if (isPhone) return formatPhone(value);
+    return value;
+  };
+
+  // Get change handler
+  const getChangeHandler = () => {
+    if (isAmount) return handleAmountChange;
+    if (isPhone) return handlePhoneChange;
+    return (e: React.ChangeEvent<HTMLInputElement>) => onChange(field, e.target.value);
+  };
   return (
-    <div className={`flex items-start justify-between py-1.5 ${hideLabel ? '' : ''}`}>
-      {!hideLabel && <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[100px] shrink-0">{label}</span>}
-      {isEditing ? (
-        <input
-          type={type}
-          value={value}
-          onChange={e => onChange(field, e.target.value)}
-          className={`${hideLabel ? 'w-full' : 'flex-1 ml-3'} px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white`}
-        />
-      ) : (
-        <span className={`text-sm text-gray-900 dark:text-white ${hideLabel ? '' : 'text-right'}`}>{displayValue}</span>
-      )}
+    <div className="flex items-center justify-between py-1.5 gap-2">
+      <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[100px] shrink-0">{label}</span>
+      <div className="flex items-center gap-2">
+        {isPhone ? (
+          <>
+            <div className="flex items-center">
+              <span className="text-sm text-gray-900 dark:text-white">+7</span>
+              <input
+                type={type}
+                ref={inputRef}
+                value={getDisplayValue()}
+                onChange={getChangeHandler()}
+                placeholder={getPlaceholder()}
+                className="w-[115px] px-1 py-1 text-sm bg-transparent border-0 text-gray-900 dark:text-white focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+            </div>
+            {onCall && (
+              <button
+                onClick={() => value && onCall(value)}
+                disabled={!value}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-white bg-green-500 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors shadow-sm whitespace-nowrap"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Позвонить
+              </button>
+            )}
+          </>
+        ) : (
+          <input
+            type={type}
+            value={getDisplayValue()}
+            onChange={getChangeHandler()}
+            placeholder={getPlaceholder()}
+            className="flex-1 min-w-0 px-2 py-1 text-sm bg-transparent border-0 text-gray-900 dark:text-white text-right focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+// Custom dropdown select with styled menu
+function FormSelectEditable({ label, value, field, onChange, options }: {
+  label: string;
+  value: string;
+  field: string;
+  onChange: (field: string, value: string) => void;
+  options: { id: string; name: string; nameRu?: string }[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const selectedLabel = options.find(o => o.id === value)?.nameRu || options.find(o => o.id === value)?.name || 'Выбрать';
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  const handleSelect = (optId: string) => {
+    onChange(field, optId);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[100px] shrink-0">{label}</span>
+      <div ref={dropdownRef} className="relative ml-3">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-1 cursor-pointer text-sm text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400"
+        >
+          <span className={!value ? 'text-gray-400 dark:text-gray-500' : ''}>{selectedLabel}</span>
+          <svg className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {isOpen && (
+          <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] max-h-[240px] overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1">
+            <button
+              type="button"
+              onClick={() => handleSelect('')}
+              className={`w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${!value ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-400 dark:text-gray-500'}`}
+            >
+              Не выбрано
+            </button>
+            {options.map(opt => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => handleSelect(opt.id)}
+                className={`w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${value === opt.id ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-700 dark:text-gray-300'}`}
+              >
+                {opt.nameRu || opt.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function FormSelect({ label, value, field, isEditing, onChange, options, displayValue }: {
+// Always-editable textarea
+function FormTextareaEditable({ label, value, field, onChange }: {
   label: string;
   value: string;
   field: string;
-  isEditing: boolean;
   onChange: (field: string, value: string) => void;
-  options: { id: string; name: string; nameRu?: string }[];
-  displayValue: string;
 }) {
   return (
     <div className="flex items-start justify-between py-1.5">
       <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[100px] shrink-0">{label}</span>
-      {isEditing ? (
-        <select
-          value={value}
-          onChange={e => onChange(field, e.target.value)}
-          className="flex-1 ml-3 px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white"
-        >
-          <option value="">—</option>
-          {options.map(opt => (
-            <option key={opt.id} value={opt.id}>{opt.nameRu || opt.name}</option>
-          ))}
-        </select>
-      ) : (
-        <span className="text-sm text-gray-900 dark:text-white text-right">{displayValue}</span>
-      )}
-    </div>
-  );
-}
-
-function FormTextarea({ label, value, field, isEditing, onChange, displayValue, hideLabel }: {
-  label: string;
-  value: string;
-  field: string;
-  isEditing: boolean;
-  onChange: (field: string, value: string) => void;
-  displayValue: string;
-  hideLabel?: boolean;
-}) {
-  return (
-    <div className={`flex items-start justify-between py-1.5 ${hideLabel ? '' : ''}`}>
-      {!hideLabel && <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[100px] shrink-0">{label}</span>}
-      {isEditing ? (
-        <textarea
-          value={value}
-          onChange={e => onChange(field, e.target.value)}
-          rows={2}
-          className={`${hideLabel ? 'w-full' : 'flex-1 ml-3'} px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white resize-none`}
-        />
-      ) : (
-        <span className={`text-sm text-gray-900 dark:text-white ${hideLabel ? '' : 'text-right'}`}>{displayValue}</span>
-      )}
+      <textarea
+        value={value}
+        onChange={e => onChange(field, e.target.value)}
+        rows={2}
+        placeholder="—"
+        className="flex-1 ml-3 px-2 py-1 text-sm bg-transparent border border-transparent hover:border-gray-300 focus:border-blue-500 dark:hover:border-gray-600 dark:focus:border-blue-400 rounded-lg text-gray-900 dark:text-white focus:outline-none transition-colors resize-none"
+      />
     </div>
   );
 }

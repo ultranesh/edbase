@@ -231,6 +231,8 @@ export default function CrmClient({ initialLeads, initialFunnels, userRole, user
       if (lead) {
         setSelectedLead(lead);
         setSlideOverOpen(true);
+        // Update URL without navigation
+        window.history.pushState({ leadId: lead.id }, '', `/crm/${lead.id}`);
       }
     };
 
@@ -411,7 +413,52 @@ export default function CrmClient({ initialLeads, initialFunnels, userRole, user
   const handleCardClick = useCallback((lead: CrmLead) => {
     setSelectedLead(lead);
     setSlideOverOpen(true);
+    // Update URL without navigation
+    window.history.pushState({ leadId: lead.id }, '', `/crm/${lead.id}`);
   }, []);
+
+  // Handle closing slide-over - restore URL to /crm
+  const handleSlideOverClose = useCallback(() => {
+    setSlideOverOpen(false);
+    setSelectedLead(null);
+    window.history.pushState({}, '', '/crm');
+  }, []);
+
+  // On mount: check if URL has a lead ID and open it
+  useEffect(() => {
+    const path = window.location.pathname;
+    const match = path.match(/^\/crm\/([^/]+)$/);
+    if (match) {
+      const leadId = match[1];
+      const lead = leads.find(l => l.id === leadId);
+      if (lead) {
+        setSelectedLead(lead);
+        setSlideOverOpen(true);
+      }
+    }
+  }, [leads]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      const match = path.match(/^\/crm\/([^/]+)$/);
+      if (match) {
+        const leadId = match[1];
+        const lead = leads.find(l => l.id === leadId);
+        if (lead) {
+          setSelectedLead(lead);
+          setSlideOverOpen(true);
+        }
+      } else if (path === '/crm') {
+        setSlideOverOpen(false);
+        setSelectedLead(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [leads]);
 
   const handleStageChange = useCallback(async (leadId: string, _fromStage: string, toStage: string) => {
     // Optimistic update - set both stage and stageId for proper grouping
@@ -680,7 +727,7 @@ export default function CrmClient({ initialLeads, initialFunnels, userRole, user
         <CrmLeadSlideOver
           lead={selectedLead}
           isOpen={slideOverOpen}
-          onClose={() => { setSlideOverOpen(false); setSelectedLead(null); }}
+          onClose={handleSlideOverClose}
           onLeadUpdated={handleLeadUpdated}
           onLeadDeleted={handleLeadDeleted}
           formatAmount={formatAmount}
