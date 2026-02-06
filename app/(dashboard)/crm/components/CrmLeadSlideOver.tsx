@@ -356,9 +356,9 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
 
       {/* Content */}
       <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 pt-2 overflow-hidden">
-        <div className="flex flex-col lg:flex-row gap-3 h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[28%_1fr_28%] gap-3 h-full">
           {/* Left column - Info (own scroll) */}
-          <div className="lg:w-[30%] lg:max-h-[calc(100vh-100px)] overflow-y-auto left-scroll space-y-3">
+          <div className="lg:max-h-[calc(100vh-100px)] overflow-y-auto left-scroll space-y-3">
             <div ref={leftColumnRef} className="left-scroll space-y-3 lg:overflow-y-auto lg:h-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style>{`.left-scroll::-webkit-scrollbar { display: none; }`}</style>
               {/* Contact Info */}
@@ -477,8 +477,8 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
             </div>
           </div>
 
-          {/* Right column - Chat */}
-          <div className="lg:flex-1 flex flex-col lg:max-h-[calc(100vh-100px)]">
+          {/* Middle column - Chat */}
+          <div className="flex flex-col lg:max-h-[calc(100vh-100px)]">
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden h-full flex flex-col">
               <div className="flex border-b border-gray-200 dark:border-gray-700 shrink-0">
                 <button
@@ -554,7 +554,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
           </div>
 
           {/* Right column - Notes & Activities */}
-          <div className="lg:w-[30%] lg:max-h-[calc(100vh-100px)] overflow-y-auto space-y-3" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          <div className="lg:max-h-[calc(100vh-100px)] overflow-y-auto space-y-3" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {/* Notes */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Примечания</h4>
