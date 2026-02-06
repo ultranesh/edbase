@@ -32,6 +32,11 @@ type TaskType = 'CALL' | 'MESSAGE' | 'MEETING';
 export default function CrmActivityTimeline({ leadId, onMeetingChange }: CrmActivityTimelineProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [inputTab, setInputTab] = useState<InputTab>('note');
   const [noteContent, setNoteContent] = useState('');
   const [taskTitle, setTaskTitle] = useState('');
@@ -207,6 +212,26 @@ export default function CrmActivityTimeline({ leadId, onMeetingChange }: CrmActi
       case 'MEETING': return 'Встреча';
     }
   };
+
+  // Prevent hydration mismatch with date formatting
+  if (!mounted) {
+    return (
+      <div className="space-y-3">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex gap-2 mb-3">
+            <div className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">Примечание</div>
+            <div className="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-500 dark:text-gray-400">Задача</div>
+          </div>
+          <textarea disabled placeholder="Добавить примечание..." className="w-full h-20 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg resize-none" />
+          <button disabled className="w-full mt-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg opacity-50">Сохранить примечание</button>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Активности</h4>
+          <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">Загрузка...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
