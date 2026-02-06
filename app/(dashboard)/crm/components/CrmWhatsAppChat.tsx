@@ -140,6 +140,7 @@ interface CrmWhatsAppChatProps {
 }
 
 export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadName, leadLanguage, t }: CrmWhatsAppChatProps) {
+  const [mounted, setMounted] = useState(false);
   const [conversations, setConversations] = useState<WAConversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<WAConversation | null>(null);
   const [messages, setMessages] = useState<WAMessage[]>([]);
@@ -148,6 +149,11 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   const nextCursorRef = useRef<string | null>(null);
   const hasLoadedOlderRef = useRef(false);
   const [loading, setLoading] = useState(true);
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [sending, setSending] = useState(false);
   const [text, setText] = useState('');
   const [uploading] = useState(false);
@@ -863,6 +869,15 @@ export default function CrmWhatsAppChat({ leadPhone, parentPhone, leadId, leadNa
   const isSticker = (msg: WAMessage) => msg.type === 'STICKER';
   const isReaction = (msg: WAMessage) => msg.type === 'REACTION';
   const hasMediaContent = (msg: WAMessage) => ['IMAGE', 'STICKER', 'VIDEO', 'AUDIO', 'DOCUMENT'].includes(msg.type) && msg.mediaUrl;
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-6 w-6 border-2 border-green-500 border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">

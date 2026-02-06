@@ -70,7 +70,13 @@ interface FormState {
 export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated, onLeadDeleted, formatAmount, t }: CrmLeadSlideOverProps) {
   const initials = `${lead.firstName[0] || ''}${lead.lastName[0] || ''}`;
   const leftColumnRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [deleting, setDeleting] = useState(false);
   const [callResult, setCallResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [msgTab, setMsgTab] = useState<'whatsapp' | 'messenger' | 'instagram'>('whatsapp');
@@ -274,6 +280,17 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
   };
 
   if (!isOpen) return null;
+
+  // Prevent hydration mismatch - show loading while mounting
+  if (!mounted) {
+    return (
+      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-gray-500 dark:text-gray-400">Загрузка...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
