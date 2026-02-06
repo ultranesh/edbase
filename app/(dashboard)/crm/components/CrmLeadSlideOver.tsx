@@ -359,9 +359,8 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
       <div key={lead.id} className="flex-1 min-h-0 px-4 pb-4 pt-2 overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-[28%_1fr_28%] gap-3 h-full">
           {/* Left column - Info (own scroll) */}
-          <div className="lg:max-h-[calc(100vh-140px)] overflow-y-auto left-scroll space-y-3 pb-8">
-            <div ref={leftColumnRef} className="left-scroll space-y-3 pb-8 lg:overflow-y-auto lg:h-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              <style>{`.left-scroll::-webkit-scrollbar { display: none; }`}</style>
+          <div ref={leftColumnRef} className="lg:max-h-[calc(100vh-140px)] overflow-y-auto space-y-3 pb-8" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <style>{`div::-webkit-scrollbar { display: none; }`}</style>
               {/* Contact Info */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Контактная информация</h4>
@@ -475,7 +474,6 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
                   </div>
                 )}
               </div>
-            </div>
           </div>
 
           {/* Middle column - Chat */}
