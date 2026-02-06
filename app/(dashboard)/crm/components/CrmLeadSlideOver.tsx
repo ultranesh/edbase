@@ -477,7 +477,7 @@ export default function CrmLeadSlideOver({ lead, isOpen, onClose, onLeadUpdated,
           </div>
 
           {/* Middle column - Chat */}
-          <div className="flex flex-col lg:max-h-[calc(100vh-140px)]">
+          <div className="flex flex-col lg:max-h-[calc(100vh-140px)] pb-8">
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden h-full flex flex-col">
               <div className="flex border-b border-gray-200 dark:border-gray-700 shrink-0">
                 <button
