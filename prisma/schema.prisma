@@ -11,8 +11,8 @@ enum UserRole {
   SUPERADMIN
   ADMIN
   DEPARTMENT_HEAD
-  CHIEF_COORDINATOR    // Главный координатор (бывший COORDINATOR_MANAGER)
-  CHIEF_CURATOR        // Главный куратор
+  CHIEF_COORDINATOR // Главный координатор (бывший COORDINATOR_MANAGER)
+  CHIEF_CURATOR // Главный куратор
   CURATOR
   COORDINATOR
   TEACHER
@@ -32,24 +32,24 @@ enum Citizenship {
 }
 
 enum StudentStatus {
-  PENDING_APPROVAL  // Ожидает подтверждения куратором
-  ACTIVE            // Активный
-  FROZEN            // На заморозке
-  REFUND            // Возврат
-  GRADUATED         // Закончил обучение
-  INACTIVE          // Неактивен
-  EXPELLED          // Отчислен
+  PENDING_APPROVAL // Ожидает подтверждения куратором
+  ACTIVE // Активный
+  FROZEN // На заморозке
+  REFUND // Возврат
+  GRADUATED // Закончил обучение
+  INACTIVE // Неактивен
+  EXPELLED // Отчислен
 }
 
 enum TeacherStatus {
-  ACTIVE      // Активный
-  SUSPENDED   // Отстранен
-  RESERVE     // Резерв
+  ACTIVE // Активный
+  SUSPENDED // Отстранен
+  RESERVE // Резерв
 }
 
 enum SalaryFormat {
-  HOURLY    // Почасовая оплата
-  MONTHLY   // Месячная зарплата
+  HOURLY // Почасовая оплата
+  MONTHLY // Месячная зарплата
 }
 
 enum DifficultyLevel {
@@ -114,20 +114,20 @@ enum ContractStatus {
 }
 
 enum TeacherCategory {
-  INTERN           // Стажер
-  NO_CATEGORY      // Без категории
-  FIRST_CATEGORY   // Первая категория
+  INTERN // Стажер
+  NO_CATEGORY // Без категории
+  FIRST_CATEGORY // Первая категория
   HIGHEST_CATEGORY // Высшая категория
-  EXPERT           // Эксперт
+  EXPERT // Эксперт
 }
 
 enum TaskFormat {
-  NISH      // НИШ
-  BIL       // БИЛ
-  RFMSH     // РФМШ
-  ENT       // ЕНТ
-  OLYMPIAD  // Олимпиадная
-  SAT       // SAT
+  NISH // НИШ
+  BIL // БИЛ
+  RFMSH // РФМШ
+  ENT // ЕНТ
+  OLYMPIAD // Олимпиадная
+  SAT // SAT
 }
 
 enum Guarantee {
@@ -138,10 +138,10 @@ enum Guarantee {
 }
 
 enum StudyFormat {
-  ONLINE_GROUP           // Онлайн группа
-  OFFLINE_GROUP          // Очная группа
-  ONLINE_INDIVIDUAL      // Онлайн индивидуально
-  OFFLINE_INDIVIDUAL     // Очно индивидуально
+  ONLINE_GROUP // Онлайн группа
+  OFFLINE_GROUP // Очная группа
+  ONLINE_INDIVIDUAL // Онлайн индивидуально
+  OFFLINE_INDIVIDUAL // Очно индивидуально
 }
 
 enum PaymentPlan {
@@ -151,15 +151,15 @@ enum PaymentPlan {
 }
 
 enum ParentDocumentType {
-  ID_CARD        // Удостоверение личности
-  RK_PASSPORT    // Паспорт гражданина РК
-  FOREIGN        // Иностранный документ
+  ID_CARD // Удостоверение личности
+  RK_PASSPORT // Паспорт гражданина РК
+  FOREIGN // Иностранный документ
 }
 
 enum StudySchedule {
-  PSP      // Пн-Ср-Пт
-  VCS      // Вт-Чт-Сб
-  CUSTOM   // Особый (выбранные дни)
+  PSP // Пн-Ср-Пт
+  VCS // Вт-Чт-Сб
+  CUSTOM // Особый (выбранные дни)
 }
 
 enum ResourceType {
@@ -198,9 +198,9 @@ enum TransactionType {
 }
 
 enum TimeOfDay {
-  MORNING   // Утро - M
+  MORNING // Утро - M
   AFTERNOON // Обед - A
-  EVENING   // Вечер - E
+  EVENING // Вечер - E
 }
 
 // ==========================================
@@ -209,98 +209,98 @@ enum TimeOfDay {
 
 // Языки обучения
 model RefLanguage {
-  id        String   @id @default(uuid())
-  name      String   @unique  // казахский, русский, английский
-  nameKz    String?  // Қазақша
-  nameRu    String?  // По-русски
-  nameEn    String?  // In English
-  code      String   @unique  // Q, R, E
-  orderIndex Int     @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String   @unique // казахский, русский, английский
+  nameKz     String? // Қазақша
+  nameRu     String? // По-русски
+  nameEn     String? // In English
+  code       String   @unique // Q, R, E
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  students  Student[]
-  groups    Group[]
-  crmLeads  CrmLead[] @relation("CrmLeadStudyLanguage")
+  students Student[]
+  groups   Group[]
+  crmLeads CrmLead[] @relation("CrmLeadStudyLanguage")
 
   @@map("ref_languages")
 }
 
 // Классы обучения (0-11, выпускник)
 model RefGradeLevel {
-  id        String   @id @default(uuid())
-  name      String   @unique  // "0 класс", "1 класс", ... "11 класс", "Выпускник"
-  nameKz    String?
-  nameRu    String?
-  nameEn    String?
-  code      String   @unique  // 0, 1, 2, ... 11, A (для выпускника)
+  id         String   @id @default(uuid())
+  name       String   @unique // "0 класс", "1 класс", ... "11 класс", "Выпускник"
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  code       String   @unique // 0, 1, 2, ... 11, A (для выпускника)
   orderIndex Int
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  students  Student[]
-  groups    Group[]
-  crmLeads  CrmLead[]
+  students Student[]
+  groups   Group[]
+  crmLeads CrmLead[]
 
   @@map("ref_grade_levels")
 }
 
 // Направления/Цели обучения
 model RefStudyDirection {
-  id        String   @id @default(uuid())
-  name      String   @unique  // СС, ЕНТ, IELTS, Продленка, etc.
-  nameKz    String?
-  nameRu    String?
-  nameEn    String?
-  code      String   @unique
-  orderIndex Int     @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String   @unique // СС, ЕНТ, IELTS, Продленка, etc.
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  code       String   @unique
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  students  Student[]
-  groups    Group[]
+  students Student[]
+  groups   Group[]
 
   @@map("ref_study_directions")
 }
 
 // Предметы
 model RefSubject {
-  id        String   @id @default(uuid())
-  code      String?
-  nameKz    String?
-  nameRu    String?
-  nameEn    String?
-  icon      String?
-  orderIndex Int     @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  code       String?
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  icon       String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  topics           RefTopic[]
-  studentSubjects  StudentSubject[]
-  groupSubjects    GroupSubject[]
-  teacherSubjects  TeacherSubject[]
+  topics          RefTopic[]
+  studentSubjects StudentSubject[]
+  groupSubjects   GroupSubject[]
+  teacherSubjects TeacherSubject[]
 
   @@map("ref_subjects")
 }
 
 // Темы (связаны с предметами)
 model RefTopic {
-  id        String   @id @default(uuid())
-  subjectId String
-  name      String
-  nameKz    String?
-  nameRu    String?
-  nameEn    String?
-  orderIndex Int     @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  subjectId  String
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  subject   RefSubject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subject   RefSubject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   subtopics RefSubtopic[]
 
   @@index([subjectId])
@@ -309,18 +309,18 @@ model RefTopic {
 
 // Подтемы (связаны с темами)
 model RefSubtopic {
-  id        String   @id @default(uuid())
-  topicId   String
-  name      String
-  nameKz    String?
-  nameRu    String?
-  nameEn    String?
-  orderIndex Int     @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  topicId    String
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  topic     RefTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic RefTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
   @@index([topicId])
   @@map("ref_subtopics")
@@ -339,8 +339,8 @@ model RefRegion {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  cities    RefCity[]
-  crmLeads  CrmLead[]
+  cities   RefCity[]
+  crmLeads CrmLead[]
 
   @@map("ref_regions")
 }
@@ -359,10 +359,10 @@ model RefCity {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  region    RefRegion? @relation(fields: [regionId], references: [id])
-  schools   RefSchool[]
-  students  Student[]
-  crmLeads  CrmLead[]
+  region   RefRegion?  @relation(fields: [regionId], references: [id])
+  schools  RefSchool[]
+  students Student[]
+  crmLeads CrmLead[]
 
   @@index([regionId])
   @@map("ref_cities")
@@ -381,9 +381,9 @@ model RefSchool {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  city      RefCity   @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  students  Student[]
-  crmLeads  CrmLead[]
+  city     RefCity   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  students Student[]
+  crmLeads CrmLead[]
 
   @@index([cityId])
   @@map("ref_schools")
@@ -391,19 +391,19 @@ model RefSchool {
 
 // Особенности (ЗПР и т.д.)
 model RefSpecialNeed {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  nameKz      String?
-  nameRu      String?
-  nameEn      String?
-  description String?
+  id            String   @id @default(uuid())
+  name          String   @unique
+  nameKz        String?
+  nameRu        String?
+  nameEn        String?
+  description   String?
   descriptionKz String?
   descriptionRu String?
   descriptionEn String?
-  orderIndex  Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  orderIndex    Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   studentSpecialNeeds StudentSpecialNeed[]
 
@@ -412,32 +412,32 @@ model RefSpecialNeed {
 
 // Индексы групп (греческие буквы)
 model RefGroupIndex {
-  id        String   @id @default(uuid())
-  name      String   @unique  // Alpha, Beta, Gamma, etc.
-  symbol    String   @unique  // α, β, γ или Alfa, Beta и т.д.
-  orderIndex Int     @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String   @unique // Alpha, Beta, Gamma, etc.
+  symbol     String   @unique // α, β, γ или Alfa, Beta и т.д.
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  groups    Group[]
+  groups Group[]
 
   @@map("ref_group_indexes")
 }
 
 // Категории преподавателей
 model RefTeacherCategory {
-  id        String   @id @default(uuid())
-  name      String   @unique  // Стажер, Без категорий, etc.
-  nameKz    String?
-  nameRu    String?
-  nameEn    String?
-  orderIndex Int     @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String   @unique // Стажер, Без категорий, etc.
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  teachers  Teacher[]
+  teachers Teacher[]
 
   @@map("ref_teacher_categories")
 }
@@ -445,8 +445,8 @@ model RefTeacherCategory {
 // Роли пользователей (справочник для enum UserRole)
 model RefUserRole {
   id         String   @id @default(uuid())
-  code       String   @unique  // SUPERADMIN, ADMIN, etc. - должен соответствовать enum UserRole
-  name       String             // Отображаемое имя
+  code       String   @unique // SUPERADMIN, ADMIN, etc. - должен соответствовать enum UserRole
+  name       String // Отображаемое имя
   nameKz     String?
   nameRu     String?
   nameEn     String?
@@ -461,7 +461,7 @@ model RefUserRole {
 // Пол (справочник для enum Gender)
 model RefGender {
   id         String   @id @default(uuid())
-  code       String   @unique  // MALE, FEMALE - должен соответствовать enum Gender
+  code       String   @unique // MALE, FEMALE - должен соответствовать enum Gender
   name       String
   nameKz     String?
   nameRu     String?
@@ -477,7 +477,7 @@ model RefGender {
 // Гражданство (справочник для enum Citizenship)
 model RefCitizenship {
   id         String   @id @default(uuid())
-  code       String   @unique  // KZ, FOREIGN - должен соответствовать enum Citizenship
+  code       String   @unique // KZ, FOREIGN - должен соответствовать enum Citizenship
   name       String
   nameKz     String?
   nameRu     String?
@@ -493,7 +493,7 @@ model RefCitizenship {
 // Формат обучения (справочник для enum StudyFormat)
 model RefStudyFormat {
   id         String   @id @default(uuid())
-  code       String   @unique  // ONLINE_GROUP, OFFLINE_GROUP, etc. - должен соответствовать enum StudyFormat
+  code       String   @unique // ONLINE_GROUP, OFFLINE_GROUP, etc. - должен соответствовать enum StudyFormat
   name       String
   nameKz     String?
   nameRu     String?
@@ -509,7 +509,7 @@ model RefStudyFormat {
 // Гарантия (справочник для enum Guarantee)
 model RefGuarantee {
   id         String   @id @default(uuid())
-  code       String   @unique  // NONE, FIFTY_PERCENT, etc. - должен соответствовать enum Guarantee
+  code       String   @unique // NONE, FIFTY_PERCENT, etc. - должен соответствовать enum Guarantee
   name       String
   nameKz     String?
   nameRu     String?
@@ -525,7 +525,7 @@ model RefGuarantee {
 // Расписание занятий (справочник для enum StudySchedule)
 model RefStudySchedule {
   id         String   @id @default(uuid())
-  code       String   @unique  // PSP, VCS, CUSTOM - должен соответствовать enum StudySchedule
+  code       String   @unique // PSP, VCS, CUSTOM - должен соответствовать enum StudySchedule
   name       String
   nameKz     String?
   nameRu     String?
@@ -541,7 +541,7 @@ model RefStudySchedule {
 // Тип документа родителя (справочник для enum ParentDocumentType)
 model RefParentDocumentType {
   id         String   @id @default(uuid())
-  code       String   @unique  // ID_CARD, RK_PASSPORT, FOREIGN - должен соответствовать enum ParentDocumentType
+  code       String   @unique // ID_CARD, RK_PASSPORT, FOREIGN - должен соответствовать enum ParentDocumentType
   name       String
   nameKz     String?
   nameRu     String?
@@ -557,12 +557,12 @@ model RefParentDocumentType {
 // Статус студента (справочник для enum StudentStatus)
 model RefStudentStatus {
   id         String   @id @default(uuid())
-  code       String   @unique  // PENDING_APPROVAL, ACTIVE, etc.
+  code       String   @unique // PENDING_APPROVAL, ACTIVE, etc.
   name       String
   nameKz     String?
   nameRu     String?
   nameEn     String?
-  color      String?  // Цвет для отображения в UI
+  color      String? // Цвет для отображения в UI
   orderIndex Int      @default(0)
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
@@ -574,7 +574,7 @@ model RefStudentStatus {
 // Статус учителя (справочник для enum TeacherStatus)
 model RefTeacherStatus {
   id         String   @id @default(uuid())
-  code       String   @unique  // ACTIVE, SUSPENDED, RESERVE
+  code       String   @unique // ACTIVE, SUSPENDED, RESERVE
   name       String
   nameKz     String?
   nameRu     String?
@@ -591,7 +591,7 @@ model RefTeacherStatus {
 // Статус платежа (справочник для enum PaymentStatus)
 model RefPaymentStatus {
   id         String   @id @default(uuid())
-  code       String   @unique  // PENDING, PAID, OVERDUE, CANCELLED
+  code       String   @unique // PENDING, PAID, OVERDUE, CANCELLED
   name       String
   nameKz     String?
   nameRu     String?
@@ -608,7 +608,7 @@ model RefPaymentStatus {
 // Статус контракта (справочник для enum ContractStatus)
 model RefContractStatus {
   id         String   @id @default(uuid())
-  code       String   @unique  // DRAFT, ACTIVE, COMPLETED, TERMINATED
+  code       String   @unique // DRAFT, ACTIVE, COMPLETED, TERMINATED
   name       String
   nameKz     String?
   nameRu     String?
@@ -625,7 +625,7 @@ model RefContractStatus {
 // Статус домашнего задания (справочник для enum HomeworkStatus)
 model RefHomeworkStatus {
   id         String   @id @default(uuid())
-  code       String   @unique  // PENDING, SUBMITTED, CHECKED, LATE
+  code       String   @unique // PENDING, SUBMITTED, CHECKED, LATE
   name       String
   nameKz     String?
   nameRu     String?
@@ -642,7 +642,7 @@ model RefHomeworkStatus {
 // Статус заказа (справочник для enum OrderStatus)
 model RefOrderStatus {
   id         String   @id @default(uuid())
-  code       String   @unique  // PENDING, COMPLETED, CANCELLED
+  code       String   @unique // PENDING, COMPLETED, CANCELLED
   name       String
   nameKz     String?
   nameRu     String?
@@ -659,7 +659,7 @@ model RefOrderStatus {
 // Тип теста (справочник для enum TestType)
 model RefTestType {
   id         String   @id @default(uuid())
-  code       String   @unique  // QUIZ, MIDTERM, FINAL, MOCK_EXAM
+  code       String   @unique // QUIZ, MIDTERM, FINAL, MOCK_EXAM
   name       String
   nameKz     String?
   nameRu     String?
@@ -675,7 +675,7 @@ model RefTestType {
 // Тип вопроса (справочник для enum QuestionType)
 model RefQuestionType {
   id         String   @id @default(uuid())
-  code       String   @unique  // SINGLE_CHOICE, MULTIPLE_CHOICE, etc.
+  code       String   @unique // SINGLE_CHOICE, MULTIPLE_CHOICE, etc.
   name       String
   nameKz     String?
   nameRu     String?
@@ -691,7 +691,7 @@ model RefQuestionType {
 // Формат задания (справочник для enum TaskFormat)
 model RefTaskFormat {
   id         String   @id @default(uuid())
-  code       String   @unique  // NISH, BIL, RFMSH, ENT, OLYMPIAD, SAT
+  code       String   @unique // NISH, BIL, RFMSH, ENT, OLYMPIAD, SAT
   name       String
   nameKz     String?
   nameRu     String?
@@ -707,7 +707,7 @@ model RefTaskFormat {
 // Тип урока (справочник для enum LessonType)
 model RefLessonType {
   id         String   @id @default(uuid())
-  code       String   @unique  // THEORETICAL, PRACTICAL, LAB, TEST, EXAM
+  code       String   @unique // THEORETICAL, PRACTICAL, LAB, TEST, EXAM
   name       String
   nameKz     String?
   nameRu     String?
@@ -723,7 +723,7 @@ model RefLessonType {
 // Уровень сложности (справочник для enum DifficultyLevel)
 model RefDifficultyLevel {
   id         String   @id @default(uuid())
-  code       String   @unique  // BEGINNER, ELEMENTARY, etc.
+  code       String   @unique // BEGINNER, ELEMENTARY, etc.
   name       String
   nameKz     String?
   nameRu     String?
@@ -739,7 +739,7 @@ model RefDifficultyLevel {
 // Формат зарплаты (справочник для enum SalaryFormat)
 model RefSalaryFormat {
   id         String   @id @default(uuid())
-  code       String   @unique  // HOURLY, MONTHLY
+  code       String   @unique // HOURLY, MONTHLY
   name       String
   nameKz     String?
   nameRu     String?
@@ -755,7 +755,7 @@ model RefSalaryFormat {
 // Способ оплаты (справочник для enum PaymentMethod)
 model RefPaymentMethod {
   id         String   @id @default(uuid())
-  code       String   @unique  // CASH, CARD, TRANSFER, KASPI, HALYK
+  code       String   @unique // CASH, CARD, TRANSFER, KASPI, HALYK
   name       String
   nameKz     String?
   nameRu     String?
@@ -772,7 +772,7 @@ model RefPaymentMethod {
 // План оплаты (справочник для enum PaymentPlan)
 model RefPaymentPlan {
   id         String   @id @default(uuid())
-  code       String   @unique  // ONE_TRANCHE, TWO_TRANCHES, THREE_TRANCHES
+  code       String   @unique // ONE_TRANCHE, TWO_TRANCHES, THREE_TRANCHES
   name       String
   nameKz     String?
   nameRu     String?
@@ -788,7 +788,7 @@ model RefPaymentPlan {
 // Время суток (справочник для enum TimeOfDay)
 model RefTimeOfDay {
   id         String   @id @default(uuid())
-  code       String   @unique  // MORNING, AFTERNOON, EVENING
+  code       String   @unique // MORNING, AFTERNOON, EVENING
   name       String
   nameKz     String?
   nameRu     String?
@@ -804,7 +804,7 @@ model RefTimeOfDay {
 // Тип ресурса (справочник для enum ResourceType)
 model RefResourceType {
   id         String   @id @default(uuid())
-  code       String   @unique  // BOOK, VIDEO, AUDIO, DOCUMENT, PRESENTATION, OTHER
+  code       String   @unique // BOOK, VIDEO, AUDIO, DOCUMENT, PRESENTATION, OTHER
   name       String
   nameKz     String?
   nameRu     String?
@@ -821,7 +821,7 @@ model RefResourceType {
 // Тип уведомления (справочник для enum NotificationType)
 model RefNotificationType {
   id         String   @id @default(uuid())
-  code       String   @unique  // INFO, WARNING, SUCCESS, ERROR
+  code       String   @unique // INFO, WARNING, SUCCESS, ERROR
   name       String
   nameKz     String?
   nameRu     String?
@@ -839,7 +839,7 @@ model RefNotificationType {
 // Статус сообщения (справочник для enum MessageStatus)
 model RefMessageStatus {
   id         String   @id @default(uuid())
-  code       String   @unique  // SENT, DELIVERED, READ
+  code       String   @unique // SENT, DELIVERED, READ
   name       String
   nameKz     String?
   nameRu     String?
@@ -855,7 +855,7 @@ model RefMessageStatus {
 // Тип транзакции (справочник для enum TransactionType)
 model RefTransactionType {
   id         String   @id @default(uuid())
-  code       String   @unique  // EARNED, SPENT, BONUS, REFUND
+  code       String   @unique // EARNED, SPENT, BONUS, REFUND
   name       String
   nameKz     String?
   nameRu     String?
@@ -871,7 +871,7 @@ model RefTransactionType {
 // Формат сгенерированного теста (справочник для enum GeneratedTestFormat)
 model RefGeneratedTestFormat {
   id         String   @id @default(uuid())
-  code       String   @unique  // TEST, EXAM
+  code       String   @unique // TEST, EXAM
   name       String
   nameKz     String?
   nameRu     String?
@@ -910,10 +910,10 @@ model User {
   lastLogin     DateTime?
   lastSeen      DateTime?
 
-  student       Student?
-  teacher       Teacher?
-  parent        Parent?
-  curator       Curator?
+  student Student?
+  teacher Teacher?
+  parent  Parent?
+  curator Curator?
 
   sentMessages     Message[]         @relation("SentMessages")
   chatParticipants ChatParticipant[]
@@ -931,13 +931,19 @@ model User {
   confirmedPayments Payment[] @relation("ConfirmedPayments")
 
   // CRM
-  crmLeads          CrmLead[] @relation("CrmLeads")
+  crmLeads CrmLead[] @relation("CrmLeads")
 
   // WhatsApp
-  whatsappMessages  WhatsAppMessage[] @relation("WhatsAppSentBy")
+  whatsappMessages WhatsAppMessage[] @relation("WhatsAppSentBy")
 
   // Social (Messenger + Instagram)
-  socialMessages    SocialMessage[]   @relation("SocialSentBy")
+  socialMessages SocialMessage[] @relation("SocialSentBy")
+
+  // CRM Activities
+  crmActivitiesCreated CrmActivity[] @relation("CrmActivityCreator")
+  crmNotesCreated      CrmNote[]     @relation("CrmNoteCreator")
+  crmTasksCreated      CrmTask[]     @relation("CrmTaskCreator")
+  crmTasksAssigned     CrmTask[]     @relation("CrmTaskAssignee")
 
   @@index([role, isActive])
   @@map("users")
@@ -945,36 +951,36 @@ model User {
 
 // Сеансы входа пользователей
 model LoginSession {
-  id              String    @id @default(uuid())
-  userId          String
-  ipAddress       String?
-  userAgent       String?
-  deviceType      String?   // mobile, tablet, desktop
-  browser         String?
-  browserVersion  String?
-  os              String?
-  deviceModel     String?
-  network         String?   // Wi-Fi, Cellular, Ethernet, etc.
-  isp             String?   // Провайдер / название сети
-  org             String?   // Организация (может отличаться от ISP)
-  asName          String?   // Автономная система
-  city            String?   // Город по IP
-  regionName      String?   // Область/регион по IP
-  country         String?   // Страна по IP
-  lat             Float?    // Широта
-  lon             Float?    // Долгота
-  timezone        String?   // Часовой пояс по IP
-  isProxy         Boolean?  // VPN/Proxy
-  isHosting       Boolean?  // Хостинг/дата-центр
-  isMobileNetwork Boolean?  // Мобильная сеть по IP
-  screenResolution String?  // Разрешение экрана (напр. 1920x1080)
-  language        String?   // Язык браузера
-  clientTimezone  String?   // Часовой пояс клиента
-  connectionSpeed String?   // Скорость соединения (напр. "10 Mbps")
-  loginAt         DateTime  @default(now())
-  logoutAt        DateTime?
+  id               String    @id @default(uuid())
+  userId           String
+  ipAddress        String?
+  userAgent        String?
+  deviceType       String? // mobile, tablet, desktop
+  browser          String?
+  browserVersion   String?
+  os               String?
+  deviceModel      String?
+  network          String? // Wi-Fi, Cellular, Ethernet, etc.
+  isp              String? // Провайдер / название сети
+  org              String? // Организация (может отличаться от ISP)
+  asName           String? // Автономная система
+  city             String? // Город по IP
+  regionName       String? // Область/регион по IP
+  country          String? // Страна по IP
+  lat              Float? // Широта
+  lon              Float? // Долгота
+  timezone         String? // Часовой пояс по IP
+  isProxy          Boolean? // VPN/Proxy
+  isHosting        Boolean? // Хостинг/дата-центр
+  isMobileNetwork  Boolean? // Мобильная сеть по IP
+  screenResolution String? // Разрешение экрана (напр. 1920x1080)
+  language         String? // Язык браузера
+  clientTimezone   String? // Часовой пояс клиента
+  connectionSpeed  String? // Скорость соединения (напр. "10 Mbps")
+  loginAt          DateTime  @default(now())
+  logoutAt         DateTime?
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, loginAt])
   @@map("login_sessions")
@@ -988,37 +994,37 @@ model Curator {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  branches  BranchCurator[]
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branches BranchCurator[]
 
   @@map("curators")
 }
 
 model Student {
-  id               String        @id @default(uuid())
-  userId           String        @unique
-  dateOfBirth      DateTime?
-  gender           Gender?
-  address          String?
-  parentId         String?
-  status           StudentStatus @default(PENDING_APPROVAL)
-  enrollmentDate   DateTime      @default(now())
-  balance          Int           @default(0)
-  totalEarned      Int           @default(0)
+  id             String        @id @default(uuid())
+  userId         String        @unique
+  dateOfBirth    DateTime?
+  gender         Gender?
+  address        String?
+  parentId       String?
+  status         StudentStatus @default(PENDING_APPROVAL)
+  enrollmentDate DateTime      @default(now())
+  balance        Int           @default(0)
+  totalEarned    Int           @default(0)
 
   // Contract
-  contractNumber   String?       @unique
-  contractConfirmed Boolean @default(false)
+  contractNumber      String?   @unique
+  contractConfirmed   Boolean   @default(false)
   contractConfirmedAt DateTime?
   contractConfirmedBy String?
 
   // Personal info
-  studentIIN       String?
-  citizenship      Citizenship @default(KZ)
-  parentIIN        String?
-  parentName       String?
-  parentPhone      String?
-  studentPhone     String?
+  studentIIN           String?
+  citizenship          Citizenship         @default(KZ)
+  parentIIN            String?
+  parentName           String?
+  parentPhone          String?
+  studentPhone         String?
   parentDocumentType   ParentDocumentType?
   parentDocumentNumber String?
 
@@ -1031,57 +1037,57 @@ model Student {
   branchId         String?
 
   // Study details
-  studyFormat      StudyFormat?
-  guarantee        Guarantee?
-  studySchedule    StudySchedule?
-  customDays       String[]        @default([])
-  allergy          String?
+  studyFormat   StudyFormat?
+  guarantee     Guarantee?
+  studySchedule StudySchedule?
+  customDays    String[]       @default([])
+  allergy       String?
 
   // Subscription details
-  standardMonths   Int           @default(0)
-  bonusMonths      Int           @default(0)
-  intensiveMonths  Int           @default(0)
-  freezeDays       Int           @default(0)
-  freezeEndDate    DateTime?
-  ertisDrops       Int           @default(0)
+  standardMonths  Int       @default(0)
+  bonusMonths     Int       @default(0)
+  intensiveMonths Int       @default(0)
+  freezeDays      Int       @default(0)
+  freezeEndDate   DateTime?
+  ertisDrops      Int       @default(0)
 
   // Payment details
-  paymentPlan      PaymentPlan?
-  tranche1Amount   Float?
-  tranche1Date     DateTime?
-  tranche2Amount   Float?
-  tranche2Date     DateTime?
-  tranche3Amount   Float?
-  tranche3Date     DateTime?
-  totalAmount      Float?
-  monthlyPayment   Float?
+  paymentPlan    PaymentPlan?
+  tranche1Amount Float?
+  tranche1Date   DateTime?
+  tranche2Amount Float?
+  tranche2Date   DateTime?
+  tranche3Amount Float?
+  tranche3Date   DateTime?
+  totalAmount    Float?
+  monthlyPayment Float?
 
   // Study period
-  studyStartDate   DateTime?
-  studyEndDate     DateTime?
+  studyStartDate DateTime?
+  studyEndDate   DateTime?
 
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  coordinatorId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  coordinatorId String?
 
   // Relations
-  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent           Parent?               @relation(fields: [parentId], references: [id])
-  gradeLevel       RefGradeLevel?        @relation(fields: [gradeLevelId], references: [id])
-  language         RefLanguage?          @relation(fields: [languageId], references: [id])
-  studyDirection   RefStudyDirection?    @relation(fields: [studyDirectionId], references: [id])
-  city             RefCity?              @relation(fields: [cityId], references: [id])
-  school           RefSchool?            @relation(fields: [schoolId], references: [id])
-  branch           Branch?               @relation(fields: [branchId], references: [id])
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent         Parent?            @relation(fields: [parentId], references: [id])
+  gradeLevel     RefGradeLevel?     @relation(fields: [gradeLevelId], references: [id])
+  language       RefLanguage?       @relation(fields: [languageId], references: [id])
+  studyDirection RefStudyDirection? @relation(fields: [studyDirectionId], references: [id])
+  city           RefCity?           @relation(fields: [cityId], references: [id])
+  school         RefSchool?         @relation(fields: [schoolId], references: [id])
+  branch         Branch?            @relation(fields: [branchId], references: [id])
 
-  subjects         StudentSubject[]
-  specialNeeds     StudentSpecialNeed[]
-  groupStudents    GroupStudent[]
-  homeworkSubmissions HomeworkSubmission[]
-  testAttempts     TestAttempt[]
-  payments         Payment[]
-  contracts        Contract[]
-  storeOrders      StoreOrder[]
+  subjects             StudentSubject[]
+  specialNeeds         StudentSpecialNeed[]
+  groupStudents        GroupStudent[]
+  homeworkSubmissions  HomeworkSubmission[]
+  testAttempts         TestAttempt[]
+  payments             Payment[]
+  contracts            Contract[]
+  storeOrders          StoreOrder[]
   currencyTransactions CurrencyTransaction[]
 
   @@index([status])
@@ -1098,8 +1104,8 @@ model StudentSubject {
   subjectId String
   createdAt DateTime @default(now())
 
-  student   Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  subject   RefSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  student Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject RefSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, subjectId])
   @@map("student_subjects")
@@ -1112,38 +1118,38 @@ model StudentSpecialNeed {
   specialNeedId String
   createdAt     DateTime @default(now())
 
-  student       Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  specialNeed   RefSpecialNeed @relation(fields: [specialNeedId], references: [id], onDelete: Cascade)
+  student     Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  specialNeed RefSpecialNeed @relation(fields: [specialNeedId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, specialNeedId])
   @@map("student_special_needs")
 }
 
 model Teacher {
-  id              String           @id @default(uuid())
-  userId          String           @unique
-  dateOfBirth     DateTime?
-  iin             String?
-  phone           String?
-  categoryId      String?
-  status          TeacherStatus    @default(ACTIVE)
-  bio             String?
-  education       String?
-  experience      Int?
-  salaryFormat    SalaryFormat?
-  salaryAmount    Float?
-  hireDate        DateTime         @default(now())
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  dateOfBirth  DateTime?
+  iin          String?
+  phone        String?
+  categoryId   String?
+  status       TeacherStatus @default(ACTIVE)
+  bio          String?
+  education    String?
+  experience   Int?
+  salaryFormat SalaryFormat?
+  salaryAmount Float?
+  hireDate     DateTime      @default(now())
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category        RefTeacherCategory?  @relation(fields: [categoryId], references: [id])
-  subjects        TeacherSubject[]
-  branches        TeacherBranch[]
-  groups          Group[]
-  lessons         Lesson[]
-  scheduleSlots   ScheduleSlot[]
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      RefTeacherCategory? @relation(fields: [categoryId], references: [id])
+  subjects      TeacherSubject[]
+  branches      TeacherBranch[]
+  groups        Group[]
+  lessons       Lesson[]
+  scheduleSlots ScheduleSlot[]
 
   @@index([status, isActive])
   @@map("teachers")
@@ -1156,8 +1162,8 @@ model TeacherSubject {
   subjectId String
   createdAt DateTime @default(now())
 
-  teacher   Teacher    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  subject   RefSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher Teacher    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject RefSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@unique([teacherId, subjectId])
   @@map("teacher_subjects")
@@ -1170,22 +1176,22 @@ model TeacherBranch {
   branchId  String
   createdAt DateTime @default(now())
 
-  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([teacherId, branchId])
   @@map("teacher_branches")
 }
 
 model Parent {
-  id          String    @id @default(uuid())
-  userId      String    @unique
-  occupation  String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  occupation String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  students    Student[]
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students Student[]
 
   @@map("parents")
 }
@@ -1195,19 +1201,19 @@ model Parent {
 // ==========================================
 
 model Branch {
-  id          String      @id @default(uuid())
-  name        String      @unique
-  nameKz      String?
-  nameRu      String?
-  nameEn      String?
-  code        String?
-  address     String?
-  phone       String?
-  latitude    Float?
-  longitude   Float?
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id        String   @id @default(uuid())
+  name      String   @unique
+  nameKz    String?
+  nameRu    String?
+  nameEn    String?
+  code      String?
+  address   String?
+  phone     String?
+  latitude  Float?
+  longitude Float?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   classrooms    Classroom[]
   curators      BranchCurator[]
@@ -1226,27 +1232,27 @@ model BranchCurator {
   curatorId String
   createdAt DateTime @default(now())
 
-  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  curator   Curator @relation(fields: [curatorId], references: [id], onDelete: Cascade)
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  curator Curator @relation(fields: [curatorId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, curatorId])
   @@map("branch_curators")
 }
 
 model Classroom {
-  id          String    @id @default(uuid())
-  branchId    String
-  name        String
-  nameKz      String?
-  nameRu      String?
-  nameEn      String?
-  capacity    Int       @default(15)
-  equipment   String[]  @default([])
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  branchId  String
+  name      String
+  nameKz    String?
+  nameRu    String?
+  nameEn    String?
+  capacity  Int      @default(15)
+  equipment String[] @default([])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  branch      Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
   scheduleSlots ScheduleSlot[]
 
   @@unique([branchId, name])
@@ -1258,40 +1264,40 @@ model Classroom {
 // ==========================================
 
 model Group {
-  id              String      @id @default(uuid())
-  name            String      // Auto-generated: 5RMD-Omega-O
-  gradeLevelId    String?
-  languageId      String?
+  id               String       @id @default(uuid())
+  name             String // Auto-generated: 5RMD-Omega-O
+  gradeLevelId     String?
+  languageId       String?
   studyDirectionId String?
-  groupIndexId    String?
-  branchId        String?
-  teacherId       String?
-  courseId        String?
-  studyFormat     StudyFormat?
-  timeOfDay       TimeOfDay?
-  maxStudents     Int         @default(15)
-  maxHoursPerWeek Int         @default(9)
-  startDate       DateTime?
-  endDate         DateTime?
-  isActive        Boolean     @default(true)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  groupIndexId     String?
+  branchId         String?
+  teacherId        String?
+  courseId         String?
+  studyFormat      StudyFormat?
+  timeOfDay        TimeOfDay?
+  maxStudents      Int          @default(15)
+  maxHoursPerWeek  Int          @default(9)
+  startDate        DateTime?
+  endDate          DateTime?
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-  gradeLevel      RefGradeLevel?     @relation(fields: [gradeLevelId], references: [id])
-  language        RefLanguage?       @relation(fields: [languageId], references: [id])
-  studyDirection  RefStudyDirection? @relation(fields: [studyDirectionId], references: [id])
-  groupIndex      RefGroupIndex?     @relation(fields: [groupIndexId], references: [id])
-  branch          Branch?            @relation(fields: [branchId], references: [id])
-  teacher         Teacher?           @relation(fields: [teacherId], references: [id])
-  course          Course?            @relation(fields: [courseId], references: [id])
+  gradeLevel     RefGradeLevel?     @relation(fields: [gradeLevelId], references: [id])
+  language       RefLanguage?       @relation(fields: [languageId], references: [id])
+  studyDirection RefStudyDirection? @relation(fields: [studyDirectionId], references: [id])
+  groupIndex     RefGroupIndex?     @relation(fields: [groupIndexId], references: [id])
+  branch         Branch?            @relation(fields: [branchId], references: [id])
+  teacher        Teacher?           @relation(fields: [teacherId], references: [id])
+  course         Course?            @relation(fields: [courseId], references: [id])
 
-  subjects        GroupSubject[]
-  students        GroupStudent[]
-  schedule        Schedule[]
-  homework        Homework[]
-  tests           Test[]
-  chat            Chat?
-  scheduleSlots   ScheduleSlot[]
+  subjects      GroupSubject[]
+  students      GroupStudent[]
+  schedule      Schedule[]
+  homework      Homework[]
+  tests         Test[]
+  chat          Chat?
+  scheduleSlots ScheduleSlot[]
 
   @@index([branchId, isActive])
   @@index([teacherId])
@@ -1302,16 +1308,16 @@ model Group {
 
 // Связь группа-предмет с часами
 model GroupSubject {
-  id              String   @id @default(uuid())
-  groupId         String
-  subjectId       String
-  hoursPerWeek    Int      @default(0)
-  totalHours      Int      @default(0)
-  isScheduled     Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  id           String   @id @default(uuid())
+  groupId      String
+  subjectId    String
+  hoursPerWeek Int      @default(0)
+  totalHours   Int      @default(0)
+  isScheduled  Boolean  @default(false)
+  createdAt    DateTime @default(now())
 
-  group           Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  subject         RefSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  group   Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  subject RefSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, subjectId])
   @@map("group_subjects")
@@ -1324,8 +1330,8 @@ model GroupStudent {
   enrolledAt  DateTime  @default(now())
   completedAt DateTime?
 
-  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, studentId])
   @@index([studentId])
@@ -1337,33 +1343,33 @@ model GroupStudent {
 // ==========================================
 
 model Course {
-  id              String    @id @default(uuid())
+  id              String          @id @default(uuid())
   title           String
   description     String?
   difficultyLevel DifficultyLevel
   language        String
   duration        Int
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  topics          Topic[]
-  groups          Group[]
+  topics Topic[]
+  groups Group[]
 
   @@map("courses")
 }
 
 model Topic {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   courseId    String
   title       String
   description String?
   orderIndex  Int
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons     Lesson[]
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
 
   @@map("topics")
 }
@@ -1373,16 +1379,16 @@ model Topic {
 // ==========================================
 
 model TaskSubject {
-  id          String        @id @default(uuid())
-  name        String        @unique
-  nameKz      String?
-  nameRu      String?
-  nameEn      String?
-  icon        String?
-  orderIndex  Int
-  isActive    Boolean       @default(true)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id         String   @id @default(uuid())
+  name       String   @unique
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  icon       String?
+  orderIndex Int
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   taskTopics     TaskTopic[]
   generatedTests GeneratedTest[]
@@ -1391,40 +1397,40 @@ model TaskSubject {
 }
 
 model TaskTopic {
-  id          String        @id @default(uuid())
-  subjectId   String
-  name        String
-  nameKz      String?
-  nameRu      String?
-  nameEn      String?
-  icon        String?
-  orderIndex  Int
-  isActive    Boolean       @default(true)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id         String   @id @default(uuid())
+  subjectId  String
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  icon       String?
+  orderIndex Int
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  subject     TaskSubject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  subtopics   TaskSubtopic[]
+  subject   TaskSubject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subtopics TaskSubtopic[]
 
   @@index([subjectId])
   @@map("task_topics")
 }
 
 model TaskSubtopic {
-  id          String        @id @default(uuid())
-  topicId     String
-  name        String
-  nameKz      String?
-  nameRu      String?
-  nameEn      String?
-  orderIndex  Int
-  isActive    Boolean       @default(true)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id         String   @id @default(uuid())
+  topicId    String
+  name       String
+  nameKz     String?
+  nameRu     String?
+  nameEn     String?
+  orderIndex Int
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  topic       TaskTopic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  tasks       Task[]        // Legacy relation
-  taskLinks   TaskSubtopicLink[]
+  topic     TaskTopic          @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  tasks     Task[] // Legacy relation
+  taskLinks TaskSubtopicLink[]
 
   @@index([topicId])
   @@map("task_subtopics")
@@ -1432,53 +1438,53 @@ model TaskSubtopic {
 
 model Task {
   id              String          @id @default(uuid())
-  subtopicId      String?         // Legacy field - now using TaskSubtopicLink for multiple topics
+  subtopicId      String? // Legacy field - now using TaskSubtopicLink for multiple topics
   format          TaskFormat
   difficultyLevel DifficultyLevel
 
   // Question text with multi-language support
-  questionText    String
-  questionTextKz  String?
-  questionTextRu  String?
-  questionTextEn  String?
-  questionImage   String?
+  questionText   String
+  questionTextKz String?
+  questionTextRu String?
+  questionTextEn String?
+  questionImage  String?
 
   // Answer options for multiple choice (JSON array with multi-language support)
   // Format: [{ "kz": "...", "ru": "...", "en": "..." }, ...]
-  options         Json?
+  options Json?
 
   // Answer text with multi-language support
-  answerText      String?
-  answerTextKz    String?
-  answerTextRu    String?
-  answerTextEn    String?
-  answerImage     String?
+  answerText   String?
+  answerTextKz String?
+  answerTextRu String?
+  answerTextEn String?
+  answerImage  String?
 
   // Solution text with multi-language support
-  solutionText    String?
-  solutionTextKz  String?
-  solutionTextRu  String?
-  solutionTextEn  String?
-  solutionImage   String?
+  solutionText   String?
+  solutionTextKz String?
+  solutionTextRu String?
+  solutionTextEn String?
+  solutionImage  String?
 
-  correctAnswer   Int?            // Index of correct answer for multiple choice (0-based)
+  correctAnswer Int? // Index of correct answer for multiple choice (0-based)
 
   // Hints with multi-language support
-  hints           String[]        @default([])
-  hintsKz         String[]        @default([])
-  hintsRu         String[]        @default([])
-  hintsEn         String[]        @default([])
+  hints   String[] @default([])
+  hintsKz String[] @default([])
+  hintsRu String[] @default([])
+  hintsEn String[] @default([])
 
-  tags            String[]        @default([])
-  points          Int             @default(1)
-  timeEstimate    Int?
-  createdBy       String?
-  isActive        Boolean         @default(true)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  tags         String[] @default([])
+  points       Int      @default(1)
+  timeEstimate Int?
+  createdBy    String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  subtopic        TaskSubtopic?   @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
-  subtopics       TaskSubtopicLink[]
+  subtopic  TaskSubtopic?      @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
+  subtopics TaskSubtopicLink[]
 
   @@index([subtopicId])
   @@index([format, difficultyLevel])
@@ -1488,13 +1494,13 @@ model Task {
 
 // Junction table for Task <-> TaskSubtopic many-to-many relationship
 model TaskSubtopicLink {
-  id          String       @id @default(uuid())
-  taskId      String
-  subtopicId  String
-  createdAt   DateTime     @default(now())
+  id         String   @id @default(uuid())
+  taskId     String
+  subtopicId String
+  createdAt  DateTime @default(now())
 
-  task        Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  subtopic    TaskSubtopic @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
+  task     Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  subtopic TaskSubtopic @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, subtopicId])
   @@map("task_subtopic_links")
@@ -1522,10 +1528,10 @@ model ScheduleSlot {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  branch      Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  classroom   Classroom  @relation(fields: [classroomId], references: [id], onDelete: Cascade)
-  group       Group?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  teacher     Teacher?   @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  branch    Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  classroom Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  group     Group?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  teacher   Teacher?  @relation(fields: [teacherId], references: [id], onDelete: SetNull)
 
   @@index([branchId, dayOfWeek])
   @@index([classroomId, dayOfWeek])
@@ -1534,17 +1540,17 @@ model ScheduleSlot {
 }
 
 model Schedule {
-  id          String    @id @default(uuid())
-  groupId     String
-  dayOfWeek   Int
-  startTime   String
-  endTime     String
-  room        String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  groupId   String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  room      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  group       Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  lessons     LessonSchedule[]
+  group   Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  lessons LessonSchedule[]
 
   @@map("schedule")
 }
@@ -1566,25 +1572,25 @@ model Lesson {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  topic       Topic             @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  teacher     Teacher           @relation(fields: [teacherId], references: [id])
-  schedules   LessonSchedule[]
+  topic     Topic            @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  teacher   Teacher          @relation(fields: [teacherId], references: [id])
+  schedules LessonSchedule[]
 
   @@map("lessons")
 }
 
 model LessonSchedule {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   lessonId    String
   scheduleId  String
   date        DateTime
-  isCompleted Boolean   @default(false)
+  isCompleted Boolean  @default(false)
   notes       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  schedule    Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  lesson   Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
 
   @@map("lessons_schedule")
 }
@@ -1594,17 +1600,17 @@ model LessonSchedule {
 // ==========================================
 
 model Homework {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   groupId     String
   title       String
   description String
   dueDate     DateTime
-  maxScore    Int       @default(100)
+  maxScore    Int      @default(100)
   attachments String[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  group       Group                 @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group       Group                @relation(fields: [groupId], references: [id], onDelete: Cascade)
   submissions HomeworkSubmission[]
 
   @@index([groupId])
@@ -1626,8 +1632,8 @@ model HomeworkSubmission {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  homework    Homework  @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  homework Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  student  Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([homeworkId, studentId])
   @@index([studentId, status])
@@ -1639,43 +1645,43 @@ model HomeworkSubmission {
 // ==========================================
 
 model TaskBank {
-  id             String       @id @default(uuid())
-  question       String
-  questionType   QuestionType
+  id              String          @id @default(uuid())
+  question        String
+  questionType    QuestionType
   difficultyLevel DifficultyLevel
-  topic          String
-  correctAnswer  String
-  options        String[]
-  explanation    String?
-  points         Int          @default(1)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  topic           String
+  correctAnswer   String
+  options         String[]
+  explanation     String?
+  points          Int             @default(1)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  testQuestions  TestQuestion[]
+  testQuestions TestQuestion[]
 
   @@map("task_bank")
 }
 
 model Test {
-  id          String    @id @default(uuid())
-  groupId     String
-  createdById String
-  title       String
-  description String?
-  type        TestType
-  duration    Int
-  totalScore  Int
+  id           String   @id @default(uuid())
+  groupId      String
+  createdById  String
+  title        String
+  description  String?
+  type         TestType
+  duration     Int
+  totalScore   Int
   passingScore Int
-  startDate   DateTime
-  endDate     DateTime
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  startDate    DateTime
+  endDate      DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  group       Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  createdBy   User           @relation(fields: [createdById], references: [id])
-  questions   TestQuestion[]
-  attempts    TestAttempt[]
+  group     Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy User           @relation(fields: [createdById], references: [id])
+  questions TestQuestion[]
+  attempts  TestAttempt[]
 
   @@index([groupId])
   @@index([isActive, startDate])
@@ -1683,16 +1689,16 @@ model Test {
 }
 
 model TestQuestion {
-  id          String    @id @default(uuid())
-  testId      String
-  taskId      String
-  orderIndex  Int
-  points      Int       @default(1)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(uuid())
+  testId     String
+  taskId     String
+  orderIndex Int
+  points     Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  test        Test      @relation(fields: [testId], references: [id], onDelete: Cascade)
-  task        TaskBank  @relation(fields: [taskId], references: [id])
+  test Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  task TaskBank @relation(fields: [taskId], references: [id])
 
   @@unique([testId, taskId])
   @@map("test_questions")
@@ -1709,8 +1715,8 @@ model TestAttempt {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  test        Test      @relation(fields: [testId], references: [id], onDelete: Cascade)
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  test    Test    @relation(fields: [testId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([testId])
   @@index([studentId])
@@ -1722,29 +1728,29 @@ model TestAttempt {
 // ==========================================
 
 model Payment {
-  id            String        @id @default(uuid())
-  studentId     String
-  amount        Float
-  actualAmount  Float?
-  method        String
-  status        PaymentStatus @default(PENDING)
-  description   String?
-  dueDate       DateTime?
-  paidAt        DateTime?
+  id           String        @id @default(uuid())
+  studentId    String
+  amount       Float
+  actualAmount Float?
+  method       String
+  status       PaymentStatus @default(PENDING)
+  description  String?
+  dueDate      DateTime?
+  paidAt       DateTime?
 
   coordinatorId String?
   partnerId     String?
   confirmedById String?
   confirmedAt   DateTime?
-  isConfirmed   Boolean       @default(false)
+  isConfirmed   Boolean   @default(false)
 
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  coordinator   User?     @relation("RecordedPayments", fields: [coordinatorId], references: [id])
-  partner       User?     @relation("PartnerPayments", fields: [partnerId], references: [id])
-  confirmedBy   User?     @relation("ConfirmedPayments", fields: [confirmedById], references: [id])
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  coordinator User?   @relation("RecordedPayments", fields: [coordinatorId], references: [id])
+  partner     User?   @relation("PartnerPayments", fields: [partnerId], references: [id])
+  confirmedBy User?   @relation("ConfirmedPayments", fields: [confirmedById], references: [id])
 
   @@index([studentId, status])
   @@index([status, dueDate])
@@ -1754,19 +1760,19 @@ model Payment {
 }
 
 model Contract {
-  id          String         @id @default(uuid())
-  studentId   String
-  contractNumber String      @unique
-  startDate   DateTime
-  endDate     DateTime
-  totalAmount Float
-  status      ContractStatus @default(DRAFT)
-  terms       String
-  signedAt    DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id             String         @id @default(uuid())
+  studentId      String
+  contractNumber String         @unique
+  startDate      DateTime
+  endDate        DateTime
+  totalAmount    Float
+  status         ContractStatus @default(DRAFT)
+  terms          String
+  signedAt       DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("contracts")
 }
@@ -1797,18 +1803,18 @@ model Library {
 // ==========================================
 
 model StoreProduct {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   title       String
   description String?
   price       Int
   imageUrl    String?
   category    String?
-  stock       Int       @default(0)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  orders      StoreOrder[]
+  orders StoreOrder[]
 
   @@map("store_products")
 }
@@ -1824,8 +1830,8 @@ model StoreOrder {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  product     StoreProduct @relation(fields: [productId], references: [id])
+  student Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  product StoreProduct @relation(fields: [productId], references: [id])
 
   @@map("store_orders")
 }
@@ -1839,7 +1845,7 @@ model CurrencyTransaction {
   relatedId   String?
   createdAt   DateTime        @default(now())
 
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([createdAt])
@@ -1851,29 +1857,29 @@ model CurrencyTransaction {
 // ==========================================
 
 model Chat {
-  id          String    @id @default(uuid())
-  groupId     String?   @unique
+  id          String   @id @default(uuid())
+  groupId     String?  @unique
   name        String?
-  isGroup     Boolean   @default(false)
-  isBroadcast Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isGroup     Boolean  @default(false)
+  isBroadcast Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  group       Group?            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group        Group?            @relation(fields: [groupId], references: [id], onDelete: Cascade)
   participants ChatParticipant[]
-  messages    Message[]
+  messages     Message[]
 
   @@map("chats")
 }
 
 model ChatParticipant {
-  id          String    @id @default(uuid())
-  chatId      String
-  userId      String
-  joinedAt    DateTime  @default(now())
+  id       String   @id @default(uuid())
+  chatId   String
+  userId   String
+  joinedAt DateTime @default(now())
 
-  chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([chatId, userId])
   @@map("chat_participants")
@@ -1891,8 +1897,8 @@ model Message {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  chat                Chat                       @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  sender              User                       @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  chat                Chat                        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender              User                        @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   broadcastRecipients BroadcastMessageRecipient[]
 
   @@index([chatId, createdAt])
@@ -1908,7 +1914,7 @@ model BroadcastMessageRecipient {
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
-  message   Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId])
   @@index([userId, isRead])
@@ -1917,16 +1923,16 @@ model BroadcastMessageRecipient {
 }
 
 model Notification {
-  id          String           @id @default(uuid())
-  userId      String
-  type        NotificationType
-  title       String
-  message     String
-  isRead      Boolean          @default(false)
-  relatedId   String?
-  createdAt   DateTime         @default(now())
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  relatedId String?
+  createdAt DateTime         @default(now())
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([createdAt])
@@ -1943,27 +1949,27 @@ enum GeneratedTestFormat {
 }
 
 model GeneratedTest {
-  id              String                 @id @default(uuid())
-  title           String
-  titleKz         String?
-  titleEn         String?
-  format          GeneratedTestFormat    @default(TEST)
-  subjectId       String?
-  gradeLevel      Int?
-  createdById     String
-  duration        Int?
-  taskIds         Json                   // Array of task IDs
-  topicIds        Json?                  // Array of selected topic IDs
-  difficultyConfig Json?                 // { easy: number, medium: number, hard: number }
-  isShared        Boolean                @default(false)
-  isDiagnostic    Boolean                @default(false) // true = diagnostic test, false = regular test
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  id               String              @id @default(uuid())
+  title            String
+  titleKz          String?
+  titleEn          String?
+  format           GeneratedTestFormat @default(TEST)
+  subjectId        String?
+  gradeLevel       Int?
+  createdById      String
+  duration         Int?
+  taskIds          Json // Array of task IDs
+  topicIds         Json? // Array of selected topic IDs
+  difficultyConfig Json? // { easy: number, medium: number, hard: number }
+  isShared         Boolean             @default(false)
+  isDiagnostic     Boolean             @default(false) // true = diagnostic test, false = regular test
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
-  subject         TaskSubject?           @relation(fields: [subjectId], references: [id])
-  createdBy       User                   @relation("CreatedGeneratedTests", fields: [createdById], references: [id], onDelete: Cascade)
-  sharedWith      GeneratedTestShare[]
-  blankResults    BlankResult[]
+  subject      TaskSubject?         @relation(fields: [subjectId], references: [id])
+  createdBy    User                 @relation("CreatedGeneratedTests", fields: [createdById], references: [id], onDelete: Cascade)
+  sharedWith   GeneratedTestShare[]
+  blankResults BlankResult[]
 
   @@index([createdById])
   @@index([subjectId])
@@ -1973,20 +1979,20 @@ model GeneratedTest {
 }
 
 model BlankResult {
-  id              String        @id @default(uuid())
+  id              String   @id @default(uuid())
   generatedTestId String
   studentName     String?
   studentClass    String?
-  answers         Json          // Array of answers: [0, 1, 2, 3, 4, null...]
+  answers         Json // Array of answers: [0, 1, 2, 3, 4, null...]
   correctCount    Int
   totalQuestions  Int
   percentage      Float
   scannedImageUrl String?
-  scannedAt       DateTime      @default(now())
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  scannedAt       DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  generatedTest   GeneratedTest @relation(fields: [generatedTestId], references: [id], onDelete: Cascade)
+  generatedTest GeneratedTest @relation(fields: [generatedTestId], references: [id], onDelete: Cascade)
 
   @@index([generatedTestId])
   @@index([scannedAt])
@@ -1994,14 +2000,14 @@ model BlankResult {
 }
 
 model GeneratedTestShare {
-  id              String        @id @default(uuid())
+  id              String   @id @default(uuid())
   generatedTestId String
   sharedWithId    String
-  canEdit         Boolean       @default(false)
-  createdAt       DateTime      @default(now())
+  canEdit         Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
-  generatedTest   GeneratedTest @relation(fields: [generatedTestId], references: [id], onDelete: Cascade)
-  sharedWith      User          @relation("SharedGeneratedTests", fields: [sharedWithId], references: [id], onDelete: Cascade)
+  generatedTest GeneratedTest @relation(fields: [generatedTestId], references: [id], onDelete: Cascade)
+  sharedWith    User          @relation("SharedGeneratedTests", fields: [sharedWithId], references: [id], onDelete: Cascade)
 
   @@unique([generatedTestId, sharedWithId])
   @@map("generated_test_shares")
@@ -2022,95 +2028,100 @@ enum CrmLeadStage {
 }
 
 model CrmFunnel {
-  id          String     @id @default(uuid())
+  id          String  @id @default(uuid())
   name        String
   description String?
-  color       String     @default("#3B82F6") // blue-500
-  isDefault   Boolean    @default(false)
-  isActive    Boolean    @default(true)
-  order       Int        @default(0)
+  color       String  @default("#3B82F6") // blue-500
+  isDefault   Boolean @default(false)
+  isActive    Boolean @default(true)
+  order       Int     @default(0)
 
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  stages      CrmStage[]
-  leads       CrmLead[]
+  stages CrmStage[]
+  leads  CrmLead[]
 
   @@map("crm_funnels")
 }
 
 model CrmStage {
-  id          String     @id @default(uuid())
-  funnelId    String
-  funnel      CrmFunnel  @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  id       String    @id @default(uuid())
+  funnelId String
+  funnel   CrmFunnel @relation(fields: [funnelId], references: [id], onDelete: Cascade)
 
-  name        String
-  color       String     @default("#6B7280") // gray-500
-  order       Int        @default(0)
-  isWon       Boolean    @default(false)  // Final positive stage
-  isLost      Boolean    @default(false)  // Final negative stage
-  isSystem    Boolean    @default(false)  // System stage (cannot be deleted)
+  name     String
+  color    String  @default("#6B7280") // gray-500
+  order    Int     @default(0)
+  isWon    Boolean @default(false) // Final positive stage
+  isLost   Boolean @default(false) // Final negative stage
+  isSystem Boolean @default(false) // System stage (cannot be deleted)
 
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  leads       CrmLead[]
+  leads CrmLead[]
 
   @@index([funnelId])
   @@map("crm_stages")
 }
 
 model CrmLead {
-  id            String        @id @default(uuid())
-  firstName     String
-  lastName      String
-  phone         String?
-  email         String?
-  parentName    String?
-  parentPhone   String?
-  source        String?
+  id          String  @id @default(uuid())
+  firstName   String
+  lastName    String
+  phone       String?
+  email       String?
+  parentName  String?
+  parentPhone String?
+  source      String?
 
   // New funnel-based stage system
-  funnelId      String?
-  funnel        CrmFunnel?    @relation(fields: [funnelId], references: [id])
-  stageId       String?
-  stage_rel     CrmStage?     @relation(fields: [stageId], references: [id])
+  funnelId  String?
+  funnel    CrmFunnel? @relation(fields: [funnelId], references: [id])
+  stageId   String?
+  stage_rel CrmStage?  @relation(fields: [stageId], references: [id])
 
   // Legacy stage - for backwards compatibility
-  stage         CrmLeadStage  @default(NEW_APPLICATION)
+  stage CrmLeadStage @default(NEW_APPLICATION)
 
-  amount        Float?
-  description   String?
-  lostReason    String?
-  language      String?
+  amount      Float?
+  description String?
+  lostReason  String?
+  language    String?
 
   // Student profile (Анкетные данные ученика)
-  studentName     String?       // ФИО ученика
-  studentPhone    String?       // Номер ученика
-  gradeLevelId    String?       // Класс
+  studentName     String? // ФИО ученика
+  studentPhone    String? // Номер ученика
+  gradeLevelId    String? // Класс
   gradeLevel      RefGradeLevel? @relation(fields: [gradeLevelId], references: [id])
-  studyLanguageId String?       // Язык обучения
-  studyLanguage   RefLanguage?  @relation("CrmLeadStudyLanguage", fields: [studyLanguageId], references: [id])
-  goal            String?       // Цель
-  regionId        String?       // Область
-  region          RefRegion?    @relation(fields: [regionId], references: [id])
-  cityId          String?       // Город
-  city            RefCity?      @relation(fields: [cityId], references: [id])
-  schoolId        String?       // Школа
-  school          RefSchool?    @relation(fields: [schoolId], references: [id])
+  studyLanguageId String? // Язык обучения
+  studyLanguage   RefLanguage?   @relation("CrmLeadStudyLanguage", fields: [studyLanguageId], references: [id])
+  goal            String? // Цель
+  regionId        String? // Область
+  region          RefRegion?     @relation(fields: [regionId], references: [id])
+  cityId          String? // Город
+  city            RefCity?       @relation(fields: [cityId], references: [id])
+  schoolId        String? // Школа
+  school          RefSchool?     @relation(fields: [schoolId], references: [id])
 
   // Pre-consultation notes (Заметки до консультации)
-  meetingAt       DateTime?     // Встреча (дата и время)
-  bonus           String?       // Бонус (read-only from API)
+  meetingAt DateTime? // Встреча (дата и время)
+  bonus     String? // Бонус (read-only from API)
 
   coordinatorId String?
-  coordinator   User?         @relation("CrmLeads", fields: [coordinatorId], references: [id])
+  coordinator   User?   @relation("CrmLeads", fields: [coordinatorId], references: [id])
 
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   whatsappConversation WhatsAppConversation?
   socialConversations  SocialConversation[]
+
+  // CRM Activities
+  activities CrmActivity[]
+  notes      CrmNote[]
+  tasks      CrmTask[]
 
   @@index([stage])
   @@index([funnelId])
@@ -2127,54 +2138,54 @@ model CrmLead {
 // ── WhatsApp ──
 
 model WhatsAppConversation {
-  id            String   @id @default(uuid())
-  waId          String   @unique  // WhatsApp ID (phone number without +, e.g. "77007501414")
-  contactName   String?           // Profile name from WhatsApp
-  contactPhone  String             // Phone in original format
+  id           String  @id @default(uuid())
+  waId         String  @unique // WhatsApp ID (phone number without +, e.g. "77007501414")
+  contactName  String? // Profile name from WhatsApp
+  contactPhone String // Phone in original format
 
-  leadId        String?  @unique
-  lead          CrmLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  leadId String?  @unique
+  lead   CrmLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   lastMessageAt DateTime?
-  unreadCount   Int      @default(0)
-  isBlocked     Boolean  @default(false)
+  unreadCount   Int       @default(0)
+  isBlocked     Boolean   @default(false)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  messages      WhatsAppMessage[]
+  messages WhatsAppMessage[]
 
   @@index([lastMessageAt])
   @@map("whatsapp_conversations")
 }
 
 model WhatsAppMessage {
-  id              String   @id @default(uuid())
-  conversationId  String
-  waMessageId     String?  @unique  // WhatsApp message ID from Meta API
-  direction       WhatsAppMessageDirection
-  type            WhatsAppMessageType @default(TEXT)
+  id             String                   @id @default(uuid())
+  conversationId String
+  waMessageId    String?                  @unique // WhatsApp message ID from Meta API
+  direction      WhatsAppMessageDirection
+  type           WhatsAppMessageType      @default(TEXT)
 
-  body            String?           // Text content
-  mediaUrl        String?           // URL for media (image, audio, video, document)
-  mediaCaption    String?
-  mediaMimeType   String?
-  mediaFileName   String?
+  body          String? // Text content
+  mediaUrl      String? // URL for media (image, audio, video, document)
+  mediaCaption  String?
+  mediaMimeType String?
+  mediaFileName String?
 
-  status          WhatsAppMessageStatus @default(SENT)
+  status WhatsAppMessageStatus @default(SENT)
 
   // Reply/Quote context
-  quotedMsgId     String?           // Our internal message ID that was quoted
-  quotedWaId      String?           // WhatsApp message ID that was quoted (for incoming)
-  quotedBody      String?           // Text preview of quoted message
+  quotedMsgId String? // Our internal message ID that was quoted
+  quotedWaId  String? // WhatsApp message ID that was quoted (for incoming)
+  quotedBody  String? // Text preview of quoted message
 
-  sentById        String?           // User who sent outgoing message
-  sentBy          User?   @relation("WhatsAppSentBy", fields: [sentById], references: [id])
+  sentById String? // User who sent outgoing message
+  sentBy   User?   @relation("WhatsAppSentBy", fields: [sentById], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  conversation    WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
   @@index([waMessageId])
@@ -2215,24 +2226,24 @@ enum SocialPlatform {
 }
 
 model SocialConversation {
-  id              String           @id @default(uuid())
+  id              String         @id @default(uuid())
   platform        SocialPlatform
-  platformUserId  String           // PSID (Messenger) or IGSID (Instagram)
+  platformUserId  String // PSID (Messenger) or IGSID (Instagram)
   contactName     String?
-  contactUsername  String?          // Instagram @handle (empty for Messenger)
-  contactAvatar   String?          // Profile picture URL
+  contactUsername String? // Instagram @handle (empty for Messenger)
+  contactAvatar   String? // Profile picture URL
 
-  leadId          String?
-  lead            CrmLead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  leadId String?
+  lead   CrmLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
-  lastMessageAt   DateTime?
-  unreadCount     Int              @default(0)
-  isBlocked       Boolean          @default(false)
+  lastMessageAt DateTime?
+  unreadCount   Int       @default(0)
+  isBlocked     Boolean   @default(false)
 
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  messages        SocialMessage[]
+  messages SocialMessage[]
 
   @@unique([platform, platformUserId])
   @@index([leadId])
@@ -2241,27 +2252,27 @@ model SocialConversation {
 }
 
 model SocialMessage {
-  id              String                  @id @default(uuid())
-  conversationId  String
-  platformMsgId   String?                 // mid from Meta API
-  direction       WhatsAppMessageDirection
-  type            WhatsAppMessageType     @default(TEXT)
+  id             String                   @id @default(uuid())
+  conversationId String
+  platformMsgId  String? // mid from Meta API
+  direction      WhatsAppMessageDirection
+  type           WhatsAppMessageType      @default(TEXT)
 
-  body            String?
-  mediaUrl        String?
-  mediaCaption    String?
-  mediaMimeType   String?
-  mediaFileName   String?
+  body          String?
+  mediaUrl      String?
+  mediaCaption  String?
+  mediaMimeType String?
+  mediaFileName String?
 
-  status          WhatsAppMessageStatus   @default(SENT)
+  status WhatsAppMessageStatus @default(SENT)
 
-  sentById        String?
-  sentBy          User?                   @relation("SocialSentBy", fields: [sentById], references: [id])
+  sentById String?
+  sentBy   User?   @relation("SocialSentBy", fields: [sentById], references: [id])
 
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  conversation    SocialConversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation SocialConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
   @@index([platformMsgId])
@@ -2287,55 +2298,55 @@ model CrmSettings {
 // Credentials: Server: almpbx.tele2.kz or astpbx.tele2.kz, Login: 7tiWgPpD, Password: dMptY92o
 
 model MarSipConfig {
-  id                String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // Connection
-  sipServer         String   @default("almpbx.tele2.kz")  // almpbx.tele2.kz (Almaty) or astpbx.tele2.kz (Astana)
-  sipLogin          String?
-  sipPassword       String?
-  sipPort           Int      @default(5060)
+  sipServer   String  @default("almpbx.tele2.kz") // almpbx.tele2.kz (Almaty) or astpbx.tele2.kz (Astana)
+  sipLogin    String?
+  sipPassword String?
+  sipPort     Int     @default(5060)
 
   // Features
-  isActive          Boolean  @default(false)  // DO NOT activate until Tele2 grants access
-  recordCalls       Boolean  @default(true)
-  autoCreateLead    Boolean  @default(true)   // Auto-create lead on incoming call from unknown number
-  showLeadCard      Boolean  @default(true)   // Show lead card popup on incoming call
-  logCallsToLead    Boolean  @default(true)   // Log calls to lead history
+  isActive       Boolean @default(false) // DO NOT activate until Tele2 grants access
+  recordCalls    Boolean @default(true)
+  autoCreateLead Boolean @default(true) // Auto-create lead on incoming call from unknown number
+  showLeadCard   Boolean @default(true) // Show lead card popup on incoming call
+  logCallsToLead Boolean @default(true) // Log calls to lead history
 
   // Call settings
-  ringTimeout       Int      @default(30)     // Seconds to wait before forwarding
-  forwardNumber     String?                   // Forward calls to this number if no answer
-  voicemailEnabled  Boolean  @default(false)
+  ringTimeout      Int     @default(30) // Seconds to wait before forwarding
+  forwardNumber    String? // Forward calls to this number if no answer
+  voicemailEnabled Boolean @default(false)
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  extensions        MarSipExtension[]
+  extensions MarSipExtension[]
 
   @@map("marsip_config")
 }
 
 model MarSipExtension {
-  id              String   @id @default(uuid())
-  configId        String
+  id       String @id @default(uuid())
+  configId String
 
-  extensionNumber String            // Internal number (201, 202, 207, etc.)
-  sipPassword     String?           // SIP password for this extension
-  displayName     String?           // Display name for this extension
-  userId          String?  @unique  // Linked system user
+  extensionNumber String // Internal number (201, 202, 207, etc.)
+  sipPassword     String? // SIP password for this extension
+  displayName     String? // Display name for this extension
+  userId          String? @unique // Linked system user
 
   // Status
-  isActive        Boolean  @default(true)
-  isOnline        Boolean  @default(false)
+  isActive Boolean @default(true)
+  isOnline Boolean @default(false)
 
   // Personal settings
-  forwardNumber   String?           // Personal forward number
+  forwardNumber    String? // Personal forward number
   voicemailEnabled Boolean @default(false)
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  config          MarSipConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  config MarSipConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
 
   @@unique([configId, extensionNumber])
   @@index([userId])
@@ -2344,31 +2355,125 @@ model MarSipExtension {
 
 // Call history for MarSIP
 model MarSipCall {
-  id              String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  direction       String   // INCOMING, OUTGOING
+  direction       String // INCOMING, OUTGOING
   callerNumber    String
   callerName      String?
   receiverNumber  String
   receiverName    String?
   extensionNumber String?
 
-  status          String   // ANSWERED, MISSED, BUSY, FAILED
-  duration        Int      @default(0)  // Duration in seconds
-  recordingUrl    String?
+  status       String // ANSWERED, MISSED, BUSY, FAILED
+  duration     Int     @default(0) // Duration in seconds
+  recordingUrl String?
 
-  leadId          String?  // Linked lead if any
-  userId          String?  // User who handled the call
+  leadId String? // Linked lead if any
+  userId String? // User who handled the call
 
-  startedAt       DateTime
-  answeredAt      DateTime?
-  endedAt         DateTime?
+  startedAt  DateTime
+  answeredAt DateTime?
+  endedAt    DateTime?
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([leadId])
   @@index([userId])
   @@index([callerNumber])
   @@index([startedAt])
   @@map("marsip_calls")
+}
+
+// ── CRM Activities (Notes & Tasks) ──
+
+enum CrmActivityType {
+  NOTE
+  TASK
+  TASK_COMPLETED
+  STAGE_CHANGED
+  CALL
+  MESSAGE
+  SYSTEM
+}
+
+enum CrmTaskType {
+  CALL // Связаться
+  MESSAGE // Написать
+  MEETING // Встреча
+}
+
+model CrmActivity {
+  id      String          @id @default(uuid())
+  leadId  String
+  lead    CrmLead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type    CrmActivityType
+  content String? // Description of activity
+
+  // For NOTE type
+  noteId String?  @unique
+  note   CrmNote? @relation(fields: [noteId], references: [id], onDelete: SetNull)
+
+  // For TASK type
+  taskId String?  @unique
+  task   CrmTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("CrmActivityCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@index([createdById])
+  @@index([type])
+  @@index([createdAt])
+  @@map("crm_activities")
+}
+
+model CrmNote {
+  id      String  @id @default(uuid())
+  leadId  String
+  lead    CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  content String
+
+  createdById String?
+  createdBy   User?   @relation("CrmNoteCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activity CrmActivity?
+
+  @@index([leadId])
+  @@index([createdById])
+  @@map("crm_notes")
+}
+
+model CrmTask {
+  id               String      @id @default(uuid())
+  leadId           String
+  lead             CrmLead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  title            String
+  taskType         CrmTaskType @default(CALL)
+  dueDate          DateTime?
+  isCompleted      Boolean     @default(false)
+  completedAt      DateTime?
+  completedComment String?
+
+  assigneeId String?
+  assignee   User?   @relation("CrmTaskAssignee", fields: [assigneeId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation("CrmTaskCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activity CrmActivity?
+
+  @@index([leadId])
+  @@index([assigneeId])
+  @@index([createdById])
+  @@index([isCompleted])
+  @@index([dueDate])
+  @@map("crm_tasks")
 }
