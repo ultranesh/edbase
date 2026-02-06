@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { extensionNumber, displayName, userId } = body;
+  const { extensionNumber, displayName, userId, callerId } = body;
 
   if (!extensionNumber) {
     return NextResponse.json({ error: 'Extension number is required' }, { status: 400 });
@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
       extensionNumber,
       displayName,
       userId: userId || null,
+      callerId: callerId || null,
       isActive: true,
     },
   });
@@ -134,7 +135,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { id, extensionNumber, displayName, userId, isActive, forwardNumber, voicemailEnabled } = body;
+  const { id, extensionNumber, displayName, userId, isActive, forwardNumber, voicemailEnabled, callerId } = body;
 
   if (!id) {
     return NextResponse.json({ error: 'Extension ID is required' }, { status: 400 });
@@ -159,6 +160,7 @@ export async function PUT(request: NextRequest) {
       isActive,
       forwardNumber,
       voicemailEnabled,
+      callerId: callerId || null,
     },
   });
 

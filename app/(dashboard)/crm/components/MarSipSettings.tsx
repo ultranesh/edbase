@@ -92,6 +92,7 @@ interface Extension {
   isOnline: boolean;
   forwardNumber: string | null;
   voicemailEnabled: boolean;
+  callerId: string | null;
 }
 
 interface MarSipConfig {
@@ -130,6 +131,7 @@ export default function MarSipSettings({ t }: MarSipSettingsProps) {
   const [newExtNumber, setNewExtNumber] = useState('');
   const [newExtName, setNewExtName] = useState('');
   const [newExtUserId, setNewExtUserId] = useState('');
+  const [newExtCallerId, setNewExtCallerId] = useState('');
   const [addingExt, setAddingExt] = useState(false);
 
   const fetchConfig = useCallback(async () => {
@@ -194,12 +196,14 @@ export default function MarSipSettings({ t }: MarSipSettingsProps) {
           extensionNumber: newExtNumber.trim(),
           displayName: newExtName.trim() || null,
           userId: newExtUserId || null,
+          callerId: newExtCallerId.trim() || null,
         }),
       });
       if (res.ok) {
         setNewExtNumber('');
         setNewExtName('');
         setNewExtUserId('');
+        setNewExtCallerId('');
         fetchConfig();
       } else {
         const error = await res.json();
@@ -429,7 +433,7 @@ export default function MarSipSettings({ t }: MarSipSettingsProps) {
             <h4 className="font-medium text-gray-900 dark:text-white mb-3">
               {t('crm.settings.addExtension')}
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <input
                 type="text"
                 value={newExtNumber}
@@ -455,6 +459,13 @@ export default function MarSipSettings({ t }: MarSipSettingsProps) {
                     label: `${user.lastName} ${user.firstName}`,
                   })),
                 ]}
+              />
+              <input
+                type="text"
+                value={newExtCallerId}
+                onChange={(e) => setNewExtCallerId(e.target.value)}
+                placeholder="CallerID (+7...)"
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
               />
               <button
                 onClick={addExtension}
@@ -514,6 +525,17 @@ export default function MarSipSettings({ t }: MarSipSettingsProps) {
                           label: `${user.lastName} ${user.firstName}`,
                         })),
                       ]}
+                    />
+                  </div>
+
+                  {/* CallerID */}
+                  <div className="w-36">
+                    <input
+                      type="text"
+                      value={ext.callerId || ''}
+                      onChange={(e) => updateExtension(ext.id, { callerId: e.target.value || null })}
+                      placeholder="CallerID"
+                      className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
                     />
                   </div>
 

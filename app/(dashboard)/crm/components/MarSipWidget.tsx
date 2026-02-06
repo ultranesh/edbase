@@ -22,6 +22,7 @@ interface SipConfig {
   username: string;
   password: string;
   janusWs: string;
+  callerId?: string;
 }
 
 interface DragState {
@@ -130,7 +131,7 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
           if (sessionRes.ok) {
             const session = await sessionRes.json();
             const userExt = config.extensions?.find(
-              (e: { userId: string; isActive: boolean; sipPassword?: string }) =>
+              (e: { userId: string; isActive: boolean; sipPassword?: string; callerId?: string }) =>
                 e.userId === session?.user?.id && e.isActive
             );
             if (userExt && config.isActive) {
@@ -147,6 +148,7 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
                 username: config.sipLogin || userExt.extensionNumber,
                 password: config.sipPassword || '',
                 janusWs: janusWsUrl,
+                callerId: userExt.callerId,
               });
               setCallState({ status: 'idle' });
             }
@@ -298,6 +300,77 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  // Format phone number with mask: +7 000 000 00 00
+  const formatPhoneDisplay = (val: string) => {
+    let digits = (val || '').replace(/[^\d]/g, '');
+
+    // Normalize: 11 digits starting with 8 or 7 = remove country code
+    if (digits.length === 11 && (digits[0] === '8' || digits[0] === '7')) {
+      digits = digits.slice(1);
+    }
+
+    // Build display with mask: +7 0__ ___ __ __
+    if (digits.length === 0) return '+7 ';
+
+    // Format as: +7 XXX XXX XX XX with zeros for remaining
+    let result = '+7 ';
+    const positions = [0, 1, 2, 4, 5, 6, 8, 9, 11, 12]; // positions for digits in "XXX XXX XX XX"
+    const template = '0__ ___ __ __';
+    const chars = template.split('');
+
+    for (let i = 0; i < digits.length && i < 10; i++) {
+      chars[positions[i]] = digits[i];
+    }
+
+    return result + chars.join('');
+  };
+
+  // Handle phone input - store normalized digits (without country code)
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    // Extract all digits from input
+    let allDigits = input.replace(/[^\d]/g, '');
+
+    // Handle paste of full number with country code (11 digits starting with 8 or 7)
+    if (allDigits.length === 11 && (allDigits[0] === '8' || allDigits[0] === '7')) {
+      allDigits = allDigits.slice(1);
+      setPhoneNumber(allDigits.slice(0, 10));
+      return;
+    }
+
+    // The first "7" is from our prefix "+7", skip it
+    if (allDigits.length <= 1) {
+      setPhoneNumber('');
+      return;
+    }
+
+    // Skip the prefix "7" and take the rest (user's actual input)
+    const userDigits = allDigits.slice(1).slice(0, 10);
+    setPhoneNumber(userDigits);
+  };
+
+  // Normalize phone number to format: +7XXXXXXXXXX
+  const normalizePhone = (phone: string): string => {
+    if (!phone) return '';
+    // Remove all non-digits
+    let digits = phone.replace(/[^\d]/g, '');
+    // Handle 11 digits starting with 8 or 7 (Kazakhstan format)
+    if (digits.length === 11 && (digits[0] === '8' || digits[0] === '7')) {
+      digits = '7' + digits.slice(1);
+    }
+    // Handle 10 digits (without country code)
+    if (digits.length === 10) {
+      digits = '7' + digits;
+    }
+    return digits.length >= 10 ? '+' + digits : '';
+  };
+
+  // Get full phone number for calling (with country code)
+  const getFullPhoneNumber = () => {
+    if (!phoneNumber) return '';
+    return normalizePhone(phoneNumber);
+  };
+
   const updateCallStatus = async (status: string) => {
     if (!callIdRef.current) return;
     try {
@@ -315,7 +388,8 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
   };
 
   const makeCall = useCallback(async (phone?: string, knownLeadId?: string) => {
-    const targetPhone = phone || phoneNumber;
+    // Normalize phone number to prevent duplicated +7 prefix
+    const targetPhone = normalizePhone(phone || '') || getFullPhoneNumber();
     if (!targetPhone.trim()) return;
 
     setCallState({ status: 'calling', phone: targetPhone });
@@ -351,7 +425,7 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
         // Try real Janus call first
         if (janusClientRef.current) {
           try {
-            await janusClientRef.current.call(targetPhone);
+            await janusClientRef.current.call(targetPhone, { callerId: sipConfig?.callerId });
             setCallState(prev => ({ ...prev, callId: data.callId }));
             return;
           } catch (e) {
@@ -521,10 +595,10 @@ export default function MarSipWidget({ t }: MarSipWidgetProps) {
             <div className="flex gap-2 mb-4">
               <input
                 type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                value={formatPhoneDisplay(phoneNumber)}
+                onChange={handlePhoneChange}
                 onKeyDown={(e) => e.key === 'Enter' && makeCall()}
-                placeholder={t('marsip.enterNumber')}
+                placeholder="+7 ___ ___ __ __"
                 className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-0 rounded-xl text-base text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none"
               />
               <button

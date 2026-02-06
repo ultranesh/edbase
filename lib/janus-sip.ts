@@ -25,10 +25,14 @@ interface JanusSession {
 
 export type CallStatus = 'idle' | 'registering' | 'registered' | 'calling' | 'ringing' | 'connected' | 'ended' | 'error';
 
+export interface CallOptions {
+  callerId?: string;
+}
+
 export interface JanusSipClient {
   connect: () => Promise<void>;
   register: () => Promise<void>;
-  call: (number: string) => Promise<void>;
+  call: (number: string, options?: CallOptions) => Promise<void>;
   hangup: () => void;
   destroy: () => void;
   onStatusChange: (callback: (status: CallStatus, message?: string) => void) => void;
@@ -291,10 +295,10 @@ export function createJanusSipClient(config: JanusConfig): JanusSipClient {
         body: {
           request: 'register',
           username: `sip:${config.username}@${config.sipServer}`,
+          authuser: config.username,
           secret: config.password,
           display_name: config.displayName || config.username,
-          proxy: `sip:${config.sipServer}`,
-          transport: 'tcp', // Use TCP instead of UDP for Sipuni
+          proxy: `sip:${config.sipServer}:5060`,
         },
       }).catch((err) => {
         clearInterval(interval);
@@ -303,7 +307,7 @@ export function createJanusSipClient(config: JanusConfig): JanusSipClient {
     });
   };
 
-  const call = async (number: string): Promise<void> => {
+  const call = async (number: string, options?: CallOptions): Promise<void> => {
     if (!session || !session.registered) {
       throw new Error('Not registered');
     }
@@ -342,17 +346,8 @@ export function createJanusSipClient(config: JanusConfig): JanusSipClient {
       }
     };
 
-    // Handle ICE candidates
-    session.pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        sendMessage({
-          janus: 'trickle',
-          session_id: session!.sessionId,
-          handle_id: session!.handleId,
-          candidate: event.candidate,
-        }).catch(console.error);
-      }
-    };
+    // Note: We don't use trickle ICE - we wait for gathering to complete
+    // and send all candidates in the SDP offer
 
     // Create offer
     const offer = await session.pc.createOffer({
@@ -361,22 +356,67 @@ export function createJanusSipClient(config: JanusConfig): JanusSipClient {
     });
     await session.pc.setLocalDescription(offer);
 
+    // Wait for ICE gathering to complete (or timeout after 3 seconds)
+    await new Promise<void>((resolve) => {
+      if (session!.pc!.iceGatheringState === 'complete') {
+        resolve();
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        console.log('ICE gathering timeout, proceeding with current candidates');
+        resolve();
+      }, 3000);
+
+      session!.pc!.onicegatheringstatechange = () => {
+        if (session!.pc!.iceGatheringState === 'complete') {
+          clearTimeout(timeout);
+          resolve();
+        }
+      };
+    });
+
+    // Use the complete local description with gathered ICE candidates
+    const completeOffer = session.pc.localDescription;
+
     // Format number for SIP
     let sipUri = number.replace(/\D/g, '');
+    // Convert Kazakhstan numbers: +7xxx or 7xxx → 8xxx for trunk dialing
+    if (sipUri.length === 11 && sipUri.startsWith('7')) {
+      sipUri = '8' + sipUri.slice(1);
+    } else if (sipUri.length === 10) {
+      sipUri = '8' + sipUri;
+    }
     if (!sipUri.startsWith('sip:')) {
       sipUri = `sip:${sipUri}@${config.sipServer}`;
     }
 
-    // Send call request
+    // Build call body with optional callerId
+    const callBody: { request: string; uri: string; from_display_name?: string } = {
+      request: 'call',
+      uri: sipUri,
+    };
+
+    // If callerId is provided, set it as the display name (CallerID)
+    if (options?.callerId) {
+      callBody.from_display_name = options.callerId;
+    }
+
+    // Send call request with complete SDP (including gathered ICE candidates)
     await sendMessage({
       janus: 'message',
       session_id: session.sessionId,
       handle_id: session.handleId,
-      body: {
-        request: 'call',
-        uri: sipUri,
-      },
-      jsep: offer,
+      body: callBody,
+      jsep: completeOffer,
+    });
+
+    // Signal that trickle ICE is complete (no more candidates)
+    await sendMessage({
+      janus: 'trickle',
+      session_id: session.sessionId,
+      handle_id: session.handleId,
+      candidate: { completed: true },
     });
   };
 
